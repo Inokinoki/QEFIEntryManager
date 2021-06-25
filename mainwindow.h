@@ -6,13 +6,16 @@
 #include <QTabWidget>
 #include <QLabel>
 
+#include "qefientryrebootview.h"
+#include "qefientryview.h"
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
     QTabWidget *m_tab;
-    QLabel *m_firstLabel;
-    QLabel *m_secondLabel;
+    QEFIEntryRebootView *m_rebootView;
+    QEFIEntryView *m_entryView;
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();

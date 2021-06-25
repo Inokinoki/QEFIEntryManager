@@ -10,12 +10,12 @@ MainWindow::MainWindow(QWidget *parent)
     // Create tabs
     m_tab = new QTabWidget(this);
 
-    // TODO: Add class for each page
-    m_firstLabel = new QLabel(QStringLiteral("Boot entry page"), m_tab);
-    m_secondLabel = new QLabel(QStringLiteral("Reboot page"), m_tab);
+    // Create a class for each page amd keep a ref to update
+    m_entryView = new QEFIEntryView(m_tab);
+    m_rebootView = new QEFIEntryRebootView(m_tab);
 
-    m_tab->insertTab(0, m_firstLabel, QStringLiteral("Boot Entry"));
-    m_tab->insertTab(1, m_secondLabel, QStringLiteral("Reboot into"));
+    m_tab->insertTab(0, m_entryView, QStringLiteral("Boot Entry"));
+    m_tab->insertTab(1, m_rebootView, QStringLiteral("Reboot into"));
 
     this->setCentralWidget(m_tab);
 }
@@ -25,10 +25,8 @@ MainWindow::~MainWindow()
     if (m_tab != nullptr) delete m_tab;
     m_tab = nullptr;
 
-    // TODO: Remove pages instead of such placeholders
-    if (m_firstLabel != nullptr) delete m_firstLabel;
-    if (m_secondLabel != nullptr) delete m_secondLabel;
-    m_firstLabel = nullptr;
-    m_secondLabel = nullptr;
+    // Ownership has been passed to tab
+    m_entryView = nullptr;
+    m_rebootView = nullptr;
 }
 
