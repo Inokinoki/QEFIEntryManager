@@ -23,6 +23,10 @@ set(PROJECT_SOURCES
         main.cpp
         mainwindow.cpp
         mainwindow.h
+        qefientryview.cpp
+        qefientryview.h
+        qefientryrebootview.cpp
+        qefientryrebootview.h
         qefi.cpp
 )
 
