@@ -3,11 +3,30 @@
 QEFIEntryView::QEFIEntryView(QWidget *parent)
     : QWidget(parent)
 {
-    // TODO: Add list view and buttons
+    // Add list view and buttons
     m_topLevelLayout = new QBoxLayout(QBoxLayout::LeftToRight, this);
 
-    m_testLabel = new QLabel(QStringLiteral("Test Entry View"));
-    m_topLevelLayout->addWidget(m_testLabel, 1);
+    m_entries = new QListWidget(this);
+    m_entries->addItem(QStringLiteral("Test item 0001\nNew line"));
+    m_entries->addItem(QStringLiteral("Test item 0002\nNew line"));
+    m_topLevelLayout->addWidget(m_entries, 3);
+
+    m_buttonLayout = new QBoxLayout(QBoxLayout::TopToBottom, this);
+    m_topLevelLayout->addLayout(m_buttonLayout, 1);
+
+    m_moveUpEntryButton = new QPushButton(QStringLiteral("Move up"), this);
+    m_moveDownEntryButton = new QPushButton(QStringLiteral("Move down"), this);
+    m_setCurrentButton = new QPushButton(QStringLiteral("Make default"), this);
+    m_buttonLayout->addWidget(m_moveUpEntryButton);
+    m_buttonLayout->addWidget(m_moveDownEntryButton);
+    m_buttonLayout->addWidget(m_setCurrentButton);
+
+    m_buttonLayout->addStretch(1);
+
+    m_saveButton = new QPushButton(QStringLiteral("Save"), this);
+    m_resetButton = new QPushButton(QStringLiteral("Reset"), this);
+    m_buttonLayout->addWidget(m_saveButton);
+    m_buttonLayout->addWidget(m_resetButton);
 
     this->setLayout(m_topLevelLayout);
 }
@@ -20,7 +39,17 @@ QEFIEntryView::~QEFIEntryView()
         m_topLevelLayout = nullptr;
     }
 
-    if (m_testLabel != nullptr) delete m_testLabel;
-    m_testLabel = nullptr;
+    if (m_entries != nullptr) delete m_entries;
+    m_entries = nullptr;
+
+    // Seems that we have no ownership on it
+//    if (m_buttonLayout != nullptr) delete m_buttonLayout;
+//    m_buttonLayout = nullptr;
+
+    if (m_moveUpEntryButton != nullptr) delete m_moveUpEntryButton;
+    if (m_moveDownEntryButton != nullptr) delete m_moveDownEntryButton;
+    if (m_setCurrentButton != nullptr) delete m_setCurrentButton;
+    if (m_saveButton != nullptr) delete m_saveButton;
+    if (m_resetButton != nullptr) delete m_resetButton;
 }
 
