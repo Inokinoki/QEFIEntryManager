@@ -30,9 +30,23 @@ class QEFIEntryView: public QWidget
 
     QMap<quint16, QEFIEntry> m_entryItems;
     QList<quint16> m_order;
+
+    int m_selectedItemIndex;
+
+    void updateButtonState();
 public:
     QEFIEntryView(QWidget *parent = nullptr);
     ~QEFIEntryView();
+
+public slots:
+    void entryChanged(int currentRow);
+
+    void resetClicked(bool checked);
+    void saveClicked(bool checked);
+    void setCurrentClicked(bool checked);
+
+    void moveUpClicked(bool checked);
+    void moveDownClicked(bool checked);
 };
 
 #endif // QEFIENTRYVIEW_H

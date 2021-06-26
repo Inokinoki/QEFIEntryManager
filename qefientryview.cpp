@@ -2,6 +2,8 @@
 
 #include "qefientrystaticlist.h"
 
+#include <QDebug>
+
 QEFIEntryView::QEFIEntryView(QWidget *parent)
     : QWidget(parent)
 {
@@ -11,12 +13,15 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
     m_entries = new QListWidget(this);
     m_entryItems = QEFIEntryStaticList::instance()->entries();
     m_order = QEFIEntryStaticList::instance()->order();
+    m_selectedItemIndex = -1;
     for (int i = 0; i < m_order.size(); i++) {
         if (m_entryItems.contains(m_order[i])) {
             QEFIEntry &entry = m_entryItems[m_order[i]];
             m_entries->addItem(QString::asprintf("[%04X] ", entry.id()) + entry.name());
         }
     }
+    QObject::connect(m_entries, &QListWidget::currentRowChanged,
+                     this, &QEFIEntryView::entryChanged);
     m_topLevelLayout->addWidget(m_entries, 3);
 
     m_buttonLayout = new QBoxLayout(QBoxLayout::TopToBottom, this);
@@ -28,6 +33,12 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
     m_buttonLayout->addWidget(m_moveUpEntryButton);
     m_buttonLayout->addWidget(m_moveDownEntryButton);
     m_buttonLayout->addWidget(m_setCurrentButton);
+    QObject::connect(m_moveUpEntryButton, &QPushButton::clicked,
+                     this, &QEFIEntryView::moveUpClicked);
+    QObject::connect(m_moveDownEntryButton, &QPushButton::clicked,
+                     this, &QEFIEntryView::moveDownClicked);
+    QObject::connect(m_setCurrentButton, &QPushButton::clicked,
+                     this, &QEFIEntryView::setCurrentClicked);
 
     m_buttonLayout->addStretch(1);
 
@@ -35,6 +46,12 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
     m_resetButton = new QPushButton(QStringLiteral("Reset"), this);
     m_buttonLayout->addWidget(m_saveButton);
     m_buttonLayout->addWidget(m_resetButton);
+    QObject::connect(m_saveButton, &QPushButton::clicked,
+                     this, &QEFIEntryView::saveClicked);
+    QObject::connect(m_resetButton, &QPushButton::clicked,
+                     this, &QEFIEntryView::resetClicked);
+
+    updateButtonState();
 
     this->setLayout(m_topLevelLayout);
 }
@@ -61,3 +78,79 @@ QEFIEntryView::~QEFIEntryView()
     if (m_resetButton != nullptr) delete m_resetButton;
 }
 
+void QEFIEntryView::entryChanged(int currentRow)
+{
+    qDebug() << "[EFIEntryView] Clicked: " << currentRow;
+    m_selectedItemIndex = currentRow;
+    updateButtonState();
+}
+
+void QEFIEntryView::resetClicked(bool checked)
+{
+    m_entries->clear();
+    for (int i = 0; i < m_order.size(); i++) {
+        if (m_entryItems.contains(m_order[i])) {
+            QEFIEntry &entry = m_entryItems[m_order[i]];
+            m_entries->addItem(QString::asprintf("[%04X] ", entry.id()) + entry.name());
+        }
+    }
+    updateButtonState();
+}
+
+void QEFIEntryView::saveClicked(bool checked)
+{
+    // TODO: Retrieve from m_order, serialize and save them
+}
+
+void QEFIEntryView::setCurrentClicked(bool checked)
+{
+    // Set BootCurrent
+    if (m_selectedItemIndex > 0) {
+        m_order.swap(m_selectedItemIndex, 0);
+        resetClicked(checked);
+    }
+    updateButtonState();
+}
+
+void QEFIEntryView::moveUpClicked(bool checked)
+{
+    // Move the current up
+    if (m_selectedItemIndex > 0) {
+        m_order.swap(m_selectedItemIndex, m_selectedItemIndex - 1);
+        resetClicked(checked);
+    }
+    updateButtonState();
+}
+
+void QEFIEntryView::moveDownClicked(bool checked)
+{
+    // Move the current down
+    if (m_selectedItemIndex < m_order.size() - 1) {
+        m_order.swap(m_selectedItemIndex, m_selectedItemIndex + 1);
+        resetClicked(checked);
+    }
+    updateButtonState();
+}
+
+void QEFIEntryView::updateButtonState()
+{
+    if (m_selectedItemIndex < m_order.size() && m_selectedItemIndex >= 0) {
+        m_moveUpEntryButton->setDisabled(false);
+        m_moveDownEntryButton->setDisabled(false);
+        m_setCurrentButton->setDisabled(false);
+        m_saveButton->setDisabled(false);
+        m_resetButton->setDisabled(false);
+        if (0 == m_selectedItemIndex) {
+            m_moveUpEntryButton->setDisabled(true);
+        }
+        if (m_order.size() - 1 == m_selectedItemIndex) {
+            m_moveDownEntryButton->setDisabled(true);
+        }
+    } else {
+        m_moveUpEntryButton->setDisabled(true);
+        m_moveDownEntryButton->setDisabled(true);
+        m_setCurrentButton->setDisabled(true);
+        m_saveButton->setDisabled(false);
+        m_resetButton->setDisabled(false);
+    }
+}
