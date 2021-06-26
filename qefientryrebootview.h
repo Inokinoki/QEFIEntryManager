@@ -9,6 +9,7 @@
 #include <QLabel>
 
 #include <QMap>
+#include <QList>
 
 #include "qefientrystaticlist.h"
 
@@ -27,9 +28,16 @@ class QEFIEntryRebootView: public QWidget
 
     QMap<quint16, QEFIEntry> m_entryItems;
     quint16 m_timeout;
+
+    QList<quint16> m_entryIds;
+    int m_rebootItemIndex;
 public:
     QEFIEntryRebootView(QWidget *parent = nullptr);
     ~QEFIEntryRebootView();
+
+public slots:
+    void entryChanged(int currentRow);
+    void rebootClicked(bool checked);
 };
 
 #endif // QEFIENTRYREBOOTVIEW_H

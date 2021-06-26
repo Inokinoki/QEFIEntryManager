@@ -1,5 +1,7 @@
 #include "qefientryrebootview.h"
 
+#include <QDebug>
+
 QEFIEntryRebootView::QEFIEntryRebootView(QWidget *parent)
     : QWidget(parent)
 {
@@ -10,13 +12,15 @@ QEFIEntryRebootView::QEFIEntryRebootView(QWidget *parent)
     m_entryItems = QEFIEntryStaticList::instance()->entries();
 
     // Keys are sorted in RBTree
-    QList<quint16> keys = m_entryItems.keys();
+    m_entryIds = m_entryItems.keys();
     m_entries->clear();
-    for (int i = 0; i < keys.size(); i++) {
-        QEFIEntry &entry = m_entryItems[keys[i]];
+    m_rebootItemIndex = -1;
+    for (int i = 0; i < m_entryIds.size(); i++) {
+        QEFIEntry &entry = m_entryItems[m_entryIds[i]];
         m_entries->addItem(QString::asprintf("[%04X] ", entry.id()) + entry.name());
     }
-
+    QObject::connect(m_entries, &QListWidget::currentRowChanged,
+                     this, &QEFIEntryRebootView::entryChanged);
     m_topLevelLayout->addWidget(m_entries, 3);
 
     m_buttonLayout = new QBoxLayout(QBoxLayout::TopToBottom, this);
@@ -26,7 +30,10 @@ QEFIEntryRebootView::QEFIEntryRebootView(QWidget *parent)
         QEFIEntryStaticList::instance()->timeout()), this);
     m_buttonLayout->addWidget(m_bootTimeoutLabel);
     m_buttonLayout->addStretch(1);
-    m_rebootTargetButton = new QPushButton(QString::asprintf("Set as reboot target"), this);
+    m_rebootTargetButton = new QPushButton(QString::asprintf("Set reboot target"), this);
+    m_rebootTargetButton->setDisabled(true);
+    QObject::connect(m_rebootTargetButton, &QPushButton::clicked,
+                     this, &QEFIEntryRebootView::rebootClicked);
     m_buttonLayout->addWidget(m_rebootTargetButton, 0);
 
     this->setLayout(m_topLevelLayout);
@@ -48,4 +55,24 @@ QEFIEntryRebootView::~QEFIEntryRebootView()
     m_rebootTargetButton = nullptr;
     if (m_bootTimeoutLabel != nullptr) delete m_bootTimeoutLabel;
     m_bootTimeoutLabel = nullptr;
+}
+
+void QEFIEntryRebootView::entryChanged(int currentRow)
+{
+    qDebug() << "[EFIRebootView] Clicked: " << currentRow;
+    m_rebootItemIndex = currentRow;
+    if (m_rebootItemIndex >= m_entryIds.size() || m_rebootItemIndex < 0) {
+        m_rebootTargetButton->setDisabled(true);
+    } else {
+        m_rebootTargetButton->setDisabled(false);
+    }
+}
+
+void QEFIEntryRebootView::rebootClicked(bool checked)
+{
+    if (m_rebootItemIndex >= 0 || m_rebootItemIndex < m_entryIds.size()) {
+        qDebug() << "[EFIRebootView] Set " << m_entryIds[m_rebootItemIndex] << " "
+                 << m_entryItems[m_entryIds[m_rebootItemIndex]].name() << " as reboot target";
+        // TODO: set BootNext
+    }
 }
