@@ -4,6 +4,8 @@
 #include <iostream>
 QByteArray qefi_get_variable(QUuid uuid, QString name);
 quint16 qefi_get_variable_uint16(QUuid uuid, QString name);
+void qefi_set_variable_uint16(QUuid uuid, QString name, quint16 value);
+void qefi_set_variable(QUuid uuid, QString name, QByteArray value);
 
 QEFIEntryStaticList::QEFIEntryStaticList()
 {
@@ -90,4 +92,11 @@ void QEFIEntryStaticList::load()
         std::cerr << std::hex << *order_num << " " << entry_name.toStdString();
         std::cerr << std::endl;
     }
+}
+
+void QEFIEntryStaticList::setBootNext(const quint16 &next)
+{
+    // TODO: Maybe do validation
+    qefi_set_variable_uint16(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
+                             QStringLiteral("BootNext"), next);
 }

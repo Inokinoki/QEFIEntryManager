@@ -73,6 +73,7 @@ void QEFIEntryRebootView::rebootClicked(bool checked)
     if (m_rebootItemIndex >= 0 || m_rebootItemIndex < m_entryIds.size()) {
         qDebug() << "[EFIRebootView] Set " << m_entryIds[m_rebootItemIndex] << " "
                  << m_entryItems[m_entryIds[m_rebootItemIndex]].name() << " as reboot target";
-        // TODO: set BootNext
+        // Set BootNext
+        QEFIEntryStaticList::instance()->setBootNext(m_entryIds[m_rebootItemIndex]);
     }
 }
