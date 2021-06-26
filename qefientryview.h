@@ -8,6 +8,11 @@
 #include <QListWidget>
 #include <QPushButton>
 
+#include <QMap>
+#include <QList>
+
+#include "qefientry.h"
+
 class QEFIEntryView: public QWidget
 {
     Q_OBJECT
@@ -22,6 +27,9 @@ class QEFIEntryView: public QWidget
     QPushButton *m_setCurrentButton;
     QPushButton *m_saveButton;
     QPushButton *m_resetButton;
+
+    QMap<quint16, QEFIEntry> m_entryItems;
+    QList<quint16> m_order;
 public:
     QEFIEntryView(QWidget *parent = nullptr);
     ~QEFIEntryView();

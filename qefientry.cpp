@@ -30,3 +30,5 @@ QEFIEntry::QEFIEntry(quint16 id, QByteArray boot_data)
     }
     m_name = entry_name;
 }
+
+QEFIEntry::QEFIEntry() {}

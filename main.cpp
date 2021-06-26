@@ -1,13 +1,16 @@
 #include "mainwindow.h"
 
 #include <QApplication>
+#include <qefientrystaticlist.h>
 
-QByteArray qefi_get_variable(QUuid uuid, QString name);
-quint16 qefi_get_variable_uint16(QUuid uuid, QString name);
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+    QEFIEntryStaticList *list = QEFIEntryStaticList::instance();
+    list->load();
+
     MainWindow w;
     w.show();
     return a.exec();

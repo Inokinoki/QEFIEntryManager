@@ -29,6 +29,8 @@ set(PROJECT_SOURCES
         qefientryrebootview.h
         qefientry.cpp
         qefientry.h
+        qefientrystaticlist.cpp
+        qefientrystaticlist.h
         qefi.cpp
 )
 

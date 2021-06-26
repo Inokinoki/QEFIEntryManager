@@ -1,5 +1,7 @@
 #include "qefientryview.h"
 
+#include "qefientrystaticlist.h"
+
 QEFIEntryView::QEFIEntryView(QWidget *parent)
     : QWidget(parent)
 {
@@ -7,8 +9,14 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
     m_topLevelLayout = new QBoxLayout(QBoxLayout::LeftToRight, this);
 
     m_entries = new QListWidget(this);
-    m_entries->addItem(QStringLiteral("Test item 0001\nNew line"));
-    m_entries->addItem(QStringLiteral("Test item 0002\nNew line"));
+    m_entryItems = QEFIEntryStaticList::instance()->entries();
+    m_order = QEFIEntryStaticList::instance()->order();
+    for (int i = 0; i < m_order.size(); i++) {
+        if (m_entryItems.contains(m_order[i])) {
+            QEFIEntry &entry = m_entryItems[m_order[i]];
+            m_entries->addItem(QString::asprintf("[%04X] ", entry.id()) + entry.name());
+        }
+    }
     m_topLevelLayout->addWidget(m_entries, 3);
 
     m_buttonLayout = new QBoxLayout(QBoxLayout::TopToBottom, this);

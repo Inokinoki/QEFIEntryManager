@@ -11,6 +11,7 @@ class QEFIEntry
 
     // TODO: Parse more information
 public:
+    QEFIEntry();
     QEFIEntry(quint16 id, QString name);
     QEFIEntry(quint16 id, QByteArray byteArrayFromEFIVar);
     QString name() const;
