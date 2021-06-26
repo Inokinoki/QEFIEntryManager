@@ -49,7 +49,7 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
     QObject::connect(m_saveButton, &QPushButton::clicked,
                      this, &QEFIEntryView::saveClicked);
     QObject::connect(m_resetButton, &QPushButton::clicked,
-                     this, &QEFIEntryView::resetClicked);
+                     this, &QEFIEntryView::resetFromStaticListClicked);
 
     updateButtonState();
 
@@ -153,4 +153,12 @@ void QEFIEntryView::updateButtonState()
         m_saveButton->setDisabled(false);
         m_resetButton->setDisabled(false);
     }
+}
+
+void QEFIEntryView::resetFromStaticListClicked(bool checked)
+{
+    m_entryItems = QEFIEntryStaticList::instance()->entries();
+    m_order = QEFIEntryStaticList::instance()->order();
+    m_selectedItemIndex = -1;
+    resetClicked(checked);
 }

@@ -42,6 +42,7 @@ public slots:
     void entryChanged(int currentRow);
 
     void resetClicked(bool checked);
+    void resetFromStaticListClicked(bool checked);
     void saveClicked(bool checked);
     void setCurrentClicked(bool checked);
 
