@@ -14,8 +14,8 @@ MainWindow::MainWindow(QWidget *parent)
     m_entryView = new QEFIEntryView(m_tab);
     m_rebootView = new QEFIEntryRebootView(m_tab);
 
-    m_tab->insertTab(0, m_entryView, QStringLiteral("Boot Entry"));
-    m_tab->insertTab(1, m_rebootView, QStringLiteral("Reboot into"));
+    m_tab->insertTab(0, m_entryView, QStringLiteral("Boot Order"));
+    m_tab->insertTab(1, m_rebootView, QStringLiteral("Reboot with"));
 
     this->setCentralWidget(m_tab);
 }
