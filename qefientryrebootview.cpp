@@ -1,6 +1,7 @@
 #include "qefientryrebootview.h"
 
 #include <QDebug>
+#include <QMessageBox>
 
 QEFIEntryRebootView::QEFIEntryRebootView(QWidget *parent)
     : QWidget(parent)
@@ -70,10 +71,24 @@ void QEFIEntryRebootView::entryChanged(int currentRow)
 
 void QEFIEntryRebootView::rebootClicked(bool checked)
 {
+    Q_UNUSED(checked);
     if (m_rebootItemIndex >= 0 || m_rebootItemIndex < m_entryIds.size()) {
         qDebug() << "[EFIRebootView] Set " << m_entryIds[m_rebootItemIndex] << " "
                  << m_entryItems[m_entryIds[m_rebootItemIndex]].name() << " as reboot target";
         // Set BootNext
         QEFIEntryStaticList::instance()->setBootNext(m_entryIds[m_rebootItemIndex]);
+        int ret = QMessageBox::warning(this, QStringLiteral("Reboot to ") +
+                                       m_entryItems[m_entryIds[m_rebootItemIndex]].name(),
+                                       QStringLiteral("Do you want to reboot now?"),
+                                       QMessageBox::Yes | QMessageBox::No,
+                                       QMessageBox::No);
+        if (ret == QMessageBox::Yes) {
+            // TODO: Reboot now
+            qDebug() << "[EFIRebootView] Reboot now";
+        } else {
+            // Do nothing
+            qDebug() << "[EFIRebootView] Reboot later";
+        }
+        return;
     }
 }
