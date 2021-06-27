@@ -27,6 +27,7 @@ public:
     QMap<quint16, QEFIEntry> entries() const;
 
     void setBootNext(const quint16 &next);
+    void setBootOrder(const QList<quint16> &newOrder);
 };
 
 #endif // QEFIENTRYSTATICLIST_H

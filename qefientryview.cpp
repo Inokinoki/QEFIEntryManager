@@ -99,7 +99,10 @@ void QEFIEntryView::resetClicked(bool checked)
 
 void QEFIEntryView::saveClicked(bool checked)
 {
+    qDebug() << "[EFIEntryView] Save button is clicked";
     // TODO: Retrieve from m_order, serialize and save them
+    // TODO: Check if there is any changes
+    QEFIEntryStaticList::instance()->setBootOrder(m_order);
 }
 
 void QEFIEntryView::setCurrentClicked(bool checked)

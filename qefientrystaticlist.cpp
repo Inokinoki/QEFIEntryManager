@@ -2,6 +2,9 @@
 
 #include <QUuid>
 #include <iostream>
+
+#include <QDebug>
+
 QByteArray qefi_get_variable(QUuid uuid, QString name);
 quint16 qefi_get_variable_uint16(QUuid uuid, QString name);
 void qefi_set_variable_uint16(QUuid uuid, QString name, quint16 value);
@@ -99,4 +102,19 @@ void QEFIEntryStaticList::setBootNext(const quint16 &next)
     // TODO: Maybe do validation
     qefi_set_variable_uint16(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
                              QStringLiteral("BootNext"), next);
+}
+
+void QEFIEntryStaticList::setBootOrder(const QList<quint16> &newOrder)
+{
+    // TODO: Maybe do validation
+    qDebug() << "New order is " << newOrder;
+
+    QByteArray orderBuffer(newOrder.size() * 2, 0);
+    quint16 *p = (quint16 *)orderBuffer.data();
+    for (int i = 0; i < newOrder.size(); i++, p++) {
+        *p = newOrder[i];
+    }
+    qefi_set_variable(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
+                      QStringLiteral("BootOrder"), orderBuffer);
+    // TODO: Sync the order in this class
 }
