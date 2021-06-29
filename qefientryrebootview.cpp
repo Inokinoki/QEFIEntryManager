@@ -18,7 +18,7 @@ QEFIEntryRebootView::QEFIEntryRebootView(QWidget *parent)
     m_rebootItemIndex = -1;
     for (int i = 0; i < m_entryIds.size(); i++) {
         QEFIEntry &entry = m_entryItems[m_entryIds[i]];
-        m_entries->addItem(QString::asprintf("[%04X] ", entry.id()) + entry.name());
+        m_entries->addItem(QString::asprintf("[%04X] ", entry.id()) + entry.name() + "\n" + entry.devicePath());
     }
     QObject::connect(m_entries, &QListWidget::currentRowChanged,
                      this, &QEFIEntryRebootView::entryChanged);

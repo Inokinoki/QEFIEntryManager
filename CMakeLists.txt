@@ -17,6 +17,7 @@ find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
 find_package(PkgConfig)
 if(PkgConfig_FOUND)
     pkg_check_modules(EFIVAR efivar)
+    pkg_check_modules(EFIBOOT efiboot)
 endif()
 
 set(PROJECT_SOURCES
@@ -48,7 +49,7 @@ endif()
 if(EFIVAR_FOUND)
     message("Use libefivar for EFI operations")
     include_directories(${EFIVAR_INCLUDE_DIRS})
-    target_link_libraries(QEFIEntryManager PRIVATE ${EFIVAR_LIBRARIES})
+    target_link_libraries(QEFIEntryManager PRIVATE ${EFIVAR_LIBRARIES} ${EFIBOOT_LIBRARIES})
 endif()
 
 target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
