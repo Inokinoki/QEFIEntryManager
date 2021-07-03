@@ -3,8 +3,7 @@
 #include <QApplication>
 #include <QMessageBox>
 #include <qefientrystaticlist.h>
-
-bool qefi_is_available();
+#include <qefi.h>
 
 int main(int argc, char *argv[])
 {

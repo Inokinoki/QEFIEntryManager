@@ -14,10 +14,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
 
-find_package(PkgConfig)
-if(PkgConfig_FOUND)
-    pkg_check_modules(EFIVAR efivar)
-endif()
+find_package(QEFI REQUIRED)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -31,7 +28,6 @@ set(PROJECT_SOURCES
         qefientry.h
         qefientrystaticlist.cpp
         qefientrystaticlist.h
-        qefi.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -44,11 +40,5 @@ else()
     )
 endif()
 
-# TODO: Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
-if(EFIVAR_FOUND)
-    message("Use libefivar for EFI operations")
-    include_directories(${EFIVAR_INCLUDE_DIRS})
-    target_link_libraries(QEFIEntryManager PRIVATE ${EFIVAR_LIBRARIES})
-endif()
-
-target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+# Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
+target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets QEFI)

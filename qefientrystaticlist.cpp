@@ -5,10 +5,7 @@
 
 #include <QDebug>
 
-QByteArray qefi_get_variable(QUuid uuid, QString name);
-quint16 qefi_get_variable_uint16(QUuid uuid, QString name);
-void qefi_set_variable_uint16(QUuid uuid, QString name, quint16 value);
-void qefi_set_variable(QUuid uuid, QString name, QByteArray value);
+#include <qefi.h>
 
 QEFIEntryStaticList::QEFIEntryStaticList()
 {
