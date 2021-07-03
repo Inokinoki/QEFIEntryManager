@@ -83,7 +83,7 @@ void QEFIEntryStaticList::load()
         }
 
         // Add entry
-        QEFIEntry entry(*order_num, entry_name);
+        QEFIEntry entry(*order_num, boot_data);
         m_entries.insert(*order_num, entry);
 
         // Cache
