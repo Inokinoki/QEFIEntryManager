@@ -17,7 +17,8 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
     for (int i = 0; i < m_order.size(); i++) {
         if (m_entryItems.contains(m_order[i])) {
             QEFIEntry &entry = m_entryItems[m_order[i]];
-            m_entries->addItem(QString::asprintf("[%04X] ", entry.id()) + entry.name() + "\n" + entry.devicePath());
+            m_entries->addItem(QString::asprintf("[%04X] ", entry.id()) + entry.name()
+                + (entry.devicePath().size() > 0 ? "\n" + entry.devicePath().size() : ""));
         }
     }
     QObject::connect(m_entries, &QListWidget::currentRowChanged,
