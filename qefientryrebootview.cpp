@@ -2,6 +2,7 @@
 
 #include <QDebug>
 #include <QMessageBox>
+#include <QProcess>
 
 QEFIEntryRebootView::QEFIEntryRebootView(QWidget *parent)
     : QWidget(parent)
@@ -84,8 +85,14 @@ void QEFIEntryRebootView::rebootClicked(bool checked)
                                        QMessageBox::Yes | QMessageBox::No,
                                        QMessageBox::No);
         if (ret == QMessageBox::Yes) {
-            // TODO: Reboot now
+            // Reboot now
             qDebug() << "[EFIRebootView] Reboot now";
+            QProcess process;
+#ifdef Q_OS_WIN
+            process.startDetached("shutdown", {"/r"});
+#else
+            process.startDetached("reboot");
+#endif
         } else {
             // Do nothing
             qDebug() << "[EFIRebootView] Reboot later";
