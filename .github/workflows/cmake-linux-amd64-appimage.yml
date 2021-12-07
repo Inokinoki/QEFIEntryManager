@@ -1,4 +1,4 @@
-name: CMake
+name: Build Linux x64 AppImage
 
 on:
   push:
@@ -53,4 +53,4 @@ jobs:
         # Artifact name
         name: QEFI Entry Manager x86_64 AppImage
         # A file, directory or wildcard pattern that describes what to upload
-        path: EFI_Entry_Manager*.AppImage
+        path: ${{github.workspace}}/build/EFI_Entry_Manager*.AppImage
