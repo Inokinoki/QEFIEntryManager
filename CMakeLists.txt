@@ -64,6 +64,10 @@ install(TARGETS QEFIEntryManager
         RUNTIME DESTINATION bin
 )
 # For AppImage
+include(GNUInstallDirs)
 install(PROGRAMS qefientrymanager.desktop
-        DESTINATION share/applications
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/share/applications
+)
+install(FILES qefientrymanager.png
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/96x96/apps
 )
