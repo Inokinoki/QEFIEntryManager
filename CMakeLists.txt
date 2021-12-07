@@ -68,6 +68,6 @@ include(GNUInstallDirs)
 install(PROGRAMS qefientrymanager.desktop
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/share/applications
 )
-install(FILES qefientrymanager.png
+install(FILES cc.inoki.qefientrymanager.png
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/96x96/apps
 )
