@@ -2,6 +2,8 @@
 
 [![Linux x64 AppImage](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-linux-amd64-appimage.yml/badge.svg)](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-linux-amd64-appimage.yml)
 
+[![Build Windows x64](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-windows-x86-x64.yml/badge.svg)](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-windows-x86-x64.yml)
+
 An EFI manager in Qt.
 
 ## Usage
@@ -25,7 +27,7 @@ click on `Yes` to reboot immediately:
 Download the prebuilt app from CI:
 
 - [Linux AppImages from CI](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-linux-amd64-appimage.yml)
-- TODO: [Windows]()
+- [Windows from CI](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-windows-x86-x64.yml)
 
 Run it as root (*nix):
 
