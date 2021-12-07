@@ -1,0 +1,48 @@
+name: Build Windows x86/x64
+
+on: 
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+# TODO: use matrix to build both x86 and x64
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+
+    steps:
+      - name: Cache Qt
+        id: cache-qt
+        uses: actions/cache@v1  # not v2!
+        with:
+          path: ../Qt
+          key: ${{ runner.os }}-QtCache
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v2
+        with:
+          cached: ${{ steps.cache-qt.outputs.cache-hit }}
+      
+      # Setup CMake
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v1.9
+
+      - name: Clone project
+        uses: actions/checkout@v2
+
+      - name: Configure CMake
+        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+      - name: Build
+        # Build your program with the given configuration
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      
+      # TODO: packing it
