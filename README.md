@@ -24,10 +24,16 @@ click on `Yes` to reboot immediately:
 
 Download the prebuilt app from CI:
 
-- [Linux AppImages from CI](https://github.com/Inokinoki/QEFIEntryManager/actions/runs)
+- [Linux AppImages from CI](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-linux-amd64-appimage.yml)
 - TODO: [Windows]()
 
-Run it as root (*nix) or administrator (Windows).
+Run it as root (*nix):
+
+```
+sudo ./<executable>
+```
+
+or administrator on Windows(right click).
 
 ## Build from scratch
 
