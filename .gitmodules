@@ -1,0 +1,3 @@
+[submodule "qefivar"]
+	path = qefivar
+	url = git@github.com:Inokinoki/qefivar.git
