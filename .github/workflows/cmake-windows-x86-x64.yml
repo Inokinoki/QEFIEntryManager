@@ -49,7 +49,7 @@ jobs:
 
       # Packing it      
       - name: Deploy
-        run: windeployqt --release --no-webkit2 --no-quick-import ${{github.workspace}}\build
+        run: windeployqt.exe --release --no-webkit2 --no-quick-import ${{github.workspace}}\build
 
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v2.2.4
