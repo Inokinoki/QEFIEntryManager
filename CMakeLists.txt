@@ -29,6 +29,10 @@ set(PROJECT_SOURCES
         qefivar/qefi.cpp
 )
 
+if(WIN32)
+    list(PREPEND PROJECT_SOURCES WIN32)
+endif()
+
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(QEFIEntryManager
         ${PROJECT_SOURCES}
