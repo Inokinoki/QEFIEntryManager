@@ -89,7 +89,7 @@ void QEFIEntryRebootView::rebootClicked(bool checked)
             qDebug() << "[EFIRebootView] Reboot now";
             QProcess process;
 #ifdef Q_OS_WIN
-            process.startDetached("shutdown", {"/r"});
+            process.startDetached("shutdown /r /t 0");
 #else
             process.startDetached("reboot");
 #endif
