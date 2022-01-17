@@ -31,6 +31,7 @@ set(PROJECT_SOURCES
 
 if(WIN32)
     list(PREPEND PROJECT_SOURCES WIN32)
+    set(CMAKE_EXE_LINKER_FLAGS "/MANIFESTUAC:\"level='requireAdministrator'\"")
 endif()
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
