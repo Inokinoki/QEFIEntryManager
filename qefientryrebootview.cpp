@@ -91,7 +91,11 @@ void QEFIEntryRebootView::rebootClicked(bool checked)
 #ifdef Q_OS_WIN
             process.startDetached("shutdown", {"/r"});
 #else
+#if QT_VERSION > QT_VERSION_CHECK(5, 10, 0)
+            process.startDetached("reboot", {});
+#else
             process.startDetached("reboot");
+#endif
 #endif
         } else {
             // Do nothing
