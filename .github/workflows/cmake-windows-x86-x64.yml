@@ -25,7 +25,7 @@ jobs:
         uses: actions/cache@v1  # not v2!
         with:
           path: ../Qt
-          key: ${{ runner.os }}-QtCache
+          key: ${{ runner.os }}-QtCache-${{ matrix.qtvers }}
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
