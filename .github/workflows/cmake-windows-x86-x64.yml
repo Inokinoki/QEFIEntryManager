@@ -15,6 +15,9 @@ jobs:
   build:
     name: Build
     runs-on: windows-latest
+    strategy:
+      matrix:
+        qtvers: ['5.15.2', '6.1.3']
 
     steps:
       - name: Cache Qt
@@ -28,7 +31,8 @@ jobs:
         uses: jurplel/install-qt-action@v2
         with:
           cached: ${{ steps.cache-qt.outputs.cache-hit }}
-      
+          version: ${{ matrix.qtvers }}
+
       # Setup CMake
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1.9
