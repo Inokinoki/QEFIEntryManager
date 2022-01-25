@@ -61,7 +61,7 @@ jobs:
         uses: actions/upload-artifact@v2.2.4
         with:
           # Artifact name
-          name: QEFI Entry Manager for Windows
+          name: QEFI Entry Manager for Windows Qt${{ matrix.qtvers }}
           # A file, directory or wildcard pattern that describes what to upload
           path: |
             ${{github.workspace}}\build\${{env.BUILD_TYPE}}\*.dll
