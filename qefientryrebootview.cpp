@@ -91,7 +91,7 @@ void QEFIEntryRebootView::rebootClicked(bool checked)
 #ifdef Q_OS_WIN
             process.startDetached("shutdown", {"/r"});
 #else
-            process.startDetached("reboot");
+            process.startDetached("reboot", {});
 #endif
         } else {
             // Do nothing

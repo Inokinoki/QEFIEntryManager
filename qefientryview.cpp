@@ -111,7 +111,11 @@ void QEFIEntryView::setCurrentClicked(bool checked)
 {
     // Set BootCurrent
     if (m_selectedItemIndex > 0) {
+#if QT_VERSION < QT_VERSION_CHECK(5,13,0)
         m_order.swap(m_selectedItemIndex, 0);
+#else
+        m_order.swapItemsAt(m_selectedItemIndex, 0);
+#endif
         resetClicked(checked);
     }
     updateButtonState();
@@ -121,7 +125,11 @@ void QEFIEntryView::moveUpClicked(bool checked)
 {
     // Move the current up
     if (m_selectedItemIndex > 0) {
+#if QT_VERSION < QT_VERSION_CHECK(5,13,0)
         m_order.swap(m_selectedItemIndex, m_selectedItemIndex - 1);
+#else
+        m_order.swapItemsAt(m_selectedItemIndex, m_selectedItemIndex - 1);
+#endif
         resetClicked(checked);
     }
     updateButtonState();
@@ -131,7 +139,11 @@ void QEFIEntryView::moveDownClicked(bool checked)
 {
     // Move the current down
     if (m_selectedItemIndex < m_order.size() - 1) {
+#if QT_VERSION < QT_VERSION_CHECK(5,13,0)
         m_order.swap(m_selectedItemIndex, m_selectedItemIndex + 1);
+#else
+        m_order.swapItemsAt(m_selectedItemIndex, m_selectedItemIndex + 1);
+#endif
         resetClicked(checked);
     }
     updateButtonState();
