@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <QDebug>
+#include <QtEndian>
 
 #include <qefi.h>
 
@@ -61,33 +62,25 @@ void QEFIEntryStaticList::load()
     std::cerr << "BootOrder: ";
     m_order.clear();
     for (int i = 0; i < data.size() / 2; i++, order_num++) {
-        std::cerr << std::hex << *order_num << ", ";
-        m_order.append(*order_num);
+        std::cerr << std::hex << qFromLittleEndian<quint16>(*order_num) << ", ";
+        m_order.append(qFromLittleEndian<quint16>(*order_num));
     }
     std::cerr << std::dec << std::endl;
 
     order_num = (quint16 *)data.data();
     m_entries.clear();
     for (int i = 0; i < data.size() / 2; i++, order_num++) {
-        QString name = QString::asprintf("Boot%04X", *order_num);
+        QString name = QString::asprintf("Boot%04X", qFromLittleEndian<quint16>(*order_num));
         QByteArray boot_data = qefi_get_variable(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
                                                  name);
-        QString entry_name;
-        if (boot_data.size() > 6) { // TODO: Explain the magic number
-            quint16 *c = (quint16 *)boot_data.data();
-            c = c + 6 / 2;
-            for (int index = 6; index < boot_data.size(); index += 2, c++) {
-                if (*c == 0) break;
-                entry_name.append(*c);
-            }
-        }
+        QString entry_name = qefi_extract_name(boot_data);
 
         // Add entry
-        QEFIEntry entry(*order_num, boot_data);
-        m_entries.insert(*order_num, entry);
+        QEFIEntry entry(qFromLittleEndian<quint16>(*order_num), boot_data);
+        m_entries.insert(qFromLittleEndian<quint16>(*order_num), entry);
 
         // Cache
-        m_cachedItem.insert(*order_num, boot_data);
+        m_cachedItem.insert(qFromLittleEndian<quint16>(*order_num), boot_data);
 
         std::cerr << std::hex << *order_num << " " << entry_name.toStdString();
         std::cerr << std::endl;
@@ -109,7 +102,7 @@ void QEFIEntryStaticList::setBootOrder(const QList<quint16> &newOrder)
     QByteArray orderBuffer(newOrder.size() * 2, 0);
     quint16 *p = (quint16 *)orderBuffer.data();
     for (int i = 0; i < newOrder.size(); i++, p++) {
-        *p = newOrder[i];
+        *p = qToLittleEndian<quint16>(newOrder[i]);
     }
     qefi_set_variable(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
                       QStringLiteral("BootOrder"), orderBuffer);
