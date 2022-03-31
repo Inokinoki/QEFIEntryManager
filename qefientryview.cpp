@@ -19,6 +19,11 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
             QEFIEntry &entry = m_entryItems[m_order[i]];
             m_entries->addItem(QString::asprintf("[%04X] ", entry.id()) + entry.name()
                 + (entry.devicePath().size() > 0 ? "\n" + entry.devicePath() : ""));
+            // Get the activation state
+            QListWidgetItem *currentItem = m_entries->item(i);
+            if (currentItem && !entry.isActive()) {
+                currentItem->setForeground(Qt::gray);
+            }
         }
     }
     QObject::connect(m_entries, &QListWidget::currentRowChanged,
