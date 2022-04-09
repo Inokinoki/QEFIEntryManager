@@ -20,8 +20,6 @@ set(PROJECT_SOURCES
         mainwindow.h
         qefientryview.cpp
         qefientryview.h
-        qefientryrebootview.cpp
-        qefientryrebootview.h
         qefientry.cpp
         qefientry.h
         qefientrystaticlist.cpp

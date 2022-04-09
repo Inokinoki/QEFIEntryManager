@@ -3,6 +3,8 @@
 #include "qefientrystaticlist.h"
 
 #include <QDebug>
+#include <QMessageBox>
+#include <QProcess>
 
 QEFIEntryView::QEFIEntryView(QWidget *parent)
     : QWidget(parent)
@@ -36,20 +38,28 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
     m_moveUpEntryButton = new QPushButton(QStringLiteral("Move up"), this);
     m_moveDownEntryButton = new QPushButton(QStringLiteral("Move down"), this);
     m_setCurrentButton = new QPushButton(QStringLiteral("Make default"), this);
+    m_rebootTargetButton = new QPushButton(QStringLiteral("Set reboot"), this);
+    m_rebootTargetButton->setDisabled(true);
     m_buttonLayout->addWidget(m_moveUpEntryButton);
     m_buttonLayout->addWidget(m_moveDownEntryButton);
     m_buttonLayout->addWidget(m_setCurrentButton);
+    m_buttonLayout->addWidget(m_rebootTargetButton);
     QObject::connect(m_moveUpEntryButton, &QPushButton::clicked,
                      this, &QEFIEntryView::moveUpClicked);
     QObject::connect(m_moveDownEntryButton, &QPushButton::clicked,
                      this, &QEFIEntryView::moveDownClicked);
     QObject::connect(m_setCurrentButton, &QPushButton::clicked,
                      this, &QEFIEntryView::setCurrentClicked);
+    QObject::connect(m_rebootTargetButton, &QPushButton::clicked,
+                     this, &QEFIEntryView::rebootClicked);
 
     m_buttonLayout->addStretch(1);
 
+    m_bootTimeoutLabel = new QLabel(QString::asprintf("Timeout: %d second(s)",
+        QEFIEntryStaticList::instance()->timeout()), this);
     m_saveButton = new QPushButton(QStringLiteral("Save"), this);
     m_resetButton = new QPushButton(QStringLiteral("Reset"), this);
+    m_buttonLayout->addWidget(m_bootTimeoutLabel);
     m_buttonLayout->addWidget(m_saveButton);
     m_buttonLayout->addWidget(m_resetButton);
     QObject::connect(m_saveButton, &QPushButton::clicked,
@@ -82,6 +92,8 @@ QEFIEntryView::~QEFIEntryView()
     if (m_setCurrentButton != nullptr) delete m_setCurrentButton;
     if (m_saveButton != nullptr) delete m_saveButton;
     if (m_resetButton != nullptr) delete m_resetButton;
+    if (m_rebootTargetButton != nullptr) delete m_rebootTargetButton;
+    if (m_bootTimeoutLabel != nullptr) delete m_bootTimeoutLabel;
 }
 
 void QEFIEntryView::entryChanged(int currentRow)
@@ -160,6 +172,7 @@ void QEFIEntryView::updateButtonState()
         m_moveUpEntryButton->setDisabled(false);
         m_moveDownEntryButton->setDisabled(false);
         m_setCurrentButton->setDisabled(false);
+        m_rebootTargetButton->setDisabled(false);
         m_saveButton->setDisabled(false);
         m_resetButton->setDisabled(false);
         if (0 == m_selectedItemIndex) {
@@ -172,6 +185,7 @@ void QEFIEntryView::updateButtonState()
         m_moveUpEntryButton->setDisabled(true);
         m_moveDownEntryButton->setDisabled(true);
         m_setCurrentButton->setDisabled(true);
+        m_rebootTargetButton->setDisabled(true);
         m_saveButton->setDisabled(false);
         m_resetButton->setDisabled(false);
     }
@@ -183,4 +197,34 @@ void QEFIEntryView::resetFromStaticListClicked(bool checked)
     m_order = QEFIEntryStaticList::instance()->order();
     m_selectedItemIndex = -1;
     resetClicked(checked);
+}
+
+void QEFIEntryView::rebootClicked(bool checked)
+{
+    Q_UNUSED(checked);
+    if (m_rebootItemIndex >= 0 || m_rebootItemIndex < m_order.size()) {
+        qDebug() << "[EFIRebootView] Set " << m_order[m_rebootItemIndex] << " "
+                 << m_entryItems[m_order[m_rebootItemIndex]].name() << " as reboot target";
+        // Set BootNext
+        QEFIEntryStaticList::instance()->setBootNext(m_order[m_rebootItemIndex]);
+        int ret = QMessageBox::warning(this, QStringLiteral("Reboot to ") +
+                                       m_entryItems[m_order[m_rebootItemIndex]].name(),
+                                       QStringLiteral("Do you want to reboot now?"),
+                                       QMessageBox::Yes | QMessageBox::No,
+                                       QMessageBox::No);
+        if (ret == QMessageBox::Yes) {
+            // Reboot now
+            qDebug() << "[EFIRebootView] Reboot now";
+            QProcess process;
+#ifdef Q_OS_WIN
+            process.startDetached("shutdown", {"/r", "/t", "0"});
+#else
+            process.startDetached("reboot", {});
+#endif
+        } else {
+            // Do nothing
+            qDebug() << "[EFIRebootView] Reboot later";
+        }
+        return;
+    }
 }

@@ -27,11 +27,15 @@ class QEFIEntryView: public QWidget
     QPushButton *m_setCurrentButton;
     QPushButton *m_saveButton;
     QPushButton *m_resetButton;
+    QPushButton *m_rebootTargetButton;
+
+    QLabel *m_bootTimeoutLabel;
 
     QMap<quint16, QEFIEntry> m_entryItems;
     QList<quint16> m_order;
 
     int m_selectedItemIndex;
+    int m_rebootItemIndex;
 
     void updateButtonState();
 public:
@@ -45,6 +49,7 @@ public slots:
     void resetFromStaticListClicked(bool checked);
     void saveClicked(bool checked);
     void setCurrentClicked(bool checked);
+    void rebootClicked(bool checked);
 
     void moveUpClicked(bool checked);
     void moveDownClicked(bool checked);
