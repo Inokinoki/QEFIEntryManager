@@ -28,6 +28,7 @@ class QEFIEntryView: public QWidget
     QPushButton *m_saveButton;
     QPushButton *m_resetButton;
     QPushButton *m_rebootTargetButton;
+    QPushButton *m_detailButton;
 
     QLabel *m_bootTimeoutLabel;
 
@@ -50,6 +51,7 @@ public slots:
     void saveClicked(bool checked);
     void setCurrentClicked(bool checked);
     void rebootClicked(bool checked);
+    void detailClicked(bool checked);
 
     void moveUpClicked(bool checked);
     void moveDownClicked(bool checked);

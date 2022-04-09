@@ -7,6 +7,10 @@
 #include <QMessageBox>
 #include <QProcess>
 
+#include <QDialog>
+
+#include "qefientrydetailview.h"
+
 #if QT_VERSION >= QT_VERSION_CHECK(5,14,0)
 // Fix namsapce change of hex and dec
 #define hex Qt::hex
@@ -47,10 +51,12 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
     m_setCurrentButton = new QPushButton(QStringLiteral("Make default"), this);
     m_rebootTargetButton = new QPushButton(QStringLiteral("Set reboot"), this);
     m_rebootTargetButton->setDisabled(true);
+    m_detailButton = new QPushButton(QStringLiteral("Details"), this);
     m_buttonLayout->addWidget(m_moveUpEntryButton);
     m_buttonLayout->addWidget(m_moveDownEntryButton);
     m_buttonLayout->addWidget(m_setCurrentButton);
     m_buttonLayout->addWidget(m_rebootTargetButton);
+    m_buttonLayout->addWidget(m_detailButton);
     QObject::connect(m_moveUpEntryButton, &QPushButton::clicked,
                      this, &QEFIEntryView::moveUpClicked);
     QObject::connect(m_moveDownEntryButton, &QPushButton::clicked,
@@ -59,6 +65,8 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
                      this, &QEFIEntryView::setCurrentClicked);
     QObject::connect(m_rebootTargetButton, &QPushButton::clicked,
                      this, &QEFIEntryView::rebootClicked);
+    QObject::connect(m_detailButton, &QPushButton::clicked,
+                     this, &QEFIEntryView::detailClicked);
 
     m_buttonLayout->addStretch(1);
 
@@ -101,6 +109,7 @@ QEFIEntryView::~QEFIEntryView()
     if (m_resetButton != nullptr) delete m_resetButton;
     if (m_rebootTargetButton != nullptr) delete m_rebootTargetButton;
     if (m_bootTimeoutLabel != nullptr) delete m_bootTimeoutLabel;
+    if (m_detailButton != nullptr) delete m_detailButton;
 }
 
 void QEFIEntryView::entryChanged(int currentRow)
@@ -180,6 +189,7 @@ void QEFIEntryView::updateButtonState()
         m_moveDownEntryButton->setDisabled(false);
         m_setCurrentButton->setDisabled(false);
         m_rebootTargetButton->setDisabled(false);
+        m_detailButton->setDisabled(false);
         m_saveButton->setDisabled(false);
         m_resetButton->setDisabled(false);
         if (0 == m_selectedItemIndex) {
@@ -193,6 +203,7 @@ void QEFIEntryView::updateButtonState()
         m_moveDownEntryButton->setDisabled(true);
         m_setCurrentButton->setDisabled(true);
         m_rebootTargetButton->setDisabled(true);
+        m_detailButton->setDisabled(true);
         m_saveButton->setDisabled(false);
         m_resetButton->setDisabled(false);
     }
@@ -233,5 +244,33 @@ void QEFIEntryView::rebootClicked(bool checked)
             qDebug() << "[EFIRebootView] Reboot later";
         }
         return;
+    }
+}
+
+class DetailDialog : public QDialog
+{
+    QEFIEntryDetailView m_view;
+    QBoxLayout *m_topLevelLayout;
+public:
+    DetailDialog(QEFIEntry &entry, QWidget *parent = nullptr)
+        : QDialog(parent), m_view(entry, this)
+    {
+        setWindowTitle(entry.name());
+        m_topLevelLayout = new QBoxLayout(QBoxLayout::LeftToRight, this);
+        m_topLevelLayout->addWidget(&m_view);
+    }
+
+    ~DetailDialog()
+    {
+        if (m_topLevelLayout) delete m_topLevelLayout;
+    }
+};
+
+void QEFIEntryView::detailClicked(bool checked)
+{
+    Q_UNUSED(checked);
+    if (m_selectedItemIndex >= 0 || m_selectedItemIndex < m_order.size()) {
+        DetailDialog dialog(m_entryItems[m_order[m_selectedItemIndex]], this);
+        dialog.exec();
     }
 }
