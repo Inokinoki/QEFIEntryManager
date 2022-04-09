@@ -43,29 +43,27 @@ QEFIEntryStaticList *QEFIEntryStaticList::instance()
     return &list;
 }
 
-#include <iostream>
-
 void QEFIEntryStaticList::load()
 {
     quint16 current = qefi_get_variable_uint16(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
                                                QStringLiteral("BootCurrent"));
-    std::cerr << "BootCurrent: " << std::hex << current << std::endl;
+    qDebug() << "BootCurrent: " << Qt::hex << current;
 
     quint16 timeout = qefi_get_variable_uint16(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
                                                QStringLiteral("Timeout"));
-    std::cerr << "Timeout: " << std::dec << timeout << " seconds" << std::endl;
+    qDebug() << "Timeout: " << Qt::dec << timeout << " seconds";
     m_timeout = timeout;
 
     QByteArray data = qefi_get_variable(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
                                         QStringLiteral("BootOrder"));
     quint16 *order_num = (quint16 *)data.data();
-    std::cerr << "BootOrder: ";
+    qDebug() << "BootOrder: ";
     m_order.clear();
     for (int i = 0; i < data.size() / 2; i++, order_num++) {
-        std::cerr << std::hex << qFromLittleEndian<quint16>(*order_num) << ", ";
+        qDebug()  << Qt::hex << qFromLittleEndian<quint16>(*order_num) << ", ";
         m_order.append(qFromLittleEndian<quint16>(*order_num));
     }
-    std::cerr << std::dec << std::endl;
+    qDebug() << Qt::dec;
 
     order_num = (quint16 *)data.data();
     m_entries.clear();
@@ -82,8 +80,7 @@ void QEFIEntryStaticList::load()
         // Cache
         m_cachedItem.insert(qFromLittleEndian<quint16>(*order_num), boot_data);
 
-        std::cerr << std::hex << *order_num << " " << entry_name.toStdString();
-        std::cerr << std::endl;
+        qDebug() << Qt::hex << *order_num << " " << entry_name;
     }
 }
 
