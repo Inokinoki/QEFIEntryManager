@@ -1,7 +1,7 @@
 #include "qefientrystaticlist.h"
 
 #include <QUuid>
-#include <iostream>
+#include <QTextStream>
 
 #include <QDebug>
 #include <QtEndian>

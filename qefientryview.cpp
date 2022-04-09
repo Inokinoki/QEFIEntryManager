@@ -3,6 +3,7 @@
 #include "qefientrystaticlist.h"
 
 #include <QDebug>
+#include <QTextStream>
 #include <QMessageBox>
 #include <QProcess>
 
