@@ -16,6 +16,8 @@ private:
     QList<quint16> m_order;                 // Cached order
     quint16 m_timeout;
 
+    QMap<quint16, QEFILoadOption *> m_loadOptions;    // Cached LoadOption array
+
 public:
     static QEFIEntryStaticList *instance();
     void load();    // TODO: Add an async implementation for progress display
@@ -28,6 +30,8 @@ public:
 
     void setBootNext(const quint16 &next);
     void setBootOrder(const QList<quint16> &newOrder);
+
+    virtual ~QEFIEntryStaticList();
 };
 
 #endif // QEFIENTRYSTATICLIST_H

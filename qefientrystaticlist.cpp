@@ -43,6 +43,15 @@ QEFIEntryStaticList *QEFIEntryStaticList::instance()
     return &list;
 }
 
+QEFIEntryStaticList::~QEFIEntryStaticList()
+{
+    QMap<quint16, QEFILoadOption *>::const_iterator i = m_loadOptions.begin();
+    for (; i != m_loadOptions.end(); i++) {
+        if (*i) delete (*i);
+    }
+    m_loadOptions.clear();
+}
+
 void QEFIEntryStaticList::load()
 {
     quint16 current = qefi_get_variable_uint16(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
@@ -68,19 +77,21 @@ void QEFIEntryStaticList::load()
     order_num = (quint16 *)data.data();
     m_entries.clear();
     for (int i = 0; i < data.size() / 2; i++, order_num++) {
-        QString name = QString::asprintf("Boot%04X", qFromLittleEndian<quint16>(*order_num));
+        quint16 order_id = qFromLittleEndian<quint16>(*order_num);
+        QString name = QString::asprintf("Boot%04X", order_id);
         QByteArray boot_data = qefi_get_variable(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
                                                  name);
-        QString entry_name = qefi_extract_name(boot_data);
-
-        // Add entry
-        QEFIEntry entry(qFromLittleEndian<quint16>(*order_num), boot_data);
-        m_entries.insert(qFromLittleEndian<quint16>(*order_num), entry);
+        QEFILoadOption *loadOption = new QEFILoadOption(boot_data);
 
         // Cache
-        m_cachedItem.insert(qFromLittleEndian<quint16>(*order_num), boot_data);
+        m_cachedItem.insert(order_id, boot_data);
+        m_loadOptions.insert(order_id, loadOption);
 
-        qDebug() << Qt::hex << *order_num << " " << entry_name;
+        // Add entry
+        QEFIEntry entry(order_id, m_loadOptions[order_id]);
+        m_entries.insert(order_id, entry);
+
+        qDebug() << Qt::hex << order_id << " " << entry.name();
     }
 }
 
