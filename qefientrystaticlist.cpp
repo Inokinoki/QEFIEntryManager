@@ -1,12 +1,17 @@
 #include "qefientrystaticlist.h"
 
 #include <QUuid>
-#include <QTextStream>
 
 #include <QDebug>
 #include <QtEndian>
 
 #include <qefi.h>
+
+#if QT_VERSION >= QT_VERSION_CHECK(5,14,0)
+// Fix namsapce change of hex and dec
+#define hex Qt::hex
+#define dec Qt::dec
+#endif
 
 QEFIEntryStaticList::QEFIEntryStaticList()
 {
@@ -56,11 +61,11 @@ void QEFIEntryStaticList::load()
 {
     quint16 current = qefi_get_variable_uint16(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
                                                QStringLiteral("BootCurrent"));
-    qDebug() << "BootCurrent: " << Qt::hex << current;
+    qDebug() << "BootCurrent: " << hex << current;
 
     quint16 timeout = qefi_get_variable_uint16(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
                                                QStringLiteral("Timeout"));
-    qDebug() << "Timeout: " << Qt::dec << timeout << " seconds";
+    qDebug() << "Timeout: " << dec << timeout << " seconds";
     m_timeout = timeout;
 
     QByteArray data = qefi_get_variable(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
@@ -69,10 +74,10 @@ void QEFIEntryStaticList::load()
     qDebug() << "BootOrder: ";
     m_order.clear();
     for (int i = 0; i < data.size() / 2; i++, order_num++) {
-        qDebug()  << Qt::hex << qFromLittleEndian<quint16>(*order_num) << ", ";
+        qDebug()  << hex << qFromLittleEndian<quint16>(*order_num) << ", ";
         m_order.append(qFromLittleEndian<quint16>(*order_num));
     }
-    qDebug() << Qt::dec;
+    qDebug() << dec;
 
     order_num = (quint16 *)data.data();
     m_entries.clear();
@@ -91,7 +96,7 @@ void QEFIEntryStaticList::load()
         QEFIEntry entry(order_id, m_loadOptions[order_id]);
         m_entries.insert(order_id, entry);
 
-        qDebug() << Qt::hex << order_id << " " << entry.name();
+        qDebug() << hex << order_id << " " << entry.name();
     }
 }
 

@@ -3,9 +3,15 @@
 #include "qefientrystaticlist.h"
 
 #include <QDebug>
-#include <QTextStream>
+
 #include <QMessageBox>
 #include <QProcess>
+
+#if QT_VERSION >= QT_VERSION_CHECK(5,14,0)
+// Fix namsapce change of hex and dec
+#define hex Qt::hex
+#define dec Qt::dec
+#endif
 
 QEFIEntryView::QEFIEntryView(QWidget *parent)
     : QWidget(parent)
