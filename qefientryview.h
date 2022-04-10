@@ -36,7 +36,6 @@ class QEFIEntryView: public QWidget
     QList<quint16> m_order;
 
     int m_selectedItemIndex;
-    int m_rebootItemIndex;
 
     void updateButtonState();
 public:

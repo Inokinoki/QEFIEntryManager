@@ -220,13 +220,13 @@ void QEFIEntryView::resetFromStaticListClicked(bool checked)
 void QEFIEntryView::rebootClicked(bool checked)
 {
     Q_UNUSED(checked);
-    if (m_rebootItemIndex >= 0 || m_rebootItemIndex < m_order.size()) {
-        qDebug() << "[EFIRebootView] Set " << m_order[m_rebootItemIndex] << " "
-                 << m_entryItems[m_order[m_rebootItemIndex]].name() << " as reboot target";
+    if (m_selectedItemIndex >= 0 || m_selectedItemIndex < m_order.size()) {
+        qDebug() << "[EFIRebootView] Set " << m_order[m_selectedItemIndex] << " "
+                 << m_entryItems[m_order[m_selectedItemIndex]].name() << " as reboot target";
         // Set BootNext
-        QEFIEntryStaticList::instance()->setBootNext(m_order[m_rebootItemIndex]);
+        QEFIEntryStaticList::instance()->setBootNext(m_order[m_selectedItemIndex]);
         int ret = QMessageBox::warning(this, QStringLiteral("Reboot to ") +
-                                       m_entryItems[m_order[m_rebootItemIndex]].name(),
+                                       m_entryItems[m_order[m_selectedItemIndex]].name(),
                                        QStringLiteral("Do you want to reboot now?"),
                                        QMessageBox::Yes | QMessageBox::No,
                                        QMessageBox::No);
