@@ -1,12 +1,11 @@
 #include "qefientrydetailview.h"
 #include "helpers.h"
 
-QEFIEntryDetailView::QEFIEntryDetailView(QEFIEntry &entry, QWidget *parent)
+QEFIEntryDetailBriefView::QEFIEntryDetailBriefView(
+    QEFIEntry &entry, QWidget *parent)
     : QWidget(parent), m_entry(entry)
 {
-    m_topLevelLayout = new QBoxLayout(QBoxLayout::LeftToRight, this);
     m_briefLayout = new QFormLayout(this);
-    m_topLevelLayout->addLayout(m_briefLayout, 1);
 
     m_briefLayout->addRow("ID:",
         new QLabel(QString::asprintf("Boot%04X ", entry.id())));
@@ -17,7 +16,7 @@ QEFIEntryDetailView::QEFIEntryDetailView(QEFIEntry &entry, QWidget *parent)
         auto dpList = loadOption->devicePathList();
         m_briefLayout->addRow("Device Path instance:",
             new QLabel(QString::number(dpList.size())));
-        // TODO: Add a tab to display each DP
+        // Add a tab to display each DP
         for (int i = 0; i < dpList.size(); i++) {
             // Display type name
             m_briefLayout->addRow(QString::asprintf("Device Path %d type:", i + 1),
@@ -32,11 +31,40 @@ QEFIEntryDetailView::QEFIEntryDetailView(QEFIEntry &entry, QWidget *parent)
     }
 }
 
+QEFIEntryDetailBriefView::~QEFIEntryDetailBriefView()
+{
+    if (m_briefLayout != nullptr) delete m_briefLayout;
+    m_briefLayout = nullptr;
+}
+
+
+QEFIEntryDetailView::QEFIEntryDetailView(QEFIEntry &entry, QWidget *parent)
+    : QWidget(parent), m_entry(entry)
+{
+    m_topLevelLayout = new QBoxLayout(QBoxLayout::LeftToRight, this);
+    m_tab = new QTabWidget(this);
+    m_tab->addTab(new QEFIEntryDetailBriefView(entry, m_tab),
+        QStringLiteral("Brief"));
+
+    QEFILoadOption *loadOption = entry.loadOption();
+    if (loadOption) {
+        auto dpList = loadOption->devicePathList();
+        // Add a tab to display each DP
+        for (int i = 0; i < dpList.size(); i++) {
+            m_tab->addTab(new QEFIEntryDPDetailView(dpList[i].get(), m_tab),
+                QString::asprintf("DP %d", i + 1));
+        }
+    }
+    m_topLevelLayout->addWidget(m_tab);
+    setLayout(m_topLevelLayout);
+}
+
 QEFIEntryDetailView::~QEFIEntryDetailView()
 {
-    // TODO: Use smart ptr
-    if (m_topLevelLayout != nullptr) {
-        delete m_topLevelLayout;
-        m_topLevelLayout = nullptr;
-    }
+    if (m_topLevelLayout != nullptr) delete m_topLevelLayout;
+    m_topLevelLayout = nullptr;
+
+    // Has ownership been passed to layout?
+    if (m_tab != nullptr) delete m_tab;
+    m_tab = nullptr;
 }

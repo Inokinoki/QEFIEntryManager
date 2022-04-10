@@ -20,6 +20,8 @@ set(PROJECT_SOURCES
         mainwindow.h
         qefientrydetailview.cpp
         qefientrydetailview.h
+        qefientrydpdetailview.cpp
+        qefientrydpdetailview.h
         qefientryview.cpp
         qefientryview.h
         qefientry.cpp
