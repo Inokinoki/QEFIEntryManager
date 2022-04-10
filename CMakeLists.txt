@@ -26,6 +26,8 @@ set(PROJECT_SOURCES
         qefientry.h
         qefientrystaticlist.cpp
         qefientrystaticlist.h
+        helpers.cpp
+        helpers.h
         qefivar/qefi.cpp
 )
 
