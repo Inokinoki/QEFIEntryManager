@@ -15,7 +15,11 @@ QEFIEntryDPDetailView::QEFIEntryDPDetailView(QEFIDevicePath *dp, QWidget *parent
         new QLabel(QString::asprintf("%02X %02X",
             dp->type(), dp->subType()))
     );
-    // TODO: Parse device path and add more properties
+    // Parse device path and add more properties
+    QList<QPair<QString, QString>> attrs = convert_device_path_attrs(dp);
+    for (auto &i : attrs) {
+        m_topLevelLayout->addRow(i.first + ":", new QLabel(i.second));
+    }
     setLayout(m_topLevelLayout);
 }
 
