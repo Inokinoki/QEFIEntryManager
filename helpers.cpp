@@ -299,18 +299,78 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
                 }
                 break;
             case QEFIDevicePathMediaSubType::MEDIA_CDROM:
+                if (dynamic_cast<QEFIDevicePathMediaCDROM *>(dp)) {
+                    QEFIDevicePathMediaCDROM *dpCDROM = (QEFIDevicePathMediaCDROM *)
+                        dynamic_cast<QEFIDevicePathMediaCDROM *>(dp);
+                    list << qMakePair<QString, QString>("Boot Catalogue Entry",
+                        QString::number(dpCDROM->bootCatalogEntry()));
+                    list << qMakePair<QString, QString>("Partition RBA",
+                        QString::number(dpCDROM->partitionRba()));
+                    list << qMakePair<QString, QString>("Sectors",
+                        QString::number(dpCDROM->sectors()));
+                }
                 break;
             case QEFIDevicePathMediaSubType::MEDIA_Vendor:
+                if (dynamic_cast<QEFIDevicePathMediaVendor *>(dp)) {
+                    QEFIDevicePathMediaVendor *dpVendor = (QEFIDevicePathMediaVendor *)
+                        dynamic_cast<QEFIDevicePathMediaVendor *>(dp);
+                    list << qMakePair<QString, QString>("GUID",
+                        dpVendor->vendorGuid().toString());
+                    list << qMakePair<QString, QString>("Data",
+                        dpVendor->vendorData().toHex());
+                }
                 break;
             case QEFIDevicePathMediaSubType::MEDIA_Protocol:
+                if (dynamic_cast<QEFIDevicePathMediaProtocol *>(dp)) {
+                    QEFIDevicePathMediaProtocol *dpProtocol = (QEFIDevicePathMediaProtocol *)
+                        dynamic_cast<QEFIDevicePathMediaProtocol *>(dp);
+                    list << qMakePair<QString, QString>("Protocol GUID",
+                        dpProtocol->protocolGuid().toString());
+                }
                 break;
             case QEFIDevicePathMediaSubType::MEDIA_FirmwareFile:
+                if (dynamic_cast<QEFIDevicePathMediaFirmwareFile *>(dp)) {
+                    QEFIDevicePathMediaFirmwareFile *dpFile =
+                        (QEFIDevicePathMediaFirmwareFile *)
+                        dynamic_cast<QEFIDevicePathMediaFirmwareFile *>(dp);
+                    list << qMakePair<QString, QString>("PI Info",
+                        dpFile->piInfo().toHex());
+                }
                 break;
             case QEFIDevicePathMediaSubType::MEDIA_FirmwareVolume:
+                if (dynamic_cast<QEFIDevicePathMediaFile *>(dp)) {
+                    QEFIDevicePathMediaFirmwareVolume *dpFV =
+                        (QEFIDevicePathMediaFirmwareVolume *)
+                        dynamic_cast<QEFIDevicePathMediaFirmwareVolume *>(dp);
+                    list << qMakePair<QString, QString>("PI Info",
+                        dpFV->piInfo().toHex());
+                }
                 break;
             case QEFIDevicePathMediaSubType::MEDIA_RelativeOffset:
+                if (dynamic_cast<QEFIDevicePathMediaRelativeOffset *>(dp)) {
+                    QEFIDevicePathMediaRelativeOffset *dpRO =
+                        (QEFIDevicePathMediaRelativeOffset *)
+                        dynamic_cast<QEFIDevicePathMediaRelativeOffset *>(dp);
+                    list << qMakePair<QString, QString>("First Byte",
+                        QString::number(dpRO->firstByte()));
+                    list << qMakePair<QString, QString>("Last Byte",
+                        QString::number(dpRO->lastByte()));
+                }
                 break;
             case QEFIDevicePathMediaSubType::MEDIA_RamDisk:
+                if (dynamic_cast<QEFIDevicePathMediaRAMDisk *>(dp)) {
+                    QEFIDevicePathMediaRAMDisk *dpRAMDisk =
+                        (QEFIDevicePathMediaRAMDisk *)
+                        dynamic_cast<QEFIDevicePathMediaRAMDisk *>(dp);
+                    list << qMakePair<QString, QString>("Start",
+                        QString::number(dpRAMDisk->startAddress()));
+                    list << qMakePair<QString, QString>("End",
+                        QString::number(dpRAMDisk->endAddress()));
+                    list << qMakePair<QString, QString>("Disk Type Guid",
+                        dpRAMDisk->diskTypeGuid().toString());
+                    list << qMakePair<QString, QString>("Instance Number",
+                        QString::number(dpRAMDisk->instanceNumber()));
+                }
                 break;
         }
         break;
