@@ -316,11 +316,12 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
                         dynamic_cast<QEFIDevicePathMediaVendor *>(dp);
                     list << qMakePair<QString, QString>("GUID",
                         dpVendor->vendorGuid().toString());
-                    list << qMakePair<QString, QString>("Data",
-                        dpVendor->vendorData().size() < DISPLAY_DATA_LIMIT ?
-                            dpVendor->vendorData().toHex() :
-                            QString(dpVendor->vendorData()
-                                .left(DISPLAY_DATA_LIMIT).toHex()) + "...");
+                    QByteArray data = dpVendor->vendorData().toHex();
+                    if (data.size() > DISPLAY_DATA_LIMIT * 2) {
+                        data.truncate(DISPLAY_DATA_LIMIT * 2);
+                        data += "...";
+                    }
+                    list << qMakePair<QString, QString>("Data", data);
                 }
                 break;
             case QEFIDevicePathMediaSubType::MEDIA_Protocol:
@@ -336,11 +337,13 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
                     QEFIDevicePathMediaFirmwareFile *dpFile =
                         (QEFIDevicePathMediaFirmwareFile *)
                         dynamic_cast<QEFIDevicePathMediaFirmwareFile *>(dp);
-                    list << qMakePair<QString, QString>("PI Info",
-                        dpFile->piInfo().size() < DISPLAY_DATA_LIMIT ?
-                            dpFile->piInfo().toHex() :
-                            QString(dpFile->piInfo()
-                                .left(DISPLAY_DATA_LIMIT).toHex()) + "...");
+
+                    QByteArray data = dpFile->piInfo().toHex();
+                    if (data.size() > DISPLAY_DATA_LIMIT * 2) {
+                        data.truncate(DISPLAY_DATA_LIMIT * 2);
+                        data += "...";
+                    }
+                    list << qMakePair<QString, QString>("PI Info", data);
                 }
                 break;
             case QEFIDevicePathMediaSubType::MEDIA_FirmwareVolume:
@@ -348,11 +351,12 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
                     QEFIDevicePathMediaFirmwareVolume *dpFV =
                         (QEFIDevicePathMediaFirmwareVolume *)
                         dynamic_cast<QEFIDevicePathMediaFirmwareVolume *>(dp);
-                    list << qMakePair<QString, QString>("PI Info",
-                        dpFV->piInfo().size() < DISPLAY_DATA_LIMIT ?
-                            dpFV->piInfo().toHex() :
-                            QString(dpFV->piInfo()
-                                .left(DISPLAY_DATA_LIMIT).toHex()) + "...");
+                    QByteArray data = dpFV->piInfo().toHex();
+                    if (data.size() > DISPLAY_DATA_LIMIT * 2) {
+                        data.truncate(DISPLAY_DATA_LIMIT * 2);
+                        data += "...";
+                    }
+                    list << qMakePair<QString, QString>("PI Info", data);
                 }
                 break;
             case QEFIDevicePathMediaSubType::MEDIA_RelativeOffset:
@@ -387,16 +391,17 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
         if (dynamic_cast<QEFIDevicePathBIOSBoot *>(dp)) {
             QEFIDevicePathBIOSBoot *dpBIOSBoot = (QEFIDevicePathBIOSBoot *)
                 dynamic_cast<QEFIDevicePathBIOSBoot *>(dp);
-            QByteArray description = dpBIOSBoot->description();
+            QByteArray description = dpBIOSBoot->description().toHex();
             list << qMakePair<QString, QString>("Device Type",
                 QString::number(dpBIOSBoot->deviceType()));
             list << qMakePair<QString, QString>("Status",
                 QString::number(dpBIOSBoot->status()));
-            list << qMakePair<QString, QString>("Description",
-                description.size() < DISPLAY_DATA_LIMIT ?
-                    description.toHex() :
-                    QString(description.left(DISPLAY_DATA_LIMIT).toHex())
-                        + "...");
+
+            if (description.size() > DISPLAY_DATA_LIMIT * 2) {
+                description.truncate(DISPLAY_DATA_LIMIT * 2);
+                description += "...";
+            }
+            list << qMakePair<QString, QString>("Description", description);
         }
         break;
     }
