@@ -31,6 +31,10 @@ set(PROJECT_SOURCES
         helpers.cpp
         helpers.h
         qefivar/qefi.cpp
+        qefivar/qefidpacpi.cpp
+        qefivar/qefidphw.cpp
+        qefivar/qefidpmedia.cpp
+        qefivar/qefidpmessage.cpp
 )
 
 if(WIN32)
