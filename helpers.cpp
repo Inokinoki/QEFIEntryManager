@@ -317,7 +317,10 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
                     list << qMakePair<QString, QString>("GUID",
                         dpVendor->vendorGuid().toString());
                     list << qMakePair<QString, QString>("Data",
-                        dpVendor->vendorData().toHex());
+                        dpVendor->vendorData().size() < DISPLAY_DATA_LIMIT ?
+                            dpVendor->vendorData().toHex() :
+                            QString(dpVendor->vendorData()
+                                .left(DISPLAY_DATA_LIMIT).toHex()) + "...");
                 }
                 break;
             case QEFIDevicePathMediaSubType::MEDIA_Protocol:
@@ -334,7 +337,10 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
                         (QEFIDevicePathMediaFirmwareFile *)
                         dynamic_cast<QEFIDevicePathMediaFirmwareFile *>(dp);
                     list << qMakePair<QString, QString>("PI Info",
-                        dpFile->piInfo().toHex());
+                        dpFile->piInfo().size() < DISPLAY_DATA_LIMIT ?
+                            dpFile->piInfo().toHex() :
+                            QString(dpFile->piInfo()
+                                .left(DISPLAY_DATA_LIMIT).toHex()) + "...");
                 }
                 break;
             case QEFIDevicePathMediaSubType::MEDIA_FirmwareVolume:
@@ -343,7 +349,10 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
                         (QEFIDevicePathMediaFirmwareVolume *)
                         dynamic_cast<QEFIDevicePathMediaFirmwareVolume *>(dp);
                     list << qMakePair<QString, QString>("PI Info",
-                        dpFV->piInfo().toHex());
+                        dpFV->piInfo().size() < DISPLAY_DATA_LIMIT ?
+                            dpFV->piInfo().toHex() :
+                            QString(dpFV->piInfo()
+                                .left(DISPLAY_DATA_LIMIT).toHex()) + "...");
                 }
                 break;
             case QEFIDevicePathMediaSubType::MEDIA_RelativeOffset:

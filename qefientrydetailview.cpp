@@ -29,6 +29,16 @@ QEFIEntryDetailBriefView::QEFIEntryDetailBriefView(
         m_briefLayout->addRow("Device Path instance:",
             new QLabel(QString::number(0)));
     }
+    m_briefLayout->addRow("Optional data size:",
+        new QLabel(QString::number(loadOption->optionalData().size())));
+    if (loadOption->optionalData().size() < DISPLAY_DATA_LIMIT) {
+        m_briefLayout->addRow("Optional data:",
+            new QLabel(loadOption->optionalData()));
+    } else {
+        m_briefLayout->addRow("Optional data:", new QLabel(
+            QString(loadOption->optionalData()
+                .left(DISPLAY_DATA_LIMIT).toHex()) + "..."));
+    }
 }
 
 QEFIEntryDetailBriefView::~QEFIEntryDetailBriefView()
