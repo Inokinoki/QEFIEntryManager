@@ -384,6 +384,20 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
         }
         break;
     case QEFIDevicePathType::DP_BIOSBoot:
+        if (dynamic_cast<QEFIDevicePathBIOSBoot *>(dp)) {
+            QEFIDevicePathBIOSBoot *dpBIOSBoot = (QEFIDevicePathBIOSBoot *)
+                dynamic_cast<QEFIDevicePathBIOSBoot *>(dp);
+            QByteArray description = dpBIOSBoot->description();
+            list << qMakePair<QString, QString>("Device Type",
+                QString::number(dpBIOSBoot->deviceType()));
+            list << qMakePair<QString, QString>("Status",
+                QString::number(dpBIOSBoot->status()));
+            list << qMakePair<QString, QString>("Description",
+                description.size() < DISPLAY_DATA_LIMIT ?
+                    description.toHex() :
+                    QString(description.left(DISPLAY_DATA_LIMIT).toHex())
+                        + "...");
+        }
         break;
     }
     return list;
