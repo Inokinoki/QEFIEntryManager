@@ -224,10 +224,46 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
     case QEFIDevicePathType::DP_ACPI:
         switch (subtype) {
             case QEFIDevicePathACPISubType::ACPI_HID:
+                if (dynamic_cast<QEFIDevicePathACPIHID *>(dp)) {
+                    QEFIDevicePathACPIHID *dpACPIHID = (QEFIDevicePathACPIHID *)
+                        dynamic_cast<QEFIDevicePathACPIHID *>(dp);
+                    list << qMakePair<QString, QString>("HID",
+                        QString::number(dpACPIHID->hid()));
+                    list << qMakePair<QString, QString>("UID",
+                        QString::number(dpACPIHID->uid()));
+                }
                 break;
             case QEFIDevicePathACPISubType::ACPI_HIDEX:
+                if (dynamic_cast<QEFIDevicePathACPIHIDEX *>(dp)) {
+                    QEFIDevicePathACPIHIDEX *dpACPIHIDEX =
+                        (QEFIDevicePathACPIHIDEX *)
+                            dynamic_cast<QEFIDevicePathACPIHIDEX *>(dp);
+                    list << qMakePair<QString, QString>("HID",
+                        QString::number(dpACPIHIDEX->hid()));
+                    list << qMakePair<QString, QString>("UID",
+                        QString::number(dpACPIHIDEX->uid()));
+                    list << qMakePair<QString, QString>("CID",
+                        QString::number(dpACPIHIDEX->cid()));
+                    list << qMakePair<QString, QString>("HID String",
+                        dpACPIHIDEX->hidString());
+                    list << qMakePair<QString, QString>("UID String",
+                        dpACPIHIDEX->uidString());
+                    list << qMakePair<QString, QString>("CID String",
+                        dpACPIHIDEX->cidString());
+                }
                 break;
             case QEFIDevicePathACPISubType::ACPI_ADR:
+                if (dynamic_cast<QEFIDevicePathACPIADR *>(dp)) {
+                    QEFIDevicePathACPIADR *dpADR = (QEFIDevicePathACPIADR *)
+                        dynamic_cast<QEFIDevicePathACPIADR *>(dp);
+                    QList<quint32> addrs = dpADR->addresses();
+                    for (int i = 0; i < addrs.size(); i++) {
+                        list << qMakePair<QString, QString>(
+                            QString::asprintf("Address %d:", i + 1),
+                            QString::number(addrs[i])
+                        );
+                    }
+                }
                 break;
         }
         break;
