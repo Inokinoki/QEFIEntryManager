@@ -157,16 +157,67 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
     case QEFIDevicePathType::DP_Hardware:
         switch (subtype) {
             case QEFIDevicePathHardwareSubType::HW_PCI:
+                if (dynamic_cast<QEFIDevicePathHardwarePCI *>(dp)) {
+                    QEFIDevicePathHardwarePCI *dpPCI = (QEFIDevicePathHardwarePCI *)
+                        dynamic_cast<QEFIDevicePathHardwarePCI *>(dp);
+                    list << qMakePair<QString, QString>("Function",
+                        QString::number(dpPCI->function()));
+                    list << qMakePair<QString, QString>("Device",
+                        QString::number(dpPCI->device()));
+                }
                 break;
             case QEFIDevicePathHardwareSubType::HW_PCCard:
+                if (dynamic_cast<QEFIDevicePathHardwarePCCard *>(dp)) {
+                    QEFIDevicePathHardwarePCCard *dpPCCard = (QEFIDevicePathHardwarePCCard *)
+                        dynamic_cast<QEFIDevicePathHardwarePCCard *>(dp);
+                    list << qMakePair<QString, QString>("Function",
+                        QString::number(dpPCCard->function()));
+                }
                 break;
             case QEFIDevicePathHardwareSubType::HW_MMIO:
+                if (dynamic_cast<QEFIDevicePathHardwareMMIO *>(dp)) {
+                    QEFIDevicePathHardwareMMIO *dpMMIO = (QEFIDevicePathHardwareMMIO *)
+                        dynamic_cast<QEFIDevicePathHardwareMMIO *>(dp);
+                    list << qMakePair<QString, QString>("Memory Type",
+                        QString::number(dpMMIO->memoryType()));
+                    list << qMakePair<QString, QString>("Starting Address",
+                        QString::number(dpMMIO->startingAddress()));
+                    list << qMakePair<QString, QString>("Ending Address",
+                        QString::number(dpMMIO->endingAddress()));
+                }
                 break;
             case QEFIDevicePathHardwareSubType::HW_Vendor:
+                if (dynamic_cast<QEFIDevicePathHardwareVendor *>(dp)) {
+                    QEFIDevicePathHardwareVendor *dpVendor = (QEFIDevicePathHardwareVendor *)
+                        dynamic_cast<QEFIDevicePathHardwareVendor *>(dp);
+                    list << qMakePair<QString, QString>("GUID",
+                        dpVendor->vendorGuid().toString());
+                    QByteArray data = dpVendor->vendorData().toHex();
+                    if (data.size() > DISPLAY_DATA_LIMIT * 2) {
+                        data.truncate(DISPLAY_DATA_LIMIT * 2);
+                        data += "...";
+                    }
+                    list << qMakePair<QString, QString>("Data", data);
+                }
                 break;
             case QEFIDevicePathHardwareSubType::HW_Controller:
+                if (dynamic_cast<QEFIDevicePathHardwareController *>(dp)) {
+                    QEFIDevicePathHardwareController *dpController =
+                        (QEFIDevicePathHardwareController *)
+                            dynamic_cast<QEFIDevicePathHardwareController *>(dp);
+                    list << qMakePair<QString, QString>("Controller",
+                        QString::number(dpController->controller()));
+                }
                 break;
             case QEFIDevicePathHardwareSubType::HW_BMC:
+                if (dynamic_cast<QEFIDevicePathHardwareBMC *>(dp)) {
+                    QEFIDevicePathHardwareBMC *dpBMC = (QEFIDevicePathHardwareBMC *)
+                        dynamic_cast<QEFIDevicePathHardwareBMC *>(dp);
+                    list << qMakePair<QString, QString>("Interface Type",
+                        QString::number(dpBMC->interfaceType()));
+                    list << qMakePair<QString, QString>("Base Address",
+                        QString::number(dpBMC->baseAddress()));
+                }
                 break;
         }
         break;
