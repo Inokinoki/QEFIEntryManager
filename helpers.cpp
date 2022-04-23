@@ -1,5 +1,7 @@
 #include "helpers.h"
 
+#include <QHostAddress>
+
 // Helpers to convert device path to string
 QString convert_device_path_subtype_to_name(
     QEFIDevicePathType type, quint8 subtype)
@@ -270,68 +272,414 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
     case QEFIDevicePathType::DP_Message:
         switch (subtype) {
             case QEFIDevicePathMessageSubType::MSG_ATAPI:
+                if (dynamic_cast<QEFIDevicePathMessageATAPI *>(dp)) {
+                    QEFIDevicePathMessageATAPI *dpMessage =
+                        (QEFIDevicePathMessageATAPI *)
+                            dynamic_cast<QEFIDevicePathMessageATAPI *>(dp);
+                    list << qMakePair<QString, QString>("Primary",
+                        QString::number(dpMessage->primary()));
+                    list << qMakePair<QString, QString>("Slave",
+                        QString::number(dpMessage->slave()));
+                    list << qMakePair<QString, QString>("Lun",
+                        QString::number(dpMessage->lun()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_SCSI:
+                if (dynamic_cast<QEFIDevicePathMessageSCSI *>(dp)) {
+                    QEFIDevicePathMessageSCSI *dpMessage =
+                        (QEFIDevicePathMessageSCSI *)
+                            dynamic_cast<QEFIDevicePathMessageSCSI *>(dp);
+                    list << qMakePair<QString, QString>("Target",
+                        QString::number(dpMessage->target()));
+                    list << qMakePair<QString, QString>("Lun",
+                        QString::number(dpMessage->lun()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_FibreChan:
+                if (dynamic_cast<QEFIDevicePathMessageFibreChan *>(dp)) {
+                    QEFIDevicePathMessageFibreChan *dpMessage =
+                        (QEFIDevicePathMessageFibreChan *)
+                            dynamic_cast<QEFIDevicePathMessageFibreChan *>(dp);
+                    list << qMakePair<QString, QString>("WWN",
+                        QString::number(dpMessage->wwn()));
+                    list << qMakePair<QString, QString>("Lun",
+                        QString::number(dpMessage->lun()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_1394:
+                if (dynamic_cast<QEFIDevicePathMessage1394 *>(dp)) {
+                    QEFIDevicePathMessage1394 *dpMessage =
+                        (QEFIDevicePathMessage1394 *)
+                            dynamic_cast<QEFIDevicePathMessage1394 *>(dp);
+                    list << qMakePair<QString, QString>("GUID",
+                        QString::number(dpMessage->guid()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_USB:
+                if (dynamic_cast<QEFIDevicePathMessageUSB *>(dp)) {
+                    QEFIDevicePathMessageUSB *dpMessage =
+                        (QEFIDevicePathMessageUSB *)
+                            dynamic_cast<QEFIDevicePathMessageUSB *>(dp);
+                    list << qMakePair<QString, QString>("Parent Port",
+                        QString::number(dpMessage->parentPort()));
+                    list << qMakePair<QString, QString>("Interface",
+                        QString::number(dpMessage->usbInterface()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_I2O:
+                if (dynamic_cast<QEFIDevicePathMessageI2O *>(dp)) {
+                    QEFIDevicePathMessageI2O *dpMessage =
+                        (QEFIDevicePathMessageI2O *)
+                            dynamic_cast<QEFIDevicePathMessageI2O *>(dp);
+                    list << qMakePair<QString, QString>("Target",
+                        QString::number(dpMessage->target()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_InfiniBand:
+                if (dynamic_cast<QEFIDevicePathMessageInfiniBand *>(dp)) {
+                    QEFIDevicePathMessageInfiniBand *dpMessage =
+                        (QEFIDevicePathMessageInfiniBand *)
+                            dynamic_cast<QEFIDevicePathMessageInfiniBand *>(dp);
+                    list << qMakePair<QString, QString>("Resource",
+                        QString::number(dpMessage->resourceFlags()));
+                    list << qMakePair<QString, QString>("Port GID 1",
+                        QString::number(dpMessage->portGID1()));
+                    list << qMakePair<QString, QString>("Port GID 2",
+                        QString::number(dpMessage->portGID2()));
+                    list << qMakePair<QString, QString>("Shared",
+                        QString::number(dpMessage->serviceID()));
+                    list << qMakePair<QString, QString>("Target Port ID",
+                        QString::number(dpMessage->targetPortID()));
+                    list << qMakePair<QString, QString>("Device ID",
+                        QString::number(dpMessage->deviceID()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_Vendor:
+                if (dynamic_cast<QEFIDevicePathMessageVendor *>(dp)) {
+                    QEFIDevicePathMessageVendor *dpMessage =
+                        (QEFIDevicePathMessageVendor *)
+                            dynamic_cast<QEFIDevicePathMessageVendor *>(dp);
+                    list << qMakePair<QString, QString>("GUID",
+                        dpMessage->vendorGuid().toString());
+                    QByteArray data = dpMessage->vendorData();
+                    if (data.size() > DISPLAY_DATA_LIMIT * 2) {
+                        data.truncate(DISPLAY_DATA_LIMIT * 2);
+                        data += "...";
+                    }
+                    list << qMakePair<QString, QString>("Data", data);
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_MACAddr:
+                if (dynamic_cast<QEFIDevicePathMessageMACAddr *>(dp)) {
+                    QEFIDevicePathMessageMACAddr *dpMessage =
+                        (QEFIDevicePathMessageMACAddr *)
+                            dynamic_cast<QEFIDevicePathMessageMACAddr *>(dp);
+                    list << qMakePair<QString, QString>("Interface Type",
+                        QString::number(dpMessage->interfaceType()));
+                    QByteArray addr((const char*)
+                        (dpMessage->macAddress().address), 32);
+                    list << qMakePair<QString, QString>("MAC Address",
+                        addr.toHex(':'));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_IPv4:
+                if (dynamic_cast<QEFIDevicePathMessageIPv4Addr *>(dp)) {
+                    QEFIDevicePathMessageIPv4Addr *dpMessage =
+                        (QEFIDevicePathMessageIPv4Addr *)
+                            dynamic_cast<QEFIDevicePathMessageIPv4Addr *>(dp);
+                    QEFIIPv4Address local = dpMessage->localIPv4Address();
+                    list << qMakePair<QString, QString>("Local IP",
+                        QString::asprintf("%d.%d.%d.%d", local.address[0],
+                                                         local.address[1],
+                                                         local.address[2],
+                                                         local.address[3]));
+                    QEFIIPv4Address remote = dpMessage->remoteIPv4Address();
+                    list << qMakePair<QString, QString>("Remote IP",
+                        QString::asprintf("%d.%d.%d.%d", remote.address[0],
+                                                         remote.address[1],
+                                                         remote.address[2],
+                                                         remote.address[3]));
+                    list << qMakePair<QString, QString>("Local Port",
+                        QString::number(dpMessage->localPort()));
+                    list << qMakePair<QString, QString>("Remote Port",
+                        QString::number(dpMessage->remotePort()));
+                    list << qMakePair<QString, QString>("Protocol",
+                        QString::number(dpMessage->protocol()));
+                    list << qMakePair<QString, QString>("Static Address",
+                        dpMessage->staticIPAddress() ? "Yes" : " No");
+                    QEFIIPv4Address gw = dpMessage->gateway();
+                    list << qMakePair<QString, QString>("Gateway IP",
+                        QString::asprintf("%d.%d.%d.%d", gw.address[0],
+                                                         gw.address[1],
+                                                         gw.address[2],
+                                                         gw.address[3]));
+                    QEFIIPv4Address netmask = dpMessage->netmask();
+                    list << qMakePair<QString, QString>("Netmask",
+                        QString::asprintf("%d.%d.%d.%d", netmask.address[0],
+                                                         netmask.address[1],
+                                                         netmask.address[2],
+                                                         netmask.address[3]));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_IPv6:
+                if (dynamic_cast<QEFIDevicePathMessageIPv6Addr *>(dp)) {
+                    QEFIDevicePathMessageIPv6Addr *dpMessage =
+                        (QEFIDevicePathMessageIPv6Addr *)
+                            dynamic_cast<QEFIDevicePathMessageIPv6Addr *>(dp);
+                    QEFIIPv6Address local = dpMessage->localIPv6Address();
+                    list << qMakePair<QString, QString>("Local IP",
+                        QHostAddress(local.address).toString());
+                    QEFIIPv6Address remote = dpMessage->remoteIPv6Address();
+                    list << qMakePair<QString, QString>("Remote IP",
+                        QHostAddress(remote.address).toString());
+                    list << qMakePair<QString, QString>("Local Port",
+                        QString::number(dpMessage->localPort()));
+                    list << qMakePair<QString, QString>("Remote Port",
+                        QString::number(dpMessage->remotePort()));
+                    list << qMakePair<QString, QString>("Protocol",
+                        QString::number(dpMessage->protocol()));
+                    list << qMakePair<QString, QString>("IP Address Origin",
+                        QString::number(dpMessage->ipAddressOrigin()));
+                    list << qMakePair<QString, QString>("Prefix Length",
+                        QString::number(dpMessage->prefixLength()));
+                    list << qMakePair<QString, QString>("Gateway IP",
+                        QString::number(dpMessage->gatewayIPv6Address()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_UART:
+                if (dynamic_cast<QEFIDevicePathMessageUART *>(dp)) {
+                    QEFIDevicePathMessageUART *dpMessage =
+                        (QEFIDevicePathMessageUART *)
+                            dynamic_cast<QEFIDevicePathMessageUART *>(dp);
+                    list << qMakePair<QString, QString>("Baud Rate",
+                        QString::number(dpMessage->baudRate()));
+                    list << qMakePair<QString, QString>("Data Bits",
+                        QString::number(dpMessage->dataBits()));
+                    list << qMakePair<QString, QString>("Parity",
+                        QString::number(dpMessage->parity()));
+                    list << qMakePair<QString, QString>("Stop Bits",
+                        QString::number(dpMessage->stopBits()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_USBClass:
+                if (dynamic_cast<QEFIDevicePathMessageUSBClass *>(dp)) {
+                    QEFIDevicePathMessageUSBClass *dpMessage =
+                        (QEFIDevicePathMessageUSBClass *)
+                            dynamic_cast<QEFIDevicePathMessageUSBClass *>(dp);
+                    list << qMakePair<QString, QString>("VID",
+                        QString::number(dpMessage->vendorId()));
+                    list << qMakePair<QString, QString>("PID",
+                        QString::number(dpMessage->productId()));
+                    list << qMakePair<QString, QString>("Device Class",
+                        QString::number(dpMessage->deviceClass()));
+                    list << qMakePair<QString, QString>("Device Subclass",
+                        QString::number(dpMessage->deviceSubclass()));
+                    list << qMakePair<QString, QString>("Device Protocol",
+                        QString::number(dpMessage->deviceProtocol()));
+                }
                 break;
 
             case QEFIDevicePathMessageSubType::MSG_USBWWID:
+                if (dynamic_cast<QEFIDevicePathMessageUSBWWID *>(dp)) {
+                    QEFIDevicePathMessageUSBWWID *dpMessage =
+                        (QEFIDevicePathMessageUSBWWID *)
+                            dynamic_cast<QEFIDevicePathMessageUSBWWID *>(dp);
+                    list << qMakePair<QString, QString>("VID",
+                        QString::number(dpMessage->vendorId()));
+                    list << qMakePair<QString, QString>("PID",
+                        QString::number(dpMessage->productId()));
+                    // TODO: Serial number
+                }
                 break;
 
             case QEFIDevicePathMessageSubType::MSG_LUN:
+                if (dynamic_cast<QEFIDevicePathMessageLUN *>(dp)) {
+                    QEFIDevicePathMessageLUN *dpMessage =
+                        (QEFIDevicePathMessageLUN *)
+                            dynamic_cast<QEFIDevicePathMessageLUN *>(dp);
+                    list << qMakePair<QString, QString>("Lun",
+                        QString::number(dpMessage->lun()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_SATA:
+                if (dynamic_cast<QEFIDevicePathMessageSATA *>(dp)) {
+                    QEFIDevicePathMessageSATA *dpMessage =
+                        (QEFIDevicePathMessageSATA *)
+                            dynamic_cast<QEFIDevicePathMessageSATA *>(dp);
+                    list << qMakePair<QString, QString>("HBA Port",
+                        QString::number(dpMessage->hbaPort()));
+                    list << qMakePair<QString, QString>("Port Multiplier",
+                        QString::number(dpMessage->portMultiplierPort()));
+                    list << qMakePair<QString, QString>("Lun",
+                        QString::number(dpMessage->lun()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_ISCSI:
+                if (dynamic_cast<QEFIDevicePathMessageISCSI *>(dp)) {
+                    QEFIDevicePathMessageISCSI *dpMessage =
+                        (QEFIDevicePathMessageISCSI *)
+                            dynamic_cast<QEFIDevicePathMessageISCSI *>(dp);
+                    list << qMakePair<QString, QString>("Protocol",
+                        QString::number(dpMessage->protocol()));
+                    list << qMakePair<QString, QString>("Options",
+                        QString::number(dpMessage->options()));
+                    QByteArray lun((const char*)
+                        (dpMessage->lun().data), 8);
+                    list << qMakePair<QString, QString>("Lun",
+                        lun.toHex(':'));
+                    list << qMakePair<QString, QString>("TGPT",
+                        QString::number(dpMessage->tpgt()));
+                    list << qMakePair<QString, QString>("Target",
+                        dpMessage->targetName());
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_VLAN:
+                if (dynamic_cast<QEFIDevicePathMessageVLAN *>(dp)) {
+                    QEFIDevicePathMessageVLAN *dpMessage =
+                        (QEFIDevicePathMessageVLAN *)
+                            dynamic_cast<QEFIDevicePathMessageVLAN *>(dp);
+                    list << qMakePair<QString, QString>("VLAN ID",
+                        QString::number(dpMessage->vlanID()));
+                }
                 break;
 
             case QEFIDevicePathMessageSubType::MSG_FibreChanEx:
+                if (dynamic_cast<QEFIDevicePathMessageFibreChanEx *>(dp)) {
+                    QEFIDevicePathMessageFibreChanEx *dpMessage =
+                        (QEFIDevicePathMessageFibreChanEx *)
+                            dynamic_cast<QEFIDevicePathMessageFibreChanEx *>(dp);
+                    QByteArray wwn((const char*)
+                        (dpMessage->lun().data), 8);
+                    list << qMakePair<QString, QString>("WWN",
+                        wwn.toHex(':'));
+                    QByteArray lun((const char*)
+                        (dpMessage->lun().data), 8);
+                    list << qMakePair<QString, QString>("Lun",
+                        lun.toHex(':'));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_SASEX:
+                if (dynamic_cast<QEFIDevicePathMessageSASEx *>(dp)) {
+                    QEFIDevicePathMessageSASEx *dpMessage =
+                        (QEFIDevicePathMessageSASEx *)
+                            dynamic_cast<QEFIDevicePathMessageSASEx *>(dp);
+                    QByteArray sasAddr((const char*)
+                        (dpMessage->sasAddress().address), 8);
+                    list << qMakePair<QString, QString>("SAS Address",
+                        sasAddr.toHex(':'));
+                    QByteArray lun((const char*)
+                        (dpMessage->lun().data), 8);
+                    list << qMakePair<QString, QString>("Lun",
+                        sasAddr.toHex(':'));
+                    list << qMakePair<QString, QString>("Device Topology",
+                        QString::number(dpMessage->deviceTopologyInfo()));
+                    list << qMakePair<QString, QString>("Drive Bay ID",
+                        QString::number(dpMessage->driveBayID()));
+                    list << qMakePair<QString, QString>("RTP",
+                        QString::number(dpMessage->rtp()));
+                }
                 break;
 
             case QEFIDevicePathMessageSubType::MSG_NVME:
+                if (dynamic_cast<QEFIDevicePathMessageNVME *>(dp)) {
+                    QEFIDevicePathMessageNVME *dpMessage =
+                        (QEFIDevicePathMessageNVME *)
+                            dynamic_cast<QEFIDevicePathMessageNVME *>(dp);
+                    list << qMakePair<QString, QString>("Namespace ID",
+                        QString::number(dpMessage->namespaceID()));
+                    QByteArray eui((const char*)
+                        (dpMessage->ieeeEui64().eui), 8);
+                    list << qMakePair<QString, QString>("EUI",
+                        eui.toHex(':'));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_URI:
+                if (dynamic_cast<QEFIDevicePathMessageURI *>(dp)) {
+                    QEFIDevicePathMessageURI *dpMessage =
+                        (QEFIDevicePathMessageURI *)
+                            dynamic_cast<QEFIDevicePathMessageURI *>(dp);
+                    list << qMakePair<QString, QString>("URI",
+                        dpMessage->uri().toString());
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_UFS:
+                if (dynamic_cast<QEFIDevicePathMessageUFS *>(dp)) {
+                    QEFIDevicePathMessageUFS *dpMessage =
+                        (QEFIDevicePathMessageUFS *)
+                            dynamic_cast<QEFIDevicePathMessageUFS *>(dp);
+                    list << qMakePair<QString, QString>("Target ID",
+                        QString::number(dpMessage->targetID()));
+                    list << qMakePair<QString, QString>("Lun",
+                        QString::number(dpMessage->lun()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_SD:
+                if (dynamic_cast<QEFIDevicePathMessageSD *>(dp)) {
+                    QEFIDevicePathMessageSD *dpMessage =
+                        (QEFIDevicePathMessageSD *)
+                            dynamic_cast<QEFIDevicePathMessageSD *>(dp);
+                    list << qMakePair<QString, QString>("Slot",
+                        QString::number(dpMessage->slotNumber()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_BT:
+                if (dynamic_cast<QEFIDevicePathMessageBT *>(dp)) {
+                    QEFIDevicePathMessageBT *dpMessage =
+                        (QEFIDevicePathMessageBT *)
+                            dynamic_cast<QEFIDevicePathMessageBT *>(dp);
+                    QByteArray addr((const char*)
+                        (dpMessage->address().address), 6);
+                    list << qMakePair<QString, QString>("MAC Address",
+                        addr.toHex(':'));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_WiFi:
+                if (dynamic_cast<QEFIDevicePathMessageWiFi *>(dp)) {
+                    QEFIDevicePathMessageWiFi *dpMessage =
+                        (QEFIDevicePathMessageWiFi *)
+                            dynamic_cast<QEFIDevicePathMessageWiFi *>(dp);
+                    list << qMakePair<QString, QString>("SSID",
+                        dpMessage->ssid());
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_EMMC:
+                if (dynamic_cast<QEFIDevicePathMessageEMMC *>(dp)) {
+                    QEFIDevicePathMessageEMMC *dpMessage =
+                        (QEFIDevicePathMessageEMMC *)
+                            dynamic_cast<QEFIDevicePathMessageEMMC *>(dp);
+                    list << qMakePair<QString, QString>("Slot",
+                        QString::number(dpMessage->slotNumber()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_BTLE:
+                if (dynamic_cast<QEFIDevicePathMessageBTLE *>(dp)) {
+                    QEFIDevicePathMessageBTLE *dpMessage =
+                        (QEFIDevicePathMessageBTLE *)
+                            dynamic_cast<QEFIDevicePathMessageBTLE *>(dp);
+                    QByteArray addr((const char*)
+                        (dpMessage->address().address), 6);
+                    list << qMakePair<QString, QString>("MAC Address",
+                        addr.toHex(':'));
+                    list << qMakePair<QString, QString>("Address Type",
+                        QString::number(dpMessage->addressType()));
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_DNS:
+                if (dynamic_cast<QEFIDevicePathMessageDNS *>(dp)) {
+                    QEFIDevicePathMessageDNS *dpMessage =
+                        (QEFIDevicePathMessageDNS *)
+                            dynamic_cast<QEFIDevicePathMessageDNS *>(dp);
+                    // TODO: DNS Addresses
+                }
                 break;
             case QEFIDevicePathMessageSubType::MSG_NVDIMM:
+                if (dynamic_cast<QEFIDevicePathMessageNVDIMM *>(dp)) {
+                    QEFIDevicePathMessageNVDIMM *dpMessage =
+                        (QEFIDevicePathMessageNVDIMM *)
+                            dynamic_cast<QEFIDevicePathMessageNVDIMM *>(dp);
+                    list << qMakePair<QString, QString>("UUID",
+                        dpMessage->uuid().toString());
+                }
                 break;
         }
         break;
