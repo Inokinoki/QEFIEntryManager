@@ -43,7 +43,7 @@ QEFIEntryDetailBriefView::QEFIEntryDetailBriefView(
 
 QEFIEntryDetailBriefView::~QEFIEntryDetailBriefView()
 {
-    if (m_briefLayout != nullptr) delete m_briefLayout;
+    if (m_briefLayout != nullptr) m_briefLayout->deleteLater();
     m_briefLayout = nullptr;
 }
 
@@ -71,10 +71,9 @@ QEFIEntryDetailView::QEFIEntryDetailView(QEFIEntry &entry, QWidget *parent)
 
 QEFIEntryDetailView::~QEFIEntryDetailView()
 {
-    if (m_topLevelLayout != nullptr) delete m_topLevelLayout;
+    if (m_topLevelLayout != nullptr) m_topLevelLayout->deleteLater();
     m_topLevelLayout = nullptr;
 
-    // Has ownership been passed to layout?
-    if (m_tab != nullptr) delete m_tab;
+    if (m_tab != nullptr) m_tab->deleteLater();
     m_tab = nullptr;
 }

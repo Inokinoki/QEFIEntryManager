@@ -25,9 +25,8 @@ QEFIEntryDPDetailView::QEFIEntryDPDetailView(QEFIDevicePath *dp, QWidget *parent
 
 QEFIEntryDPDetailView::~QEFIEntryDPDetailView()
 {
-    // TODO: Use smart ptr
     if (m_topLevelLayout != nullptr) {
-        delete m_topLevelLayout;
+        m_topLevelLayout->deleteLater();
         m_topLevelLayout = nullptr;
     }
 }

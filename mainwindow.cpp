@@ -15,6 +15,6 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    if (m_entryView != nullptr) delete m_entryView;
+    if (m_entryView != nullptr) m_entryView->deleteLater();
 }
 

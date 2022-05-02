@@ -89,26 +89,24 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
 
 QEFIEntryView::~QEFIEntryView()
 {
-    // TODO: Use smart ptr
     if (m_topLevelLayout != nullptr) {
-        delete m_topLevelLayout;
+        m_topLevelLayout->deleteLater();
         m_topLevelLayout = nullptr;
     }
 
-    if (m_entries != nullptr) delete m_entries;
+    if (m_entries != nullptr) m_entries->deleteLater();
     m_entries = nullptr;
 
     // Seems that we have no ownership on it
-//    if (m_buttonLayout != nullptr) delete m_buttonLayout;
-//    m_buttonLayout = nullptr;
+   if (m_buttonLayout != nullptr) m_buttonLayout->deleteLater();
 
-    if (m_moveUpEntryButton != nullptr) delete m_moveUpEntryButton;
-    if (m_moveDownEntryButton != nullptr) delete m_moveDownEntryButton;
-    if (m_setCurrentButton != nullptr) delete m_setCurrentButton;
-    if (m_saveButton != nullptr) delete m_saveButton;
-    if (m_resetButton != nullptr) delete m_resetButton;
-    if (m_rebootTargetButton != nullptr) delete m_rebootTargetButton;
-    if (m_bootTimeoutLabel != nullptr) delete m_bootTimeoutLabel;
+    if (m_moveUpEntryButton != nullptr) m_moveUpEntryButton->deleteLater();
+    if (m_moveDownEntryButton != nullptr) m_moveDownEntryButton->deleteLater();
+    if (m_setCurrentButton != nullptr) m_setCurrentButton->deleteLater();
+    if (m_saveButton != nullptr) m_saveButton->deleteLater();
+    if (m_resetButton != nullptr) m_resetButton->deleteLater();
+    if (m_rebootTargetButton != nullptr) m_rebootTargetButton->deleteLater();
+    if (m_bootTimeoutLabel != nullptr) m_bootTimeoutLabel->deleteLater();
 }
 
 void QEFIEntryView::entryChanged(int currentRow)
@@ -286,7 +284,7 @@ public:
 
     ~DetailDialog()
     {
-        if (m_topLevelLayout) delete m_topLevelLayout;
+        if (m_topLevelLayout) m_topLevelLayout->deleteLater();
     }
 };
 
