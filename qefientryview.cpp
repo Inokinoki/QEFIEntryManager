@@ -11,6 +11,7 @@
 #include <QMenu>
 #include <QAction>
 #include <QContextMenuEvent>
+#include <QFileDialog>
 
 #include "qefientrydetailview.h"
 
@@ -297,6 +298,23 @@ void QEFIEntryView::detailClicked(bool checked)
     }
 }
 
+void QEFIEntryView::exportClicked(bool checked)
+{
+    Q_UNUSED(checked);
+    if (m_selectedItemIndex >= 0 || m_selectedItemIndex < m_order.size()) {
+        QByteArray data = QEFIEntryStaticList::instance()->
+            getRawData(m_order[m_selectedItemIndex]);
+        if (data.size() == 0) {
+            // Show a warning and stop
+            QMessageBox::warning(this, QStringLiteral("Export failed"),
+                QStringLiteral("Data to export is empty."));
+            return;
+        }
+        QFileDialog::saveFileContent(data,
+            QString::asprintf("Boot%04X.bin", m_order[m_selectedItemIndex]));
+    }
+}
+
 void QEFIEntryView::contextMenuEvent(QContextMenuEvent *event)
 {
     QMenu menu(this);
@@ -313,8 +331,8 @@ void QEFIEntryView::contextMenuEvent(QContextMenuEvent *event)
             // TODO: Allow to delete
             // menu.addAction(QStringLiteral("Delete"));
 
-            // TODO: Allow to export
-            // menu.addAction(QStringLiteral("Export"));
+            connect(menu.addAction(QStringLiteral("Export")), &QAction::triggered,
+                this, &QEFIEntryView::exportClicked);
 
             connect(menu.addAction(QStringLiteral("Property")), &QAction::triggered,
                 this, &QEFIEntryView::detailClicked);

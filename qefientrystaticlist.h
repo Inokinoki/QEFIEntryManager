@@ -32,6 +32,8 @@ public:
     void setBootOrder(const QList<quint16> &newOrder);
     bool setBootVisibility(const quint16 bootID, bool visible);
 
+    QByteArray getRawData(const quint16 bootID);
+
     virtual ~QEFIEntryStaticList();
 };
 

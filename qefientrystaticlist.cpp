@@ -156,3 +156,16 @@ bool QEFIEntryStaticList::setBootVisibility(
     }
     return false;
 }
+
+QByteArray QEFIEntryStaticList::getRawData(const quint16 bootID)
+{
+    QByteArray res;
+    int index = m_order.indexOf(bootID);
+    if (index == -1) return res;
+
+    auto bootDataIter = m_cachedItem.find(bootID);
+    if (bootDataIter != m_cachedItem.end()) {
+        return *bootDataIter;
+    }
+    return res;
+}
