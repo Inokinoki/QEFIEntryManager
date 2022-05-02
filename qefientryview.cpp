@@ -12,6 +12,7 @@
 #include <QAction>
 #include <QContextMenuEvent>
 #include <QFileDialog>
+#include <QSaveFile>
 
 #include "qefientrydetailview.h"
 
@@ -310,8 +311,17 @@ void QEFIEntryView::exportClicked(bool checked)
                 QStringLiteral("Data to export is empty."));
             return;
         }
+#if QT_VERSION < QT_VERSION_CHECK(5,14,0)
+        QString exportFilename = QFileDialog::getSaveFileName(this,
+            QString::asprintf("Export Boot%04X", m_order[m_selectedItemIndex]));
+        QSaveFile exportFile(exportFilename);
+        exportFile.open(QIODevice::WriteOnly);
+        exportFile.write(data);
+        exportFile.commit();
+#else
         QFileDialog::saveFileContent(data,
             QString::asprintf("Boot%04X.bin", m_order[m_selectedItemIndex]));
+#endif
     }
 }
 
