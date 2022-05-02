@@ -27,9 +27,7 @@ class QEFIEntryView: public QWidget
     QPushButton *m_setCurrentButton;
     QPushButton *m_saveButton;
     QPushButton *m_resetButton;
-    QPushButton *m_visibilityButton;
     QPushButton *m_rebootTargetButton;
-    QPushButton *m_detailButton;
 
     QLabel *m_bootTimeoutLabel;
 
@@ -39,6 +37,8 @@ class QEFIEntryView: public QWidget
     int m_selectedItemIndex;
 
     void updateButtonState();
+
+    void contextMenuEvent(QContextMenuEvent *event);
 public:
     QEFIEntryView(QWidget *parent = nullptr);
     ~QEFIEntryView();

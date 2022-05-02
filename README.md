@@ -18,6 +18,8 @@ click on `Yes` to reboot immediately:
 
 ![Reboot Confirmation](.github/reboot_confirm.png)
 
+Right click on the boot entry to enable/disable the entry, or show the detailed properties.
+
 ## Install
 
 Download the prebuilt app from CI:

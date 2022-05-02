@@ -8,6 +8,9 @@
 #include <QProcess>
 
 #include <QDialog>
+#include <QMenu>
+#include <QAction>
+#include <QContextMenuEvent>
 
 #include "qefientrydetailview.h"
 
@@ -24,6 +27,7 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
     m_topLevelLayout = new QBoxLayout(QBoxLayout::LeftToRight, this);
 
     m_entries = new QListWidget(this);
+    m_entries->setContextMenuPolicy(Qt::DefaultContextMenu);
     m_entryItems = QEFIEntryStaticList::instance()->entries();
     m_order = QEFIEntryStaticList::instance()->order();
     m_selectedItemIndex = -1;
@@ -49,29 +53,20 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
     m_moveUpEntryButton = new QPushButton(QStringLiteral("Move up"), this);
     m_moveDownEntryButton = new QPushButton(QStringLiteral("Move down"), this);
     m_setCurrentButton = new QPushButton(QStringLiteral("Make default"), this);
-    m_visibilityButton = new QPushButton(QStringLiteral("Enable"), this);
-    m_visibilityButton->setDisabled(true);
     m_rebootTargetButton = new QPushButton(QStringLiteral("Set reboot"), this);
     m_rebootTargetButton->setDisabled(true);
-    m_detailButton = new QPushButton(QStringLiteral("Details"), this);
     m_buttonLayout->addWidget(m_moveUpEntryButton);
     m_buttonLayout->addWidget(m_moveDownEntryButton);
     m_buttonLayout->addWidget(m_setCurrentButton);
-    m_buttonLayout->addWidget(m_visibilityButton);
     m_buttonLayout->addWidget(m_rebootTargetButton);
-    m_buttonLayout->addWidget(m_detailButton);
     QObject::connect(m_moveUpEntryButton, &QPushButton::clicked,
                      this, &QEFIEntryView::moveUpClicked);
     QObject::connect(m_moveDownEntryButton, &QPushButton::clicked,
                      this, &QEFIEntryView::moveDownClicked);
     QObject::connect(m_setCurrentButton, &QPushButton::clicked,
                      this, &QEFIEntryView::setCurrentClicked);
-    QObject::connect(m_visibilityButton, &QPushButton::clicked,
-                     this, &QEFIEntryView::visibilityClicked);
     QObject::connect(m_rebootTargetButton, &QPushButton::clicked,
                      this, &QEFIEntryView::rebootClicked);
-    QObject::connect(m_detailButton, &QPushButton::clicked,
-                     this, &QEFIEntryView::detailClicked);
 
     m_buttonLayout->addStretch(1);
 
@@ -113,9 +108,7 @@ QEFIEntryView::~QEFIEntryView()
     if (m_saveButton != nullptr) delete m_saveButton;
     if (m_resetButton != nullptr) delete m_resetButton;
     if (m_rebootTargetButton != nullptr) delete m_rebootTargetButton;
-    if (m_visibilityButton != nullptr) delete m_visibilityButton;
     if (m_bootTimeoutLabel != nullptr) delete m_bootTimeoutLabel;
-    if (m_detailButton != nullptr) delete m_detailButton;
 }
 
 void QEFIEntryView::entryChanged(int currentRow)
@@ -195,15 +188,8 @@ void QEFIEntryView::updateButtonState()
         m_moveDownEntryButton->setDisabled(false);
         m_setCurrentButton->setDisabled(false);
         m_rebootTargetButton->setDisabled(false);
-        m_detailButton->setDisabled(false);
         m_saveButton->setDisabled(false);
         m_resetButton->setDisabled(false);
-
-        m_visibilityButton->setDisabled(false);
-        // Set the visibility button
-        QEFIEntry &entry = m_entryItems[m_order[m_selectedItemIndex]];
-        bool visibility = entry.loadOption()->isVisible();
-        m_visibilityButton->setText(!visibility ? "Enable" : "Disable");
 
         if (0 == m_selectedItemIndex) {
             m_moveUpEntryButton->setDisabled(true);
@@ -216,10 +202,8 @@ void QEFIEntryView::updateButtonState()
         m_moveDownEntryButton->setDisabled(true);
         m_setCurrentButton->setDisabled(true);
         m_rebootTargetButton->setDisabled(true);
-        m_detailButton->setDisabled(true);
         m_saveButton->setDisabled(false);
         m_resetButton->setDisabled(false);
-        m_visibilityButton->setDisabled(true);
     }
 }
 
@@ -282,7 +266,6 @@ void QEFIEntryView::visibilityClicked(bool checked)
             QListWidgetItem *currentItem = m_entries->item(m_selectedItemIndex);
             if (currentItem != nullptr) {
                 currentItem->setForeground(visibility ? Qt::gray : Qt::black);
-                m_visibilityButton->setText(visibility ? "Enable" : "Disable");
             }
         }
     }
@@ -314,4 +297,38 @@ void QEFIEntryView::detailClicked(bool checked)
         DetailDialog dialog(m_entryItems[m_order[m_selectedItemIndex]], this);
         dialog.exec();
     }
+}
+
+void QEFIEntryView::contextMenuEvent(QContextMenuEvent *event)
+{
+    QMenu menu(this);
+    if (m_selectedItemIndex >= 0 || m_selectedItemIndex < m_order.size()) {
+        QListWidgetItem *currentItem = m_entries->itemAt(event->pos());
+        if (currentItem != nullptr) {
+            menu.addSection(QString::asprintf("Boot%04X", m_order[m_selectedItemIndex]));
+
+            QEFIEntry &entry = m_entryItems[m_order[m_selectedItemIndex]];
+            connect(menu.addAction(entry.isActive() ?
+                QStringLiteral("Disable") : QStringLiteral("Enable")),
+                &QAction::triggered, this, &QEFIEntryView::visibilityClicked);
+
+            // TODO: Allow to delete
+            // menu.addAction(QStringLiteral("Delete"));
+
+            // TODO: Allow to export
+            // menu.addAction(QStringLiteral("Export"));
+
+            connect(menu.addAction(QStringLiteral("Property")), &QAction::triggered,
+                this, &QEFIEntryView::detailClicked);
+
+            menu.addSeparator();
+        }
+    }
+    // TODO: Allow to add new one
+    // menu.addAction(QStringLiteral("Add"));
+
+    // TODO: Allow to import
+    // menu.addAction(QStringLiteral("Import"));
+
+    menu.exec(event->globalPos());
 }
