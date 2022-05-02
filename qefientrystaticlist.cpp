@@ -121,3 +121,38 @@ void QEFIEntryStaticList::setBootOrder(const QList<quint16> &newOrder)
                       QStringLiteral("BootOrder"), orderBuffer);
     // TODO: Sync the order in this class
 }
+
+bool QEFIEntryStaticList::setBootVisibility(
+    const quint16 bootID, bool visible)
+{
+    int index = m_order.indexOf(bootID);
+    if (index == -1) return false;
+
+    auto bootDataIter = m_cachedItem.find(bootID);
+    if (bootDataIter != m_cachedItem.end()) {
+        QByteArray &bootData = *bootDataIter;
+        if (bootData.size() < 4) return false;
+
+        // Set the data
+        quint32 attribute = (
+            (bootData[3] << 24) | (bootData[2] << 16) |
+            (bootData[1] << 8) | (bootData[0])
+        );
+        if (visible ^ (attribute & QEFI_LOAD_OPTION_ACTIVE)) {
+            // Visibility is changed
+            if (visible) attribute |= 0x00000001;
+            else attribute &= 0xFFFFFFFE;
+
+            QString name = QString::asprintf("Boot%04X", bootID);
+            bootData[3] = (attribute >> 24);
+            bootData[2] = ((attribute >> 16) & 0xFF);
+            bootData[1] = ((attribute >> 8) & 0xFF);
+            bootData[0] = (attribute & 0xFF);
+            qefi_set_variable(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
+                                    name, bootData);
+
+            return true;
+        }
+    }
+    return false;
+}

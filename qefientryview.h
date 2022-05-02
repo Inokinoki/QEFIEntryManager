@@ -27,6 +27,7 @@ class QEFIEntryView: public QWidget
     QPushButton *m_setCurrentButton;
     QPushButton *m_saveButton;
     QPushButton *m_resetButton;
+    QPushButton *m_visibilityButton;
     QPushButton *m_rebootTargetButton;
     QPushButton *m_detailButton;
 
@@ -49,6 +50,7 @@ public slots:
     void resetFromStaticListClicked(bool checked);
     void saveClicked(bool checked);
     void setCurrentClicked(bool checked);
+    void visibilityClicked(bool checked);
     void rebootClicked(bool checked);
     void detailClicked(bool checked);
 

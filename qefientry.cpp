@@ -25,6 +25,14 @@ bool QEFIEntry::isActive() const
     return m_isActive;
 }
 
+void QEFIEntry::setActive(bool active)
+{
+    if (m_loadOption != nullptr) {
+        m_loadOption->setIsVisible(active);
+    }
+    m_isActive = active;
+}
+
 QEFILoadOption *QEFIEntry::loadOption() const
 {
     return m_loadOption;

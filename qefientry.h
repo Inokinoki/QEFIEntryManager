@@ -26,6 +26,8 @@ public:
     QString devicePath() const;
     bool isActive() const;
     QEFILoadOption *loadOption() const;
+
+    void setActive(bool active);
 };
 
 #endif // QEFIENTRY_H

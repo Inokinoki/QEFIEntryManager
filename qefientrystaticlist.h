@@ -30,6 +30,7 @@ public:
 
     void setBootNext(const quint16 &next);
     void setBootOrder(const QList<quint16> &newOrder);
+    bool setBootVisibility(const quint16 bootID, bool visible);
 
     virtual ~QEFIEntryStaticList();
 };

@@ -49,12 +49,15 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
     m_moveUpEntryButton = new QPushButton(QStringLiteral("Move up"), this);
     m_moveDownEntryButton = new QPushButton(QStringLiteral("Move down"), this);
     m_setCurrentButton = new QPushButton(QStringLiteral("Make default"), this);
+    m_visibilityButton = new QPushButton(QStringLiteral("Enable"), this);
+    m_visibilityButton->setDisabled(true);
     m_rebootTargetButton = new QPushButton(QStringLiteral("Set reboot"), this);
     m_rebootTargetButton->setDisabled(true);
     m_detailButton = new QPushButton(QStringLiteral("Details"), this);
     m_buttonLayout->addWidget(m_moveUpEntryButton);
     m_buttonLayout->addWidget(m_moveDownEntryButton);
     m_buttonLayout->addWidget(m_setCurrentButton);
+    m_buttonLayout->addWidget(m_visibilityButton);
     m_buttonLayout->addWidget(m_rebootTargetButton);
     m_buttonLayout->addWidget(m_detailButton);
     QObject::connect(m_moveUpEntryButton, &QPushButton::clicked,
@@ -63,6 +66,8 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
                      this, &QEFIEntryView::moveDownClicked);
     QObject::connect(m_setCurrentButton, &QPushButton::clicked,
                      this, &QEFIEntryView::setCurrentClicked);
+    QObject::connect(m_visibilityButton, &QPushButton::clicked,
+                     this, &QEFIEntryView::visibilityClicked);
     QObject::connect(m_rebootTargetButton, &QPushButton::clicked,
                      this, &QEFIEntryView::rebootClicked);
     QObject::connect(m_detailButton, &QPushButton::clicked,
@@ -108,6 +113,7 @@ QEFIEntryView::~QEFIEntryView()
     if (m_saveButton != nullptr) delete m_saveButton;
     if (m_resetButton != nullptr) delete m_resetButton;
     if (m_rebootTargetButton != nullptr) delete m_rebootTargetButton;
+    if (m_visibilityButton != nullptr) delete m_visibilityButton;
     if (m_bootTimeoutLabel != nullptr) delete m_bootTimeoutLabel;
     if (m_detailButton != nullptr) delete m_detailButton;
 }
@@ -192,6 +198,13 @@ void QEFIEntryView::updateButtonState()
         m_detailButton->setDisabled(false);
         m_saveButton->setDisabled(false);
         m_resetButton->setDisabled(false);
+
+        m_visibilityButton->setDisabled(false);
+        // Set the visibility button
+        QEFIEntry &entry = m_entryItems[m_order[m_selectedItemIndex]];
+        bool visibility = entry.loadOption()->isVisible();
+        m_visibilityButton->setText(!visibility ? "Enable" : "Disable");
+
         if (0 == m_selectedItemIndex) {
             m_moveUpEntryButton->setDisabled(true);
         }
@@ -206,6 +219,7 @@ void QEFIEntryView::updateButtonState()
         m_detailButton->setDisabled(true);
         m_saveButton->setDisabled(false);
         m_resetButton->setDisabled(false);
+        m_visibilityButton->setDisabled(true);
     }
 }
 
@@ -244,6 +258,33 @@ void QEFIEntryView::rebootClicked(bool checked)
             qDebug() << "[EFIRebootView] Reboot later";
         }
         return;
+    }
+}
+
+void QEFIEntryView::visibilityClicked(bool checked)
+{
+    Q_UNUSED(checked);
+    if (m_selectedItemIndex >= 0 || m_selectedItemIndex < m_order.size()) {
+        qDebug() << "[EFIRebootView] Set " << m_order[m_selectedItemIndex] << " "
+                 << m_entryItems[m_order[m_selectedItemIndex]].name() << " visibility";
+        // Set Attribute
+        QEFIEntry &entry = m_entryItems[m_order[m_selectedItemIndex]];
+        bool visibility = entry.loadOption()->isVisible();
+        if (QEFIEntryStaticList::instance()->setBootVisibility(
+            m_order[m_selectedItemIndex], !visibility)) {
+            // Already set visibility successful
+
+            // Set the load option visibility
+            QEFIEntryStaticList::instance()->entries()[m_order[m_selectedItemIndex]].
+                setActive(!visibility);
+
+            // Set the activation state
+            QListWidgetItem *currentItem = m_entries->item(m_selectedItemIndex);
+            if (currentItem != nullptr) {
+                currentItem->setForeground(visibility ? Qt::gray : Qt::black);
+                m_visibilityButton->setText(visibility ? "Enable" : "Disable");
+            }
+        }
     }
 }
 
