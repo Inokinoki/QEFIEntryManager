@@ -172,10 +172,8 @@ QByteArray QEFIEntryStaticList::getRawData(const quint16 bootID)
     return res;
 }
 
-bool QEFIEntryStaticList::updateBootEntry(const quint16 bootID, const QByteArray &origData)
+bool QEFIEntryStaticList::updateBootEntry(const quint16 bootID, const QByteArray &data)
 {
-    // TODO: Currently a workaround, do not copy this
-    QByteArray data = origData;
     QEFILoadOption *loadOption = new QEFILoadOption(data);
     if (!loadOption->isValidated()) {
         // Load Option is invalidated, clear it
