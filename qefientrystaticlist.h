@@ -33,6 +33,7 @@ public:
     bool setBootVisibility(const quint16 bootID, bool visible);
 
     QByteArray getRawData(const quint16 bootID);
+    bool updateBootEntry(const quint16 bootID, const QByteArray &data);
 
     virtual ~QEFIEntryStaticList();
 };

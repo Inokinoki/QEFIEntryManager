@@ -13,6 +13,8 @@
 #include <QContextMenuEvent>
 #include <QFileDialog>
 #include <QSaveFile>
+#include <QInputDialog>
+#include <QSpinBox>
 
 #include "qefientrydetailview.h"
 
@@ -74,11 +76,15 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
 
     m_bootTimeoutLabel = new QLabel(QString::asprintf("Timeout: %d second(s)",
         QEFIEntryStaticList::instance()->timeout()), this);
+    m_importButton = new QPushButton(QStringLiteral("Import"), this);
     m_saveButton = new QPushButton(QStringLiteral("Save"), this);
     m_resetButton = new QPushButton(QStringLiteral("Reset"), this);
     m_buttonLayout->addWidget(m_bootTimeoutLabel);
+    m_buttonLayout->addWidget(m_importButton);
     m_buttonLayout->addWidget(m_saveButton);
     m_buttonLayout->addWidget(m_resetButton);
+    QObject::connect(m_importButton, &QPushButton::clicked,
+                     this, &QEFIEntryView::importClicked);
     QObject::connect(m_saveButton, &QPushButton::clicked,
                      this, &QEFIEntryView::saveClicked);
     QObject::connect(m_resetButton, &QPushButton::clicked,
@@ -109,6 +115,7 @@ QEFIEntryView::~QEFIEntryView()
     if (m_resetButton != nullptr) m_resetButton->deleteLater();
     if (m_rebootTargetButton != nullptr) m_rebootTargetButton->deleteLater();
     if (m_bootTimeoutLabel != nullptr) m_bootTimeoutLabel->deleteLater();
+    if (m_importButton != nullptr) m_importButton->deleteLater();
 }
 
 void QEFIEntryView::entryChanged(int currentRow)
@@ -353,8 +360,8 @@ void QEFIEntryView::contextMenuEvent(QContextMenuEvent *event)
     // TODO: Allow to add new one
     // menu.addAction(QStringLiteral("Add"));
 
-    // TODO: Allow to import
-    // menu.addAction(QStringLiteral("Import"));
+    connect(menu.addAction(QStringLiteral("Import")), &QAction::triggered,
+        this, &QEFIEntryView::importClicked);
 
     menu.exec(event->globalPos());
 }
@@ -366,4 +373,75 @@ void QEFIEntryView::deleteClicked(bool checked)
         m_order.removeAt(m_selectedItemIndex);
         resetClicked(checked);
     }
+}
+
+void QEFIEntryView::importClicked(bool checked)
+{
+    Q_UNUSED(checked);
+    QString filename = QFileDialog::getOpenFileName(this, "Open File");
+    if (filename.isNull()) return;
+
+    QFile fileToImport(filename);
+    if (!fileToImport.exists()) return;
+
+    fileToImport.open(QIODevice::ReadOnly);
+    QByteArray data = fileToImport.readAll();
+
+    // Parse using a QEFILoadOption
+    QEFILoadOption loadOption(data);
+    if (!loadOption.isValidated()) {
+        // Show a warning and stop
+        QMessageBox::warning(this, QStringLiteral("Import failed"),
+            QStringLiteral("Data are invalidated."));
+        return;
+    }
+
+    // Choose an ID
+    QInputDialog dialog(this);
+    dialog.setWindowTitle(QStringLiteral("Choose an ID"));
+    dialog.setLabelText(QStringLiteral("Hex value from 0 to FFFF"));
+    dialog.setIntRange(0, 0xFFFF);
+    dialog.setIntValue(0x1000);
+    dialog.setIntStep(1);
+    QSpinBox *spinbox = dialog.findChild<QSpinBox*>();
+    if (spinbox) spinbox->setDisplayIntegerBase(16);
+    if (dialog.exec() != QDialog::Accepted) {
+        // Show a warning and stop
+        QMessageBox::warning(this, QStringLiteral("Import failed"),
+            QStringLiteral("The action is cancelled."));
+        return;
+    }
+    bool validatedBootID = false;
+    quint16 bootID = spinbox->text().toInt(&validatedBootID, 16);
+    if (!validatedBootID) {
+        // Show a warning and stop
+        QMessageBox::warning(this, QStringLiteral("Import failed"),
+            QStringLiteral("The chosen ID is invalidated."));
+        return;
+    }
+    bool orderFound = m_order.contains(bootID);
+    if (orderFound) {
+        // Override: Show a confirmation
+        if (QMessageBox::question(this, QStringLiteral("Import"),
+            QString::asprintf("Do you want to override Boot%04X?", bootID)) ==
+            QMessageBox::No) {
+            // Show a warning and stop
+            QMessageBox::warning(this, QStringLiteral("Import failed"),
+                QStringLiteral("The action is cancelled."));
+            return;
+        }
+    }
+
+    if (!QEFIEntryStaticList::instance()->updateBootEntry(bootID, data)) {
+        // Show a warning and stop
+        QMessageBox::warning(this, QStringLiteral("Import failed"),
+            QStringLiteral("Data might be invalidated."));
+        return;
+    }
+
+    // Check and update the list
+    if (!orderFound) m_order.append(bootID);
+    m_entryItems = QEFIEntryStaticList::instance()->entries();
+    m_selectedItemIndex = -1;
+    resetClicked(false);
 }

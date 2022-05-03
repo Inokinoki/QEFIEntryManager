@@ -119,7 +119,9 @@ void QEFIEntryStaticList::setBootOrder(const QList<quint16> &newOrder)
     }
     qefi_set_variable(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
                       QStringLiteral("BootOrder"), orderBuffer);
-    // TODO: Sync the order in this class
+
+    // Sync the order in this class, we currently have confiance on the list
+    m_order = newOrder;
 }
 
 bool QEFIEntryStaticList::setBootVisibility(
@@ -168,4 +170,33 @@ QByteArray QEFIEntryStaticList::getRawData(const quint16 bootID)
         return *bootDataIter;
     }
     return res;
+}
+
+bool QEFIEntryStaticList::updateBootEntry(const quint16 bootID, const QByteArray &origData)
+{
+    // TODO: Currently a workaround, do not copy this
+    QByteArray data = origData;
+    QEFILoadOption *loadOption = new QEFILoadOption(data);
+    if (!loadOption->isValidated()) {
+        // Load Option is invalidated, clear it
+        delete loadOption;
+        return false;
+    }
+    m_cachedItem.insert(bootID, data);
+    auto iter = m_loadOptions.find(bootID);
+    if (iter != m_loadOptions.end()) {
+        // Exists, delete the old one
+        if (*iter) delete (*iter);
+    }
+    m_loadOptions.insert(bootID, loadOption);
+
+    // Write the data
+    QString name = QString::asprintf("Boot%04X", bootID);
+    qefi_set_variable(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
+                      name, data);
+
+    // Update entry
+    QEFIEntry entry(bootID, loadOption);
+    m_entries.insert(bootID, entry);
+    return true;
 }
