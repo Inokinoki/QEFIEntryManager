@@ -58,7 +58,11 @@ if(PkgConfig_FOUND)
     pkg_check_modules(EFIVAR efivar)
 endif()
 
-if(EFIVAR_FOUND)
+if(APP_DATA_DUMMY_BACKEND)
+    # Use the directory under QStandardPaths::AppDataLocation for test purpose
+    message("Use dummy backend for EFI operations")
+    add_definitions(-DEFIVAR_APP_DATA_DUMMY)
+elseif(EFIVAR_FOUND)
     message("Use libefivar for EFI operations")
     include_directories(QEFIEntryManager ${EFIVAR_INCLUDE_DIRS})
     target_link_libraries(QEFIEntryManager PRIVATE ${EFIVAR_LIBRARIES})
