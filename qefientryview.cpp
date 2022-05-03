@@ -338,8 +338,8 @@ void QEFIEntryView::contextMenuEvent(QContextMenuEvent *event)
                 QStringLiteral("Disable") : QStringLiteral("Enable")),
                 &QAction::triggered, this, &QEFIEntryView::visibilityClicked);
 
-            // TODO: Allow to delete
-            // menu.addAction(QStringLiteral("Delete"));
+            connect(menu.addAction(QStringLiteral("Delete")), &QAction::triggered,
+                this, &QEFIEntryView::deleteClicked);
 
             connect(menu.addAction(QStringLiteral("Export")), &QAction::triggered,
                 this, &QEFIEntryView::exportClicked);
@@ -357,4 +357,13 @@ void QEFIEntryView::contextMenuEvent(QContextMenuEvent *event)
     // menu.addAction(QStringLiteral("Import"));
 
     menu.exec(event->globalPos());
+}
+
+void QEFIEntryView::deleteClicked(bool checked)
+{
+    Q_UNUSED(checked);
+    if (m_selectedItemIndex >= 0 || m_selectedItemIndex < m_order.size()) {
+        m_order.removeAt(m_selectedItemIndex);
+        resetClicked(checked);
+    }
 }
