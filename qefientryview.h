@@ -54,6 +54,7 @@ public slots:
     void rebootClicked(bool checked);
     void detailClicked(bool checked);
     void exportClicked(bool checked);
+    void deleteClicked(bool checked);
 
     void moveUpClicked(bool checked);
     void moveDownClicked(bool checked);
