@@ -287,20 +287,22 @@ void QEFIEntryView::visibilityClicked(bool checked)
 
 class DetailDialog : public QDialog
 {
-    QEFIEntryDetailView m_view;
+    QEFIEntryDetailView *m_view;
     QBoxLayout *m_topLevelLayout;
 public:
     DetailDialog(QEFIEntry &entry, QWidget *parent = nullptr)
-        : QDialog(parent), m_view(entry, this)
+        : QDialog(parent)
     {
+        m_view = new QEFIEntryDetailView(entry, this);
         setWindowTitle(entry.name());
         m_topLevelLayout = new QBoxLayout(QBoxLayout::LeftToRight, this);
-        m_topLevelLayout->addWidget(&m_view);
+        m_topLevelLayout->addWidget(m_view);
     }
 
     ~DetailDialog()
     {
         if (m_topLevelLayout) m_topLevelLayout->deleteLater();
+        if (m_view) m_view->deleteLater();
     }
 };
 
