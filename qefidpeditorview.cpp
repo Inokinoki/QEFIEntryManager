@@ -12,7 +12,7 @@ QEFIDPEditorView::QEFIDPEditorView(QEFIDevicePath *dp, QWidget *parent)
     m_topLevelLayout = new QFormLayout(this);
 
     m_dpTypeSelector = new QComboBox(this);
-    m_dpTypeSelector->setPlaceholderText(QStringLiteral("Device Path type"));
+    // m_dpTypeSelector->setPlaceholderText(QStringLiteral("Device Path type"));
     // m_dpTypeSelector->addItem(
     //     convert_device_path_type_to_name(QEFIDevicePathType::DP_Hardware),
     //     QVariant(QEFIDevicePathType::DP_Hardware));
@@ -36,7 +36,7 @@ QEFIDPEditorView::QEFIDPEditorView(QEFIDevicePath *dp, QWidget *parent)
         this, &QEFIDPEditorView::dpTypeComboBoxCurrentIndexChanged);
 
     m_dpSubtypeSelector = new QComboBox(this);
-    m_dpSubtypeSelector->setPlaceholderText(QStringLiteral("Device Path subtype"));
+    // m_dpSubtypeSelector->setPlaceholderText(QStringLiteral("Device Path subtype"));
     if (dp != nullptr) {
         QList<quint8> subtypes = enum_device_path_subtype(dp->type());
         for (int i = 0; i < subtypes.size(); i++) {
