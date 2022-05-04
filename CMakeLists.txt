@@ -30,6 +30,8 @@ set(PROJECT_SOURCES
         qefientrystaticlist.h
         helpers.cpp
         helpers.h
+        qefidpeditorview.cpp
+        qefidpeditorview.h
         qefivar/qefi.cpp
         qefivar/qefidpacpi.cpp
         qefivar/qefidphw.cpp

@@ -842,3 +842,528 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
     }
     return list;
 }
+
+QList<QPair<QString, enum QEFIDPEditType>> convert_device_path_types(QEFIDevicePath *dp)
+{
+    if (dp == nullptr) return {};
+    QList<QPair<QString, enum QEFIDPEditType>> list;
+    QEFIDevicePathType type = dp->type();
+    quint8 subtype = dp->subType();
+    switch (type)
+    {
+    case QEFIDevicePathType::DP_Hardware:
+        switch (subtype) {
+            case QEFIDevicePathHardwareSubType::HW_PCI:
+                if (dynamic_cast<QEFIDevicePathHardwarePCI *>(dp)) {
+                    QEFIDevicePathHardwarePCI *dpPCI = (QEFIDevicePathHardwarePCI *)
+                        dynamic_cast<QEFIDevicePathHardwarePCI *>(dp);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Function",
+                        QEFIDPEditType::EditType_HexNumber);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Device",
+                        QEFIDPEditType::EditType_HexNumber);
+                }
+                break;
+            case QEFIDevicePathHardwareSubType::HW_PCCard:
+                if (dynamic_cast<QEFIDevicePathHardwarePCCard *>(dp)) {
+                    QEFIDevicePathHardwarePCCard *dpPCCard = (QEFIDevicePathHardwarePCCard *)
+                        dynamic_cast<QEFIDevicePathHardwarePCCard *>(dp);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Function",
+                        QEFIDPEditType::EditType_HexNumber);
+                }
+                break;
+            case QEFIDevicePathHardwareSubType::HW_MMIO:
+                if (dynamic_cast<QEFIDevicePathHardwareMMIO *>(dp)) {
+                    QEFIDevicePathHardwareMMIO *dpMMIO = (QEFIDevicePathHardwareMMIO *)
+                        dynamic_cast<QEFIDevicePathHardwareMMIO *>(dp);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Memory Type",
+                        QEFIDPEditType::EditType_Number);   // TODO: Enum
+                    list << qMakePair<QString, enum QEFIDPEditType>("Starting Address",
+                        QEFIDPEditType::EditType_HexNumber);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Ending Address",
+                        QEFIDPEditType::EditType_HexNumber);
+                }
+                break;
+            case QEFIDevicePathHardwareSubType::HW_Vendor:
+                if (dynamic_cast<QEFIDevicePathHardwareVendor *>(dp)) {
+                    QEFIDevicePathHardwareVendor *dpVendor = (QEFIDevicePathHardwareVendor *)
+                        dynamic_cast<QEFIDevicePathHardwareVendor *>(dp);
+                    list << qMakePair<QString, enum QEFIDPEditType>("GUID",
+                        QEFIDPEditType::EditType_UUID);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Data",
+                        QEFIDPEditType::EditType_HexData);
+                }
+                break;
+            case QEFIDevicePathHardwareSubType::HW_Controller:
+                if (dynamic_cast<QEFIDevicePathHardwareController *>(dp)) {
+                    QEFIDevicePathHardwareController *dpController =
+                        (QEFIDevicePathHardwareController *)
+                            dynamic_cast<QEFIDevicePathHardwareController *>(dp);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Controller",
+                        QEFIDPEditType::EditType_HexNumber);
+                }
+                break;
+            case QEFIDevicePathHardwareSubType::HW_BMC:
+                if (dynamic_cast<QEFIDevicePathHardwareBMC *>(dp)) {
+                    QEFIDevicePathHardwareBMC *dpBMC = (QEFIDevicePathHardwareBMC *)
+                        dynamic_cast<QEFIDevicePathHardwareBMC *>(dp);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Interface Type",
+                        QEFIDPEditType::EditType_Number);   // TODO: Enum
+                    list << qMakePair<QString, enum QEFIDPEditType>("Base Address",
+                        QEFIDPEditType::EditType_HexNumber);
+                }
+                break;
+        }
+        break;
+    case QEFIDevicePathType::DP_ACPI:
+        switch (subtype) {
+            case QEFIDevicePathACPISubType::ACPI_HID:
+                if (dynamic_cast<QEFIDevicePathACPIHID *>(dp)) {
+                    QEFIDevicePathACPIHID *dpACPIHID = (QEFIDevicePathACPIHID *)
+                        dynamic_cast<QEFIDevicePathACPIHID *>(dp);
+                    list << qMakePair<QString, enum QEFIDPEditType>("HID",
+                        QEFIDPEditType::EditType_HexNumber);
+                    list << qMakePair<QString, enum QEFIDPEditType>("UID",
+                        QEFIDPEditType::EditType_HexNumber);
+                }
+                break;
+            case QEFIDevicePathACPISubType::ACPI_HIDEX:
+                if (dynamic_cast<QEFIDevicePathACPIHIDEX *>(dp)) {
+                    QEFIDevicePathACPIHIDEX *dpACPIHIDEX =
+                        (QEFIDevicePathACPIHIDEX *)
+                            dynamic_cast<QEFIDevicePathACPIHIDEX *>(dp);
+                    list << qMakePair<QString, enum QEFIDPEditType>("HID",
+                        QEFIDPEditType::EditType_HexNumber);
+                    list << qMakePair<QString, enum QEFIDPEditType>("UID",
+                        QEFIDPEditType::EditType_HexNumber);
+                    list << qMakePair<QString, enum QEFIDPEditType>("CID",
+                        QEFIDPEditType::EditType_HexNumber);
+                    list << qMakePair<QString, enum QEFIDPEditType>("HID String",
+                        QEFIDPEditType::EditType_Text);
+                    list << qMakePair<QString, enum QEFIDPEditType>("UID String",
+                        QEFIDPEditType::EditType_Text);
+                    list << qMakePair<QString, enum QEFIDPEditType>("CID String",
+                        QEFIDPEditType::EditType_Text);
+                }
+                break;
+            case QEFIDevicePathACPISubType::ACPI_ADR:
+                if (dynamic_cast<QEFIDevicePathACPIADR *>(dp)) {
+                    QEFIDevicePathACPIADR *dpADR = (QEFIDevicePathACPIADR *)
+                        dynamic_cast<QEFIDevicePathACPIADR *>(dp);
+                    // TODO: List not yet supported
+                }
+                break;
+        }
+        break;
+    case QEFIDevicePathType::DP_Message:
+        switch (subtype) {
+            case QEFIDevicePathMessageSubType::MSG_ATAPI:
+                if (dynamic_cast<QEFIDevicePathMessageATAPI *>(dp)) {
+                    QEFIDevicePathMessageATAPI *dpMessage =
+                        (QEFIDevicePathMessageATAPI *)
+                            dynamic_cast<QEFIDevicePathMessageATAPI *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_SCSI:
+                if (dynamic_cast<QEFIDevicePathMessageSCSI *>(dp)) {
+                    QEFIDevicePathMessageSCSI *dpMessage =
+                        (QEFIDevicePathMessageSCSI *)
+                            dynamic_cast<QEFIDevicePathMessageSCSI *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_FibreChan:
+                if (dynamic_cast<QEFIDevicePathMessageFibreChan *>(dp)) {
+                    QEFIDevicePathMessageFibreChan *dpMessage =
+                        (QEFIDevicePathMessageFibreChan *)
+                            dynamic_cast<QEFIDevicePathMessageFibreChan *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_1394:
+                if (dynamic_cast<QEFIDevicePathMessage1394 *>(dp)) {
+                    QEFIDevicePathMessage1394 *dpMessage =
+                        (QEFIDevicePathMessage1394 *)
+                            dynamic_cast<QEFIDevicePathMessage1394 *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_USB:
+                if (dynamic_cast<QEFIDevicePathMessageUSB *>(dp)) {
+                    QEFIDevicePathMessageUSB *dpMessage =
+                        (QEFIDevicePathMessageUSB *)
+                            dynamic_cast<QEFIDevicePathMessageUSB *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_I2O:
+                if (dynamic_cast<QEFIDevicePathMessageI2O *>(dp)) {
+                    QEFIDevicePathMessageI2O *dpMessage =
+                        (QEFIDevicePathMessageI2O *)
+                            dynamic_cast<QEFIDevicePathMessageI2O *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_InfiniBand:
+                if (dynamic_cast<QEFIDevicePathMessageInfiniBand *>(dp)) {
+                    QEFIDevicePathMessageInfiniBand *dpMessage =
+                        (QEFIDevicePathMessageInfiniBand *)
+                            dynamic_cast<QEFIDevicePathMessageInfiniBand *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_Vendor:
+                if (dynamic_cast<QEFIDevicePathMessageVendor *>(dp)) {
+                    QEFIDevicePathMessageVendor *dpMessage =
+                        (QEFIDevicePathMessageVendor *)
+                            dynamic_cast<QEFIDevicePathMessageVendor *>(dp);
+                    list << qMakePair<QString, enum QEFIDPEditType>("GUID",
+                        QEFIDPEditType::EditType_UUID);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Data",
+                        QEFIDPEditType::EditType_HexData);
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_MACAddr:
+                if (dynamic_cast<QEFIDevicePathMessageMACAddr *>(dp)) {
+                    QEFIDevicePathMessageMACAddr *dpMessage =
+                        (QEFIDevicePathMessageMACAddr *)
+                            dynamic_cast<QEFIDevicePathMessageMACAddr *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_IPv4:
+                if (dynamic_cast<QEFIDevicePathMessageIPv4Addr *>(dp)) {
+                    QEFIDevicePathMessageIPv4Addr *dpMessage =
+                        (QEFIDevicePathMessageIPv4Addr *)
+                            dynamic_cast<QEFIDevicePathMessageIPv4Addr *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_IPv6:
+                if (dynamic_cast<QEFIDevicePathMessageIPv6Addr *>(dp)) {
+                    QEFIDevicePathMessageIPv6Addr *dpMessage =
+                        (QEFIDevicePathMessageIPv6Addr *)
+                            dynamic_cast<QEFIDevicePathMessageIPv6Addr *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_UART:
+                if (dynamic_cast<QEFIDevicePathMessageUART *>(dp)) {
+                    QEFIDevicePathMessageUART *dpMessage =
+                        (QEFIDevicePathMessageUART *)
+                            dynamic_cast<QEFIDevicePathMessageUART *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_USBClass:
+                if (dynamic_cast<QEFIDevicePathMessageUSBClass *>(dp)) {
+                    QEFIDevicePathMessageUSBClass *dpMessage =
+                        (QEFIDevicePathMessageUSBClass *)
+                            dynamic_cast<QEFIDevicePathMessageUSBClass *>(dp);
+                    // TODO
+                }
+                break;
+
+            case QEFIDevicePathMessageSubType::MSG_USBWWID:
+                if (dynamic_cast<QEFIDevicePathMessageUSBWWID *>(dp)) {
+                    QEFIDevicePathMessageUSBWWID *dpMessage =
+                        (QEFIDevicePathMessageUSBWWID *)
+                            dynamic_cast<QEFIDevicePathMessageUSBWWID *>(dp);
+                    // TODO
+                }
+                break;
+
+            case QEFIDevicePathMessageSubType::MSG_LUN:
+                if (dynamic_cast<QEFIDevicePathMessageLUN *>(dp)) {
+                    QEFIDevicePathMessageLUN *dpMessage =
+                        (QEFIDevicePathMessageLUN *)
+                            dynamic_cast<QEFIDevicePathMessageLUN *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_SATA:
+                if (dynamic_cast<QEFIDevicePathMessageSATA *>(dp)) {
+                    QEFIDevicePathMessageSATA *dpMessage =
+                        (QEFIDevicePathMessageSATA *)
+                            dynamic_cast<QEFIDevicePathMessageSATA *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_ISCSI:
+                if (dynamic_cast<QEFIDevicePathMessageISCSI *>(dp)) {
+                    QEFIDevicePathMessageISCSI *dpMessage =
+                        (QEFIDevicePathMessageISCSI *)
+                            dynamic_cast<QEFIDevicePathMessageISCSI *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_VLAN:
+                if (dynamic_cast<QEFIDevicePathMessageVLAN *>(dp)) {
+                    QEFIDevicePathMessageVLAN *dpMessage =
+                        (QEFIDevicePathMessageVLAN *)
+                            dynamic_cast<QEFIDevicePathMessageVLAN *>(dp);
+                    // TODO
+                }
+                break;
+
+            case QEFIDevicePathMessageSubType::MSG_FibreChanEx:
+                if (dynamic_cast<QEFIDevicePathMessageFibreChanEx *>(dp)) {
+                    QEFIDevicePathMessageFibreChanEx *dpMessage =
+                        (QEFIDevicePathMessageFibreChanEx *)
+                            dynamic_cast<QEFIDevicePathMessageFibreChanEx *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_SASEX:
+                if (dynamic_cast<QEFIDevicePathMessageSASEx *>(dp)) {
+                    QEFIDevicePathMessageSASEx *dpMessage =
+                        (QEFIDevicePathMessageSASEx *)
+                            dynamic_cast<QEFIDevicePathMessageSASEx *>(dp);
+                    // TODO
+                }
+                break;
+
+            case QEFIDevicePathMessageSubType::MSG_NVME:
+                if (dynamic_cast<QEFIDevicePathMessageNVME *>(dp)) {
+                    QEFIDevicePathMessageNVME *dpMessage =
+                        (QEFIDevicePathMessageNVME *)
+                            dynamic_cast<QEFIDevicePathMessageNVME *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_URI:
+                if (dynamic_cast<QEFIDevicePathMessageURI *>(dp)) {
+                    QEFIDevicePathMessageURI *dpMessage =
+                        (QEFIDevicePathMessageURI *)
+                            dynamic_cast<QEFIDevicePathMessageURI *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_UFS:
+                if (dynamic_cast<QEFIDevicePathMessageUFS *>(dp)) {
+                    QEFIDevicePathMessageUFS *dpMessage =
+                        (QEFIDevicePathMessageUFS *)
+                            dynamic_cast<QEFIDevicePathMessageUFS *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_SD:
+                if (dynamic_cast<QEFIDevicePathMessageSD *>(dp)) {
+                    QEFIDevicePathMessageSD *dpMessage =
+                        (QEFIDevicePathMessageSD *)
+                            dynamic_cast<QEFIDevicePathMessageSD *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_BT:
+                if (dynamic_cast<QEFIDevicePathMessageBT *>(dp)) {
+                    QEFIDevicePathMessageBT *dpMessage =
+                        (QEFIDevicePathMessageBT *)
+                            dynamic_cast<QEFIDevicePathMessageBT *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_WiFi:
+                if (dynamic_cast<QEFIDevicePathMessageWiFi *>(dp)) {
+                    QEFIDevicePathMessageWiFi *dpMessage =
+                        (QEFIDevicePathMessageWiFi *)
+                            dynamic_cast<QEFIDevicePathMessageWiFi *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_EMMC:
+                if (dynamic_cast<QEFIDevicePathMessageEMMC *>(dp)) {
+                    QEFIDevicePathMessageEMMC *dpMessage =
+                        (QEFIDevicePathMessageEMMC *)
+                            dynamic_cast<QEFIDevicePathMessageEMMC *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_BTLE:
+                if (dynamic_cast<QEFIDevicePathMessageBTLE *>(dp)) {
+                    QEFIDevicePathMessageBTLE *dpMessage =
+                        (QEFIDevicePathMessageBTLE *)
+                            dynamic_cast<QEFIDevicePathMessageBTLE *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_DNS:
+                if (dynamic_cast<QEFIDevicePathMessageDNS *>(dp)) {
+                    QEFIDevicePathMessageDNS *dpMessage =
+                        (QEFIDevicePathMessageDNS *)
+                            dynamic_cast<QEFIDevicePathMessageDNS *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMessageSubType::MSG_NVDIMM:
+                if (dynamic_cast<QEFIDevicePathMessageNVDIMM *>(dp)) {
+                    QEFIDevicePathMessageNVDIMM *dpMessage =
+                        (QEFIDevicePathMessageNVDIMM *)
+                            dynamic_cast<QEFIDevicePathMessageNVDIMM *>(dp);
+                    list << qMakePair<QString, enum QEFIDPEditType>("UUID",
+                        QEFIDPEditType::EditType_UUID);
+                }
+                break;
+        }
+        break;
+    case QEFIDevicePathType::DP_Media:
+        switch (subtype) {
+            case QEFIDevicePathMediaSubType::MEDIA_HD:
+                if (dynamic_cast<QEFIDevicePathMediaHD *>(dp)) {
+                    QEFIDevicePathMediaHD *dpHD = (QEFIDevicePathMediaHD *)
+                        dynamic_cast<QEFIDevicePathMediaHD *>(dp);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Partition Num",
+                        QEFIDPEditType::EditType_Number);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Start",
+                        QEFIDPEditType::EditType_Number);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Size",
+                        QEFIDPEditType::EditType_Number);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Format",
+                        QEFIDPEditType::EditType_Enum);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Signature Type",
+                        QEFIDPEditType::EditType_Enum);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Signature",
+                        QEFIDPEditType::EditType_HexData);
+                }
+                break;
+            case QEFIDevicePathMediaSubType::MEDIA_File:
+                if (dynamic_cast<QEFIDevicePathMediaFile *>(dp)) {
+                    QEFIDevicePathMediaFile *dpFile = (QEFIDevicePathMediaFile *)
+                        dynamic_cast<QEFIDevicePathMediaFile *>(dp);
+                    list << qMakePair<QString, enum QEFIDPEditType>("File",
+                        QEFIDPEditType::EditType_Path);
+                }
+                break;
+            case QEFIDevicePathMediaSubType::MEDIA_CDROM:
+                if (dynamic_cast<QEFIDevicePathMediaCDROM *>(dp)) {
+                    QEFIDevicePathMediaCDROM *dpCDROM = (QEFIDevicePathMediaCDROM *)
+                        dynamic_cast<QEFIDevicePathMediaCDROM *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMediaSubType::MEDIA_Vendor:
+                if (dynamic_cast<QEFIDevicePathMediaVendor *>(dp)) {
+                    QEFIDevicePathMediaVendor *dpVendor = (QEFIDevicePathMediaVendor *)
+                        dynamic_cast<QEFIDevicePathMediaVendor *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMediaSubType::MEDIA_Protocol:
+                if (dynamic_cast<QEFIDevicePathMediaProtocol *>(dp)) {
+                    QEFIDevicePathMediaProtocol *dpProtocol = (QEFIDevicePathMediaProtocol *)
+                        dynamic_cast<QEFIDevicePathMediaProtocol *>(dp);
+                    list << qMakePair<QString, enum QEFIDPEditType>("Protocol GUID",
+                        QEFIDPEditType::EditType_UUID);
+                }
+                break;
+            case QEFIDevicePathMediaSubType::MEDIA_FirmwareFile:
+                if (dynamic_cast<QEFIDevicePathMediaFirmwareFile *>(dp)) {
+                    QEFIDevicePathMediaFirmwareFile *dpFile =
+                        (QEFIDevicePathMediaFirmwareFile *)
+                        dynamic_cast<QEFIDevicePathMediaFirmwareFile *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMediaSubType::MEDIA_FirmwareVolume:
+                if (dynamic_cast<QEFIDevicePathMediaFile *>(dp)) {
+                    QEFIDevicePathMediaFirmwareVolume *dpFV =
+                        (QEFIDevicePathMediaFirmwareVolume *)
+                        dynamic_cast<QEFIDevicePathMediaFirmwareVolume *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMediaSubType::MEDIA_RelativeOffset:
+                if (dynamic_cast<QEFIDevicePathMediaRelativeOffset *>(dp)) {
+                    QEFIDevicePathMediaRelativeOffset *dpRO =
+                        (QEFIDevicePathMediaRelativeOffset *)
+                        dynamic_cast<QEFIDevicePathMediaRelativeOffset *>(dp);
+                    // TODO
+                }
+                break;
+            case QEFIDevicePathMediaSubType::MEDIA_RamDisk:
+                if (dynamic_cast<QEFIDevicePathMediaRAMDisk *>(dp)) {
+                    QEFIDevicePathMediaRAMDisk *dpRAMDisk =
+                        (QEFIDevicePathMediaRAMDisk *)
+                        dynamic_cast<QEFIDevicePathMediaRAMDisk *>(dp);
+                    // TODO
+                }
+                break;
+        }
+        break;
+    case QEFIDevicePathType::DP_BIOSBoot:
+        if (dynamic_cast<QEFIDevicePathBIOSBoot *>(dp)) {
+            QEFIDevicePathBIOSBoot *dpBIOSBoot = (QEFIDevicePathBIOSBoot *)
+                dynamic_cast<QEFIDevicePathBIOSBoot *>(dp);
+            // TODO
+        }
+        break;
+    }
+    return list;
+}
+
+QList<quint8> enum_device_path_subtype(QEFIDevicePathType type)
+{
+    QList<quint8> res;
+    switch (type)
+    {
+    case QEFIDevicePathType::DP_Hardware:
+        // res << QEFIDevicePathHardwareSubType::HW_PCI
+        //     << QEFIDevicePathHardwareSubType::HW_PCCard
+        //     << QEFIDevicePathHardwareSubType::HW_MMIO
+        //     << QEFIDevicePathHardwareSubType::HW_Vendor
+        //     << QEFIDevicePathHardwareSubType::HW_Controller
+        //     << QEFIDevicePathHardwareSubType::HW_BMC;
+        break;
+    case QEFIDevicePathType::DP_ACPI:
+        // res << QEFIDevicePathACPISubType::ACPI_HID
+        //     << QEFIDevicePathACPISubType::ACPI_HIDEX
+        //     << QEFIDevicePathACPISubType::ACPI_ADR;
+        break;
+    case QEFIDevicePathType::DP_Message:
+        // res << QEFIDevicePathMessageSubType::MSG_ATAPI
+        //     << QEFIDevicePathMessageSubType::MSG_SCSI
+        //     << QEFIDevicePathMessageSubType::MSG_FibreChan
+        //     << QEFIDevicePathMessageSubType::MSG_1394
+        //     << QEFIDevicePathMessageSubType::MSG_USB
+        //     << QEFIDevicePathMessageSubType::MSG_I2O
+        //     << QEFIDevicePathMessageSubType::MSG_InfiniBand
+        //     << QEFIDevicePathMessageSubType::MSG_Vendor
+        //     << QEFIDevicePathMessageSubType::MSG_MACAddr
+        //     << QEFIDevicePathMessageSubType::MSG_IPv4
+        //     << QEFIDevicePathMessageSubType::MSG_IPv6
+        //     << QEFIDevicePathMessageSubType::MSG_UART
+        //     << QEFIDevicePathMessageSubType::MSG_USBClass
+        //     << QEFIDevicePathMessageSubType::MSG_USBWWID
+        //     << QEFIDevicePathMessageSubType::MSG_LUN
+        //     << QEFIDevicePathMessageSubType::MSG_SATA
+        //     << QEFIDevicePathMessageSubType::MSG_ISCSI
+        //     << QEFIDevicePathMessageSubType::MSG_VLAN
+        //     << QEFIDevicePathMessageSubType::MSG_FibreChanEx
+        //     << QEFIDevicePathMessageSubType::MSG_SASEX
+        //     << QEFIDevicePathMessageSubType::MSG_NVME
+        //     << QEFIDevicePathMessageSubType::MSG_URI
+        //     << QEFIDevicePathMessageSubType::MSG_UFS
+        //     << QEFIDevicePathMessageSubType::MSG_SD
+        //     << QEFIDevicePathMessageSubType::MSG_BT
+        //     << QEFIDevicePathMessageSubType::MSG_WiFi
+        //     << QEFIDevicePathMessageSubType::MSG_EMMC
+        //     << QEFIDevicePathMessageSubType::MSG_BTLE
+        //     << QEFIDevicePathMessageSubType::MSG_DNS
+        //     << QEFIDevicePathMessageSubType::MSG_NVDIMM;
+        break;
+    case QEFIDevicePathType::DP_Media:
+        res << QEFIDevicePathMediaSubType::MEDIA_HD
+            // << QEFIDevicePathMediaSubType::MEDIA_CDROM
+            // << QEFIDevicePathMediaSubType::MEDIA_Vendor
+            << QEFIDevicePathMediaSubType::MEDIA_File;
+            // << QEFIDevicePathMediaSubType::MEDIA_Protocol
+            // << QEFIDevicePathMediaSubType::MEDIA_FirmwareFile
+            // << QEFIDevicePathMediaSubType::MEDIA_FirmwareVolume
+            // << QEFIDevicePathMediaSubType::MEDIA_RelativeOffset
+            // << QEFIDevicePathMediaSubType::MEDIA_RamDisk;
+        break;
+    default:
+        break;
+    }
+    return res;
+}
