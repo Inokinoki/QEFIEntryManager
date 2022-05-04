@@ -32,6 +32,8 @@ set(PROJECT_SOURCES
         helpers.h
         qefidpeditorview.cpp
         qefidpeditorview.h
+        qefiloadoptioneditorview.cpp
+        qefiloadoptioneditorview.h
         qefivar/qefi.cpp
         qefivar/qefidpacpi.cpp
         qefivar/qefidphw.cpp
