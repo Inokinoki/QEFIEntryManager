@@ -494,6 +494,7 @@ public slots:
         // Init the class from the view
         if (m_view != nullptr) {
             m_bootID = m_view->getBootEntryID();
+            // FIXME: This method cannot be called the second time
             m_loadOptionData = m_view->generateLoadOption();
             qDebug() << "Will add Boot Entry " << m_bootID << m_loadOptionData;
         }

@@ -8,6 +8,8 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QSpinBox>
+#include <QList>
+#include <QSharedPointer>
 
 #include <qefi.h>
 
@@ -21,6 +23,7 @@ class QEFILoadOptionEditorView: public QWidget
     QLineEdit *m_nameTextEdit;
     QLineEdit *m_optionalDataTextEdit;
 
+    QList<QEFIDevicePath *> m_dps;
 public:
     QEFILoadOptionEditorView(QEFILoadOption *option = nullptr,
         QWidget *parent = nullptr);
@@ -31,6 +34,7 @@ public:
 
 public slots:
     void createDPClicked(bool checked);
+    void clearDPClicked(bool checked);
 };
 
 #endif // QEFILOADOPTIONEDITORVIEW_H
