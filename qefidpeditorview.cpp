@@ -1,6 +1,7 @@
 #include "qefidpeditorview.h"
 #include "helpers.h"
 
+#include <QVariant>
 
 QEFIDPEditorView::QEFIDPEditorView(QEFIDevicePath *dp, QWidget *parent)
     : QWidget(parent)
@@ -67,6 +68,178 @@ QEFIDPEditorView::~QEFIDPEditorView()
         m_topLevelLayout->deleteLater();
         m_topLevelLayout = nullptr;
     }
+}
+
+#include <QDebug>
+
+QVariant retrieveDPEditComponent(enum QEFIDPEditType type, QWidget *widget) {
+    QVariant v;
+    switch (type)
+    {
+    case QEFIDPEditType::EditType_Text:
+    case QEFIDPEditType::EditType_Path:
+        {
+            QLineEdit *edit = dynamic_cast<QLineEdit *>(widget);
+            if (edit != nullptr) {
+                v = QVariant(edit->text());
+            }
+        }
+        break;
+    case QEFIDPEditType::EditType_HexData:
+        {
+            QLineEdit *edit = dynamic_cast<QLineEdit *>(widget);
+            if (edit != nullptr) {
+                v = QVariant(QByteArray::fromHex(edit->text().toLatin1()));
+            }
+        }
+        break;
+    case QEFIDPEditType::EditType_UUID:
+        {
+            QLineEdit *edit = dynamic_cast<QLineEdit *>(widget);
+            if (edit != nullptr) {
+                v = QVariant(QUuid(edit->text()));
+            }
+        }
+        break;
+    case QEFIDPEditType::EditType_Number:
+    case QEFIDPEditType::EditType_HexNumber:
+        {
+            QSpinBox *edit = dynamic_cast<QSpinBox *>(widget);
+            if (edit != nullptr) {
+                v = QVariant(edit->value());
+            }
+        }
+        break;
+    case QEFIDPEditType::EditType_Enum:
+        {
+            QComboBox *edit = dynamic_cast<QComboBox *>(widget);
+            if (edit != nullptr) {
+                v = edit->currentData();
+            }
+        }
+        break;
+    default:
+        {
+            QLineEdit *edit = dynamic_cast<QLineEdit *>(widget);
+            if (edit != nullptr) {
+                v = QVariant(edit->text());
+            }
+        }
+        break;
+    }
+    qDebug() << v;
+
+    return v;
+}
+
+QEFIDevicePath *QEFIDPEditorView::getDevicePath()
+{
+    // Instantiate the device path
+    int type = (m_dpTypeSelector != nullptr ?
+        m_dpTypeSelector->itemData(m_dpTypeSelected).toInt() : 0);
+    int subtype = (m_dpTypeSelector != nullptr ?
+        m_dpSubtypeSelector->itemData(m_dpSubtypeSelected).toInt() : 0);
+    QEFIDevicePath *dp = nullptr;
+    switch (type)
+    {
+    case QEFIDevicePathType::DP_Hardware:
+        break;
+    case QEFIDevicePathType::DP_ACPI:
+        break;
+    case QEFIDevicePathType::DP_Message:
+        break;
+    case QEFIDevicePathType::DP_Media:
+        switch (subtype)
+        {
+        case QEFIDevicePathMediaSubType::MEDIA_HD:
+            {
+                quint32 partitionNumber;
+                quint64 start;
+                quint64 size;
+                quint8 signature[16];
+                quint8 format;
+                quint8 signatureType;
+                QString filepath;
+                for (int i = 0; i < m_currentWidgets.size(); i++) {
+                    qDebug() << m_currentWidgets[i].first;
+                    // TODO: Int range
+                    if (m_currentWidgets[i].first == QStringLiteral("Partition Num")) {
+                        QVariant data = retrieveDPEditComponent(
+                            QEFIDPEditType::EditType_Number, m_currentWidgets[i].second);
+                        if (data.isNull()) return dp;
+                        partitionNumber = data.toInt();
+                    } else if (m_currentWidgets[i].first == QStringLiteral("Start")) {
+                        QVariant data = retrieveDPEditComponent(
+                            QEFIDPEditType::EditType_Number, m_currentWidgets[i].second);
+                        if (data.isNull()) return dp;
+                        start = data.toInt();
+                    } else if (m_currentWidgets[i].first == QStringLiteral("Size")) {
+                        QVariant data = retrieveDPEditComponent(
+                            QEFIDPEditType::EditType_Number, m_currentWidgets[i].second);
+                        if (data.isNull()) return dp;
+                        size = data.toInt();
+                    } else if (m_currentWidgets[i].first == QStringLiteral("Format")) {
+                        QVariant data = retrieveDPEditComponent(
+                            QEFIDPEditType::EditType_Enum, m_currentWidgets[i].second);
+                        if (data.isNull()) return dp;
+                        format = data.toInt();
+                    } else if (m_currentWidgets[i].first == QStringLiteral("Signature Type")) {
+                        QVariant data = retrieveDPEditComponent(
+                            QEFIDPEditType::EditType_Enum, m_currentWidgets[i].second);
+                        if (data.isNull()) return dp;
+                        signatureType = data.toInt();
+                    } else if (m_currentWidgets[i].first == QStringLiteral("Signature")) {
+                        QVariant data = retrieveDPEditComponent(
+                            QEFIDPEditType::EditType_HexData, m_currentWidgets[i].second);
+                        if (data.isNull() || data.type() != QVariant::Type::ByteArray) return dp;
+                        QByteArray sig = data.toByteArray();
+                        for (int i = 0; i < 16 && i < sig.size(); i++) {
+                            signature[i] = sig[i];
+                        }
+                    }
+                }
+                dp = new QEFIDevicePathMediaHD(partitionNumber, start, size,
+                    signature, format, signatureType);
+            }
+            break;
+        case QEFIDevicePathMediaSubType::MEDIA_CDROM:
+            break;
+        case QEFIDevicePathMediaSubType::MEDIA_Vendor:
+            break;
+        case QEFIDevicePathMediaSubType::MEDIA_File:
+            {
+                QString filepath;
+                for (int i = 0; i < m_currentWidgets.size(); i++) {
+                    if (m_currentWidgets[i].first == QStringLiteral("File")) {
+                        QVariant data = retrieveDPEditComponent(
+                            QEFIDPEditType::EditType_Path, m_currentWidgets[i].second);
+                        if (data.isNull() || data.type() != QVariant::Type::String) return dp;
+                        filepath = data.toString();
+                    }
+                }
+                dp = new QEFIDevicePathMediaFile(filepath);
+            }
+            break;
+        case QEFIDevicePathMediaSubType::MEDIA_Protocol:
+            break;
+        case QEFIDevicePathMediaSubType::MEDIA_FirmwareFile:
+            break;
+        case QEFIDevicePathMediaSubType::MEDIA_FirmwareVolume:
+            break;
+        case QEFIDevicePathMediaSubType::MEDIA_RelativeOffset:
+            break;
+        case QEFIDevicePathMediaSubType::MEDIA_RamDisk:
+            break;
+        default:
+            break;
+        }
+        break;
+    case QEFIDevicePathType::DP_BIOSBoot:
+        break;
+    default:
+        break;
+    }
+    return dp;
 }
 
 void QEFIDPEditorView::dpTypeComboBoxCurrentIndexChanged(int index)

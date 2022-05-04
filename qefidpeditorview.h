@@ -33,6 +33,8 @@ public:
         QWidget *parent = nullptr);
     ~QEFIDPEditorView();
 
+    QEFIDevicePath *getDevicePath();    // Ownership is yours
+
 public slots:
     void dpTypeComboBoxCurrentIndexChanged(int index);
     void dpSubtypeComboBoxCurrentIndexChanged(int index);
