@@ -349,7 +349,7 @@ QList<QPair<QString, QWidget *> > QEFIDPEditorView::constructDPEditView(
                     convert_device_path_types((QEFIDevicePath *)&hd);
                 for (int i = 0; i < types.size(); i++) {
                     QWidget *w = constructDPEditComponent(types[i].second);
-                    widgets << qMakePair<QString, QWidget *>(types[i].first, w);
+                    widgets << QPair<QString, QWidget *>(types[i].first, w);
                     if (types[i].first == "Format") {
                         QComboBox *comboBox = dynamic_cast<QComboBox *>(w);
                         if (comboBox != nullptr) {
@@ -388,8 +388,8 @@ QList<QPair<QString, QWidget *> > QEFIDPEditorView::constructDPEditView(
                 QList<QPair<QString, enum QEFIDPEditType>> types =
                     convert_device_path_types((QEFIDevicePath *)&file);
                 for (int i = 0; i < types.size(); i++) {
-                    widgets << qMakePair<QString, QWidget *>(types[i].first,
-                        constructDPEditComponent(types[i].second));
+                    QWidget *w = constructDPEditComponent(types[i].second);
+                    widgets << QPair<QString, QWidget *>(types[i].first, w);
                 }
             }
             break;
