@@ -308,6 +308,7 @@ QWidget *constructDPEditComponent(enum QEFIDPEditType type) {
     case QEFIDPEditType::EditType_HexNumber:
         {
             QSpinBox *edit = new QSpinBox;
+            edit->setRange(0, INT_MAX);
             w = (QWidget *)edit;
         }
         break;
