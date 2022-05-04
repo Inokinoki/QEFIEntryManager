@@ -7,6 +7,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QSpinBox>
 
 #include <qefi.h>
 
@@ -16,10 +17,17 @@ class QEFILoadOptionEditorView: public QWidget
 
     QFormLayout *m_topLevelLayout;
 
+    QSpinBox *m_idSpinBox;
+    QLineEdit *m_nameTextEdit;
+    QLineEdit *m_optionalDataTextEdit;
+
 public:
     QEFILoadOptionEditorView(QEFILoadOption *option = nullptr,
         QWidget *parent = nullptr);
     ~QEFILoadOptionEditorView();
+
+    QByteArray generateLoadOption();
+    quint16 getBootEntryID();
 
 public slots:
     void createDPClicked(bool checked);

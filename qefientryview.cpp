@@ -15,8 +15,10 @@
 #include <QSaveFile>
 #include <QInputDialog>
 #include <QSpinBox>
+#include <QDialogButtonBox>
 
 #include "qefientrydetailview.h"
+#include "qefiloadoptioneditorview.h"
 
 #if QT_VERSION >= QT_VERSION_CHECK(5,14,0)
 // Fix namsapce change of hex and dec
@@ -76,13 +78,17 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
 
     m_bootTimeoutLabel = new QLabel(QString::asprintf("Timeout: %d second(s)",
         QEFIEntryStaticList::instance()->timeout()), this);
+    m_addButton = new QPushButton(QStringLiteral("Add"), this);
     m_importButton = new QPushButton(QStringLiteral("Import"), this);
     m_saveButton = new QPushButton(QStringLiteral("Save"), this);
     m_resetButton = new QPushButton(QStringLiteral("Reset"), this);
     m_buttonLayout->addWidget(m_bootTimeoutLabel);
+    m_buttonLayout->addWidget(m_addButton);
     m_buttonLayout->addWidget(m_importButton);
     m_buttonLayout->addWidget(m_saveButton);
     m_buttonLayout->addWidget(m_resetButton);
+    QObject::connect(m_addButton, &QPushButton::clicked,
+                     this, &QEFIEntryView::addClicked);
     QObject::connect(m_importButton, &QPushButton::clicked,
                      this, &QEFIEntryView::importClicked);
     QObject::connect(m_saveButton, &QPushButton::clicked,
@@ -116,6 +122,7 @@ QEFIEntryView::~QEFIEntryView()
     if (m_rebootTargetButton != nullptr) m_rebootTargetButton->deleteLater();
     if (m_bootTimeoutLabel != nullptr) m_bootTimeoutLabel->deleteLater();
     if (m_importButton != nullptr) m_importButton->deleteLater();
+    if (m_addButton != nullptr) m_addButton->deleteLater();
 }
 
 void QEFIEntryView::entryChanged(int currentRow)
@@ -357,8 +364,8 @@ void QEFIEntryView::contextMenuEvent(QContextMenuEvent *event)
             menu.addSeparator();
         }
     }
-    // TODO: Allow to add new one
-    // menu.addAction(QStringLiteral("Add"));
+    connect(menu.addAction(QStringLiteral("Add")), &QAction::triggered,
+        this, &QEFIEntryView::addClicked);
 
     connect(menu.addAction(QStringLiteral("Import")), &QAction::triggered,
         this, &QEFIEntryView::importClicked);
@@ -435,6 +442,105 @@ void QEFIEntryView::importClicked(bool checked)
     if (!QEFIEntryStaticList::instance()->updateBootEntry(bootID, data)) {
         // Show a warning and stop
         QMessageBox::warning(this, QStringLiteral("Import failed"),
+            QStringLiteral("Data might be invalidated."));
+        return;
+    }
+
+    // Check and update the list
+    if (!orderFound) m_order.append(bootID);
+    m_entryItems = QEFIEntryStaticList::instance()->entries();
+    m_selectedItemIndex = -1;
+    resetClicked(false);
+}
+
+class BootEntryEditorDialog : public QDialog
+{
+    QEFILoadOptionEditorView *m_view;
+    QBoxLayout *m_topLevelLayout;
+    QDialogButtonBox *m_buttonBox;
+
+    quint16 m_bootID;
+    QByteArray m_loadOptionData;
+public:
+    BootEntryEditorDialog(QWidget *parent = nullptr)
+        : QDialog(parent)
+    {
+        m_view = new QEFILoadOptionEditorView(nullptr, this);
+        setWindowTitle(QStringLiteral("Add EFI Boot Entry"));
+        m_topLevelLayout = new QBoxLayout(QBoxLayout::Down, this);
+        m_topLevelLayout->addWidget(m_view);
+
+        m_buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok |
+                                           QDialogButtonBox::Cancel);
+        m_topLevelLayout->addWidget(m_buttonBox);
+
+        connect(m_buttonBox, &QDialogButtonBox::accepted,
+            this, &BootEntryEditorDialog::onAccept);
+        connect(m_buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    }
+
+    quint16 bootID() const { return m_bootID; }
+    QByteArray loadOptionData() const { return m_loadOptionData; }
+
+    ~BootEntryEditorDialog()
+    {
+        if (m_topLevelLayout) m_topLevelLayout->deleteLater();
+        if (m_view) m_view->deleteLater();
+        if (m_buttonBox) m_buttonBox->deleteLater();
+    }
+
+public slots:
+    void onAccept() {
+        // Init the class from the view
+        if (m_view != nullptr) {
+            m_bootID = m_view->getBootEntryID();
+            m_loadOptionData = m_view->generateLoadOption();
+            qDebug() << "Will add Boot Entry " << m_bootID << m_loadOptionData;
+        }
+        accept();
+    }
+};
+
+void QEFIEntryView::addClicked(bool checked)
+{
+    Q_UNUSED(checked);
+    BootEntryEditorDialog dialog(this);
+    if (dialog.exec() == QDialog::Rejected) return;
+
+    // Get Load Option and add it
+    quint16 bootID = dialog.bootID();
+    QByteArray data = dialog.loadOptionData();
+    if (data.size() == 0) {
+        // Error
+        QMessageBox::warning(this, QStringLiteral("Add failed"),
+            QStringLiteral("Data might be invalidated."));
+    }
+
+    // Parse using a QEFILoadOption
+    QEFILoadOption loadOption(data);
+    if (!loadOption.isValidated()) {
+        // Show a warning and stop
+        QMessageBox::warning(this, QStringLiteral("Add failed"),
+            QStringLiteral("Data are invalidated."));
+        return;
+    }
+
+    bool orderFound = m_order.contains(bootID);
+    if (orderFound) {
+        // Override: Show a confirmation
+        if (QMessageBox::question(this, QStringLiteral("Add"),
+            QString::asprintf("Do you want to override Boot%04X?", bootID)) ==
+            QMessageBox::No) {
+            // Show a warning and stop
+            QMessageBox::warning(this, QStringLiteral("Add failed"),
+                QStringLiteral("The action is cancelled."));
+            return;
+        }
+    }
+
+    if (!QEFIEntryStaticList::instance()->updateBootEntry(bootID, data)) {
+        // Show a warning and stop
+        QMessageBox::warning(this, QStringLiteral("Add failed"),
             QStringLiteral("Data might be invalidated."));
         return;
     }
