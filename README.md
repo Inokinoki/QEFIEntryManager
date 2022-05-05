@@ -10,15 +10,15 @@ An EFI manager in Qt.
 
 This application needs to be run with root/sudo on Linux, or `Run as administrator` on Windows.
 
-You can change the boot order or temporally set the next boot entry in this app:
+You can change the boot order, add/import new boot entry, or temporally set the next boot entry in this app:
 
-![Boot Entry](.github/entries.png)
+![Boot Entry](.github/main.png)
 
 click on `Yes` to reboot immediately:
 
 ![Reboot Confirmation](.github/reboot_confirm.png)
 
-Right click on the boot entry to enable/disable the entry, or show the detailed properties.
+Right click on the boot entry to enable/disable/delete the entry, or show the detailed properties.
 
 ## Install
 
