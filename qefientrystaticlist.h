@@ -1,10 +1,14 @@
 #ifndef QEFIENTRYSTATICLIST_H
 #define QEFIENTRYSTATICLIST_H
 
+#include <QList>
+#include <QMap>
+#include <QUuid>
+
 #include <qefientry.h>
 
-#include <QMap>
-#include <QList>
+extern QUuid g_efiUuid;
+
 
 class QEFIEntryStaticList
 {

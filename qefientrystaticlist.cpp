@@ -1,6 +1,6 @@
 #include "qefientrystaticlist.h"
 
-#include <QUuid>
+
 
 #include <QDebug>
 #include <QtEndian>
@@ -12,6 +12,8 @@
 #define hex Qt::hex
 #define dec Qt::dec
 #endif
+
+QUuid g_efiUuid=QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c");
 
 QEFIEntryStaticList::QEFIEntryStaticList()
 {
@@ -59,16 +61,16 @@ QEFIEntryStaticList::~QEFIEntryStaticList()
 
 void QEFIEntryStaticList::load()
 {
-    quint16 current = qefi_get_variable_uint16(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
+    quint16 current = qefi_get_variable_uint16(g_efiUuid,
                                                QStringLiteral("BootCurrent"));
     qDebug() << "BootCurrent: " << hex << current;
 
-    quint16 timeout = qefi_get_variable_uint16(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
+    quint16 timeout = qefi_get_variable_uint16(g_efiUuid,
                                                QStringLiteral("Timeout"));
     qDebug() << "Timeout: " << dec << timeout << " seconds";
     m_timeout = timeout;
 
-    QByteArray data = qefi_get_variable(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
+    QByteArray data = qefi_get_variable(g_efiUuid,
                                         QStringLiteral("BootOrder"));
     quint16 *order_num = (quint16 *)data.data();
     qDebug() << "BootOrder: ";
@@ -84,7 +86,7 @@ void QEFIEntryStaticList::load()
     for (int i = 0; i < data.size() / 2; i++, order_num++) {
         quint16 order_id = qFromLittleEndian<quint16>(*order_num);
         QString name = QString::asprintf("Boot%04X", order_id);
-        QByteArray boot_data = qefi_get_variable(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
+        QByteArray boot_data = qefi_get_variable(g_efiUuid,
                                                  name);
         QEFILoadOption *loadOption = new QEFILoadOption(boot_data);
 
@@ -103,7 +105,7 @@ void QEFIEntryStaticList::load()
 void QEFIEntryStaticList::setBootNext(const quint16 &next)
 {
     // TODO: Maybe do validation
-    qefi_set_variable_uint16(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
+    qefi_set_variable_uint16(g_efiUuid,
                              QStringLiteral("BootNext"), next);
 }
 
@@ -117,7 +119,7 @@ void QEFIEntryStaticList::setBootOrder(const QList<quint16> &newOrder)
     for (int i = 0; i < newOrder.size(); i++, p++) {
         *p = qToLittleEndian<quint16>(newOrder[i]);
     }
-    qefi_set_variable(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
+    qefi_set_variable(g_efiUuid,
                       QStringLiteral("BootOrder"), orderBuffer);
 
     // Sync the order in this class, we currently have confiance on the list
@@ -150,7 +152,7 @@ bool QEFIEntryStaticList::setBootVisibility(
             bootData[2] = ((attribute >> 16) & 0xFF);
             bootData[1] = ((attribute >> 8) & 0xFF);
             bootData[0] = (attribute & 0xFF);
-            qefi_set_variable(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
+            qefi_set_variable(g_efiUuid,
                                     name, bootData);
 
             return true;
@@ -190,7 +192,7 @@ bool QEFIEntryStaticList::updateBootEntry(const quint16 bootID, const QByteArray
 
     // Write the data
     QString name = QString::asprintf("Boot%04X", bootID);
-    qefi_set_variable(QUuid("8be4df61-93ca-11d2-aa0d-00e098032b8c"),
+    qefi_set_variable(g_efiUuid,
                       name, data);
 
     // Update entry
