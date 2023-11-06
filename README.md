@@ -22,7 +22,7 @@ Right click on the boot entry to enable/disable/delete the entry, or show the de
 
 ## Install
 
-Download the prebuilt app from CI:
+Download the prebuilt app from [release](https://github.com/Inokinoki/QEFIEntryManager/releases) or from CI:
 
 - [Linux AppImages from CI](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-linux-amd64-appimage.yml)
 - [Windows from CI](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-windows-x86-x64.yml)
