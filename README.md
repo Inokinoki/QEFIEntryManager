@@ -21,7 +21,34 @@ click on `Yes` to reboot immediately:
 Right click on the boot entry to enable/disable/delete the entry, or show the detailed properties.
 
 ## Install
+### Arch Linux
+#### AUR
+- Stable version
 
+```shell
+[yay/paru] -S qefientrymanager
+```
+
+- Latest git version
+
+```shell
+[yay/paru] -S qefientrymanager-git
+```
+
+#### archlinuxcn
+- Stable version
+
+```shell
+sudo pacman -S qefientrymanager
+```
+
+- Latest git version
+
+```shell
+sudo pacman -S qefientrymanager-git
+```
+
+### Other Linux Distros & Windows
 Download the prebuilt app from [release](https://github.com/Inokinoki/QEFIEntryManager/releases) or from CI:
 
 - [Linux AppImages from CI](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-linux-amd64-appimage.yml)
