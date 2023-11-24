@@ -8,6 +8,7 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    a.setWindowIcon(QIcon("../cc.inoki.qefientrymanager.png"));
 
     if (!qefi_is_available() || !qefi_has_privilege()) {
         QMessageBox::critical(nullptr, QStringLiteral("Error"),
