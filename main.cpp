@@ -12,8 +12,8 @@ int main(int argc, char *argv[])
     a.setWindowIcon(QIcon("../cc.inoki.qefientrymanager.png"));
 
     if (!qefi_is_available() || !qefi_has_privilege()) {
-        QMessageBox::critical(nullptr, QStringLiteral("Error"),
-                              QStringLiteral("Permission insufficient or no EFI environment"));
+        QMessageBox::critical(nullptr, QObject::tr("Error"),
+                              QObject::tr("Permission insufficient or no EFI environment"));
         return 1;
     }
 

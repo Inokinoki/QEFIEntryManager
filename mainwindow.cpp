@@ -4,7 +4,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     // Set window attributes
-    this->setWindowTitle(QStringLiteral("EFI Entry Manager"));
+    this->setWindowTitle(tr("EFI Entry Manager"));
     this->resize(800, 600);
 
     // Create a class for each page amd keep a ref to update

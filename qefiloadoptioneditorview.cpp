@@ -19,7 +19,7 @@ public:
         : QDialog(parent)
     {
         m_view = new QEFIDPEditorView(nullptr, this);
-        setWindowTitle(QStringLiteral("Add Device Path"));
+        setWindowTitle(tr("Add Device Path"));
         m_topLevelLayout = new QBoxLayout(QBoxLayout::Down, this);
         m_topLevelLayout->addWidget(m_view);
 
@@ -72,20 +72,20 @@ QEFILoadOptionEditorView::QEFILoadOptionEditorView(QEFILoadOption *option, QWidg
     m_idSpinBox->setSingleStep(1);
     m_idSpinBox->setDisplayIntegerBase(16);
 
-    m_topLevelLayout->addRow(QStringLiteral("ID:"), m_idSpinBox);
-    m_nameTextEdit = new QLineEdit(option == nullptr ? QStringLiteral("") :
+    m_topLevelLayout->addRow(tr("ID:"), m_idSpinBox);
+    m_nameTextEdit = new QLineEdit(option == nullptr ? tr("") :
         option->name(), this);
-    m_topLevelLayout->addRow(QStringLiteral("Name:"), m_nameTextEdit);
-    m_optionalDataTextEdit = new QLineEdit(option == nullptr ? QStringLiteral("") :
+    m_topLevelLayout->addRow(tr("Name:"), m_nameTextEdit);
+    m_optionalDataTextEdit = new QLineEdit(option == nullptr ? tr("") :
         QString(option->optionalData().toHex()), this);
-    m_topLevelLayout->addRow(QStringLiteral("Optional Data:"), m_optionalDataTextEdit);
+    m_topLevelLayout->addRow(tr("Optional Data:"), m_optionalDataTextEdit);
     #define DP_BEGIN_INDEX 3
-    QPushButton *button = new QPushButton(QStringLiteral("Add Device Path"), this);
-    m_topLevelLayout->addRow(QStringLiteral(""), button);
+    QPushButton *button = new QPushButton(tr("Add Device Path"), this);
+    m_topLevelLayout->addRow(tr(""), button);
     connect(button, &QPushButton::clicked,
         this, &QEFILoadOptionEditorView::createDPClicked);
-    QPushButton *clearButton = new QPushButton(QStringLiteral("Clear Device Path"), this);
-    m_topLevelLayout->addRow(QStringLiteral(""), clearButton);
+    QPushButton *clearButton = new QPushButton(tr("Clear Device Path"), this);
+    m_topLevelLayout->addRow(tr(""), clearButton);
     connect(clearButton, &QPushButton::clicked,
         this, &QEFILoadOptionEditorView::clearDPClicked);
 
@@ -118,7 +118,7 @@ void QEFILoadOptionEditorView::createDPClicked(bool checked)
         m_dps << dp;
         if (m_topLevelLayout->rowCount() > DP_BEGIN_INDEX) {
             m_topLevelLayout->insertRow(DP_BEGIN_INDEX + m_dps.size() - 1,
-                QString::asprintf("Device Path:"), new QLabel(
+                tr("Device Path:"), new QLabel(
                     convert_device_path_type_to_name(dp->type()) + " " +
                     convert_device_path_subtype_to_name(dp->type(), dp->subType())));
         }

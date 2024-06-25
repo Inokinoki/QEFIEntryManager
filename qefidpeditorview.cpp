@@ -12,7 +12,7 @@ QEFIDPEditorView::QEFIDPEditorView(QEFIDevicePath *dp, QWidget *parent)
     m_topLevelLayout = new QFormLayout(this);
 
     m_dpTypeSelector = new QComboBox(this);
-    // m_dpTypeSelector->setPlaceholderText(QStringLiteral("Device Path type"));
+    // m_dpTypeSelector->setPlaceholderText(tr("Device Path type"));
     // m_dpTypeSelector->addItem(
     //     convert_device_path_type_to_name(QEFIDevicePathType::DP_Hardware),
     //     QVariant(QEFIDevicePathType::DP_Hardware));
@@ -36,7 +36,7 @@ QEFIDPEditorView::QEFIDPEditorView(QEFIDevicePath *dp, QWidget *parent)
         this, &QEFIDPEditorView::dpTypeComboBoxCurrentIndexChanged);
 
     m_dpSubtypeSelector = new QComboBox(this);
-    // m_dpSubtypeSelector->setPlaceholderText(QStringLiteral("Device Path subtype"));
+    // m_dpSubtypeSelector->setPlaceholderText(tr("Device Path subtype"));
     if (dp != nullptr) {
         QList<quint8> subtypes = enum_device_path_subtype(dp->type());
         for (int i = 0; i < subtypes.size(); i++) {
@@ -163,32 +163,32 @@ QEFIDevicePath *QEFIDPEditorView::getDevicePath()
                 for (int i = 0; i < m_currentWidgets.size(); i++) {
                     qDebug() << m_currentWidgets[i].first;
                     // TODO: Int range
-                    if (m_currentWidgets[i].first == QStringLiteral("Partition Num")) {
+                    if (m_currentWidgets[i].first == tr("Partition Num")) {
                         QVariant data = retrieveDPEditComponent(
                             QEFIDPEditType::EditType_Number, m_currentWidgets[i].second);
                         if (data.isNull()) return dp;
                         partitionNumber = data.toInt();
-                    } else if (m_currentWidgets[i].first == QStringLiteral("Start")) {
+                    } else if (m_currentWidgets[i].first == tr("Start")) {
                         QVariant data = retrieveDPEditComponent(
                             QEFIDPEditType::EditType_Number, m_currentWidgets[i].second);
                         if (data.isNull()) return dp;
                         start = data.toInt();
-                    } else if (m_currentWidgets[i].first == QStringLiteral("Size")) {
+                    } else if (m_currentWidgets[i].first == tr("Size")) {
                         QVariant data = retrieveDPEditComponent(
                             QEFIDPEditType::EditType_Number, m_currentWidgets[i].second);
                         if (data.isNull()) return dp;
                         size = data.toInt();
-                    } else if (m_currentWidgets[i].first == QStringLiteral("Format")) {
+                    } else if (m_currentWidgets[i].first == tr("Format")) {
                         QVariant data = retrieveDPEditComponent(
                             QEFIDPEditType::EditType_Enum, m_currentWidgets[i].second);
                         if (data.isNull()) return dp;
                         format = data.toInt();
-                    } else if (m_currentWidgets[i].first == QStringLiteral("Signature Type")) {
+                    } else if (m_currentWidgets[i].first == tr("Signature Type")) {
                         QVariant data = retrieveDPEditComponent(
                             QEFIDPEditType::EditType_Enum, m_currentWidgets[i].second);
                         if (data.isNull()) return dp;
                         signatureType = data.toInt();
-                    } else if (m_currentWidgets[i].first == QStringLiteral("Signature")) {
+                    } else if (m_currentWidgets[i].first == tr("Signature")) {
                         QVariant data = retrieveDPEditComponent(
                             QEFIDPEditType::EditType_HexData, m_currentWidgets[i].second);
                         if (data.isNull() || data.type() != QVariant::Type::ByteArray) return dp;
@@ -210,7 +210,7 @@ QEFIDevicePath *QEFIDPEditorView::getDevicePath()
             {
                 QString filepath;
                 for (int i = 0; i < m_currentWidgets.size(); i++) {
-                    if (m_currentWidgets[i].first == QStringLiteral("File")) {
+                    if (m_currentWidgets[i].first == tr("File")) {
                         QVariant data = retrieveDPEditComponent(
                             QEFIDPEditType::EditType_Path, m_currentWidgets[i].second);
                         if (data.isNull() || data.type() != QVariant::Type::String) return dp;
@@ -353,10 +353,10 @@ QList<QPair<QString, QWidget *> > QEFIDPEditorView::constructDPEditView(
                     if (types[i].first == "Format") {
                         QComboBox *comboBox = dynamic_cast<QComboBox *>(w);
                         if (comboBox != nullptr) {
-                            comboBox->addItem(QStringLiteral("GPT"),
+                            comboBox->addItem(tr("GPT"),
                                 QVariant(QEFIDevicePathMediaHD::
                                     QEFIDevicePathMediaHDFormat::GPT));
-                            comboBox->addItem(QStringLiteral("PCAT"),
+                            comboBox->addItem(tr("PCAT"),
                                 QVariant(QEFIDevicePathMediaHD::
                                     QEFIDevicePathMediaHDFormat::PCAT));
                         }
@@ -364,13 +364,13 @@ QList<QPair<QString, QWidget *> > QEFIDPEditorView::constructDPEditView(
                     if (types[i].first == "Signature Type") {
                         QComboBox *comboBox = dynamic_cast<QComboBox *>(w);
                         if (comboBox != nullptr) {
-                            comboBox->addItem(QStringLiteral("None"),
+                            comboBox->addItem(tr("None"),
                                 QVariant(QEFIDevicePathMediaHD::
                                     QEFIDevicePathMediaHDSignatureType::NONE));
-                            comboBox->addItem(QStringLiteral("MBR"),
+                            comboBox->addItem(tr("MBR"),
                                 QVariant(QEFIDevicePathMediaHD::
                                     QEFIDevicePathMediaHDSignatureType::MBR));
-                            comboBox->addItem(QStringLiteral("GUID"),
+                            comboBox->addItem(tr("GUID"),
                                 QVariant(QEFIDevicePathMediaHD::
                                     QEFIDevicePathMediaHDSignatureType::GUID));
                         }

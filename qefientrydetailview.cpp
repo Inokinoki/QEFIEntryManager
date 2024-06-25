@@ -14,12 +14,12 @@ QEFIEntryDetailBriefView::QEFIEntryDetailBriefView(
     QEFILoadOption *loadOption = entry.loadOption();
     if (loadOption) {
         auto dpList = loadOption->devicePathList();
-        m_briefLayout->addRow("Device Path instance:",
+        m_briefLayout->addRow(tr("Device Path instance:"),
             new QLabel(QString::number(dpList.size())));
         // Add a tab to display each DP
         for (int i = 0; i < dpList.size(); i++) {
             // Display type name
-            m_briefLayout->addRow(QString::asprintf("Device Path %d type:", i + 1),
+            m_briefLayout->addRow(tr("Device Path %d type:").arg(i + 1),
                 new QLabel(
                     convert_device_path_type_to_name(dpList[i]->type()) + " " +
                     convert_device_path_subtype_to_name(dpList[i]->type(),
@@ -54,7 +54,7 @@ QEFIEntryDetailView::QEFIEntryDetailView(QEFIEntry &entry, QWidget *parent)
     m_topLevelLayout = new QBoxLayout(QBoxLayout::LeftToRight, this);
     m_tab = new QTabWidget(this);
     m_tab->addTab(new QEFIEntryDetailBriefView(entry, m_tab),
-        QStringLiteral("Brief"));
+        tr("Brief"));
 
     QEFILoadOption *loadOption = entry.loadOption();
     if (loadOption) {
