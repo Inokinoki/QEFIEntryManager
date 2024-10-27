@@ -40,8 +40,16 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
     for (int i = 0; i < m_order.size(); i++) {
         if (m_entryItems.contains(m_order[i])) {
             QEFIEntry &entry = m_entryItems[m_order[i]];
-            m_entries->addItem(QString::asprintf("[%04X] ", entry.id()) + entry.name()
-                + (entry.devicePath().size() > 0 ? "\n" + entry.devicePath() : ""));
+            QString item = QStringLiteral("[%1] %2")
+                .arg(entry.id(), 4, 16, QLatin1Char('0'))
+                .arg(entry.name());
+
+            if (entry.devicePath().size() > 0) {
+                item.append('\n').append(entry.devicePath());
+            }
+
+            m_entries->addItem(item);
+
             // Get the activation state
             QListWidgetItem *currentItem = m_entries->item(i);
             if (currentItem && !entry.isActive()) {
@@ -138,8 +146,15 @@ void QEFIEntryView::resetClicked(bool checked)
     for (int i = 0; i < m_order.size(); i++) {
         if (m_entryItems.contains(m_order[i])) {
             QEFIEntry &entry = m_entryItems[m_order[i]];
-            m_entries->addItem(QString::asprintf("[%04X] ", entry.id()) + entry.name()
-                + (entry.devicePath().size() > 0 ? "\n" + entry.devicePath() : ""));
+            QString item = QStringLiteral("[%1] %2")
+                .arg(entry.id(), 4, 16, QLatin1Char('0'))
+                .arg(entry.name());
+
+            if (entry.devicePath().size() > 0) {
+                item.append('\n').append(entry.devicePath());
+            }
+
+            m_entries->addItem(item);
         }
     }
     updateButtonState();
