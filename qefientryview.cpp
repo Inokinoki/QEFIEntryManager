@@ -76,7 +76,7 @@ QEFIEntryView::QEFIEntryView(QWidget *parent)
 
     m_buttonLayout->addStretch(1);
 
-    m_bootTimeoutLabel = new QLabel(tr("Timeout: %d second(s)").arg(
+    m_bootTimeoutLabel = new QLabel(tr("Timeout: %1 second(s)").arg(
         QEFIEntryStaticList::instance()->timeout()), this);
     m_addButton = new QPushButton(tr("Add"), this);
     m_importButton = new QPushButton(tr("Import"), this);
@@ -327,9 +327,9 @@ void QEFIEntryView::exportClicked(bool checked)
                 tr("Data to export is empty."));
             return;
         }
-#if QT_VERSION < QT_VERSION_CHECK(5,14,0)
-        QString exportFilename = QFileDialog::getSaveFileName(this,
-            tr("Export Boot%04X").arg(m_order[m_selectedItemIndex]));
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+        QString exportFilename = QFileDialog::getSaveFileName(this, tr("Export Boot%1")
+	    .arg(m_order[m_selectedItemIndex], 4, 16, QLatin1Char('0')));
         QSaveFile exportFile(exportFilename);
         exportFile.open(QIODevice::WriteOnly);
         exportFile.write(data);
@@ -432,7 +432,7 @@ void QEFIEntryView::importClicked(bool checked)
     if (orderFound) {
         // Override: Show a confirmation
         if (QMessageBox::question(this, tr("Import"),
-            tr("Do you want to override Boot%04X?").arg(bootID)) ==
+            tr("Do you want to override Boot%1?").arg(bootID, 4, 16, QLatin1Char('0'))) ==
             QMessageBox::No) {
             // Show a warning and stop
             QMessageBox::warning(this, tr("Import failed"),
@@ -532,7 +532,7 @@ void QEFIEntryView::addClicked(bool checked)
     if (orderFound) {
         // Override: Show a confirmation
         if (QMessageBox::question(this, tr("Add"),
-            tr("Do you want to override Boot%04X?").arg(bootID)) ==
+            tr("Do you want to override Boot%1?").arg(bootID, 4, 16, QLatin1Char('0'))) ==
             QMessageBox::No) {
             // Show a warning and stop
             QMessageBox::warning(this, tr("Add failed"),
