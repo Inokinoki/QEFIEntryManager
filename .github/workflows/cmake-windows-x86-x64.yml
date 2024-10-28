@@ -58,7 +58,7 @@ jobs:
         run: windeployqt.exe --release --no-quick-import ${{github.workspace}}\build\${{env.BUILD_TYPE}}\
 
       - name: Upload a Build Artifact
-        uses: actions/upload-artifact@v2.2.4
+        uses: actions/upload-artifact@v4
         with:
           # Artifact name
           name: QEFI Entry Manager for Windows Qt${{ matrix.qtvers }}
