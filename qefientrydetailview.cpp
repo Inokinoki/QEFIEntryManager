@@ -8,7 +8,7 @@ QEFIEntryDetailBriefView::QEFIEntryDetailBriefView(
     m_briefLayout = new QFormLayout(this);
 
     m_briefLayout->addRow("ID:",
-        new QLabel(QString::asprintf("Boot%04X ", entry.id())));
+        new QLabel(QStringLiteral("Boot%1 ").arg(entry.id(), 4, 16, QLatin1Char('0'))));
     m_briefLayout->addRow("Name:", new QLabel(entry.name()));
 
     QEFILoadOption *loadOption = entry.loadOption();
@@ -62,7 +62,7 @@ QEFIEntryDetailView::QEFIEntryDetailView(QEFIEntry &entry, QWidget *parent)
         // Add a tab to display each DP
         for (int i = 0; i < dpList.size(); i++) {
             m_tab->addTab(new QEFIEntryDPDetailView(dpList[i].get(), m_tab),
-                QString::asprintf("DP %d", i + 1));
+                QStringLiteral("DP %1").arg(i + 1));
         }
     }
     m_topLevelLayout->addWidget(m_tab);

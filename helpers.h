@@ -20,6 +20,7 @@ enum QEFIDPEditType {
     EditType_UUID
 };
 QList<QPair<QString, enum QEFIDPEditType>> convert_device_path_types(QEFIDevicePath *dp);
+QString convert_ipv4_to_string(const QEFIIPv4Address *ipv4);
 QList<quint8> enum_device_path_subtype(QEFIDevicePathType type);
 
 #endif // HELPERS_H
