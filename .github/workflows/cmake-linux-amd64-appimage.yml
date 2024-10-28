@@ -48,7 +48,7 @@ jobs:
         ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
 
     - name: Upload a Build Artifact
-      uses: actions/upload-artifact@v2.2.4
+      uses: actions/upload-artifact@v4
       with:
         # Artifact name
         name: QEFI Entry Manager x86_64 AppImage
