@@ -85,7 +85,7 @@ void QEFIEntryStaticList::load()
     m_entries.clear();
     for (int i = 0; i < data.size() / 2; i++, order_num++) {
         quint16 order_id = qFromLittleEndian<quint16>(*order_num);
-        QString name = QString::asprintf("Boot%04X", order_id);
+        QString name = QStringLiteral("Boot%1").arg(order_id, 4, 16, QLatin1Char('0'));
         QByteArray boot_data = qefi_get_variable(g_efiUuid,
                                                  name);
         QEFILoadOption *loadOption = new QEFILoadOption(boot_data);
@@ -147,7 +147,7 @@ bool QEFIEntryStaticList::setBootVisibility(
             if (visible) attribute |= 0x00000001;
             else attribute &= 0xFFFFFFFE;
 
-            QString name = QString::asprintf("Boot%04X", bootID);
+            QString name = QStringLiteral("Boot%1").arg(bootID, 4, 16, QLatin1Char('0'));
             bootData[3] = (attribute >> 24);
             bootData[2] = ((attribute >> 16) & 0xFF);
             bootData[1] = ((attribute >> 8) & 0xFF);
@@ -191,7 +191,7 @@ bool QEFIEntryStaticList::updateBootEntry(const quint16 bootID, const QByteArray
     m_loadOptions.insert(bootID, loadOption);
 
     // Write the data
-    QString name = QString::asprintf("Boot%04X", bootID);
+    QString name = QStringLiteral("Boot%1").arg(bootID, 4, 16, QLatin1Char('0'));
     qefi_set_variable(g_efiUuid,
                       name, data);
 

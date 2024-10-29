@@ -351,7 +351,7 @@ void QEFIEntryView::exportClicked(bool checked)
         exportFile.commit();
 #else
         QFileDialog::saveFileContent(data,
-            QString::asprintf("Boot%04X.bin", m_order[m_selectedItemIndex]));
+            QStringLiteral("Boot%1.bin").arg(m_order[m_selectedItemIndex], 4, 16, QLatin1Char('0')));
 #endif
     }
 }
@@ -362,7 +362,8 @@ void QEFIEntryView::contextMenuEvent(QContextMenuEvent *event)
     if (m_selectedItemIndex >= 0 || m_selectedItemIndex < m_order.size()) {
         QListWidgetItem *currentItem = m_entries->itemAt(event->pos());
         if (currentItem != nullptr) {
-            menu.addSection(QString::asprintf("Boot%04X", m_order[m_selectedItemIndex]));
+            menu.addSection(QStringLiteral("Boot%1").arg(m_order[m_selectedItemIndex],
+							  4, 16, QLatin1Char('0')));
 
             QEFIEntry &entry = m_entryItems[m_order[m_selectedItemIndex]];
             connect(menu.addAction(entry.isActive() ?

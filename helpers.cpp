@@ -261,7 +261,7 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
                     QList<quint32> addrs = dpADR->addresses();
                     for (int i = 0; i < addrs.size(); i++) {
                         list << qMakePair<QString, QString>(
-                            QString::asprintf("Address %d:", i + 1),
+                            QStringLiteral("Address %1:").arg(i + 1),
                             QString::number(addrs[i])
                         );
                     }
@@ -389,16 +389,10 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
                             dynamic_cast<QEFIDevicePathMessageIPv4Addr *>(dp);
                     QEFIIPv4Address local = dpMessage->localIPv4Address();
                     list << qMakePair<QString, QString>("Local IP",
-                        QString::asprintf("%d.%d.%d.%d", local.address[0],
-                                                         local.address[1],
-                                                         local.address[2],
-                                                         local.address[3]));
+                        convert_ipv4_to_string(&local));
                     QEFIIPv4Address remote = dpMessage->remoteIPv4Address();
                     list << qMakePair<QString, QString>("Remote IP",
-                        QString::asprintf("%d.%d.%d.%d", remote.address[0],
-                                                         remote.address[1],
-                                                         remote.address[2],
-                                                         remote.address[3]));
+                        convert_ipv4_to_string(&remote));
                     list << qMakePair<QString, QString>("Local Port",
                         QString::number(dpMessage->localPort()));
                     list << qMakePair<QString, QString>("Remote Port",
@@ -409,16 +403,10 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
                         dpMessage->staticIPAddress() ? "Yes" : " No");
                     QEFIIPv4Address gw = dpMessage->gateway();
                     list << qMakePair<QString, QString>("Gateway IP",
-                        QString::asprintf("%d.%d.%d.%d", gw.address[0],
-                                                         gw.address[1],
-                                                         gw.address[2],
-                                                         gw.address[3]));
+                        convert_ipv4_to_string(&gw));
                     QEFIIPv4Address netmask = dpMessage->netmask();
                     list << qMakePair<QString, QString>("Netmask",
-                        QString::asprintf("%d.%d.%d.%d", netmask.address[0],
-                                                         netmask.address[1],
-                                                         netmask.address[2],
-                                                         netmask.address[3]));
+                        convert_ipv4_to_string(&netmask));
                 }
                 break;
             case QEFIDevicePathMessageSubType::MSG_IPv6:
@@ -1299,6 +1287,14 @@ QList<QPair<QString, enum QEFIDPEditType>> convert_device_path_types(QEFIDeviceP
         break;
     }
     return list;
+}
+
+QString convert_ipv4_to_string(const QEFIIPv4Address *ipv4) {
+    const auto addr = ipv4->address;
+    return QStringLiteral("%d.%d.%d.%d").arg(addr[0])
+                                        .arg(addr[1])
+                                        .arg(addr[2])
+                                        .arg(addr[3]);
 }
 
 QList<quint8> enum_device_path_subtype(QEFIDevicePathType type)
