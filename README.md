@@ -57,7 +57,7 @@ Download the prebuilt app from [release](https://github.com/Inokinoki/QEFIEntryM
 Run it as root (*nix):
 
 ```
-sudo ./<executable>
+sudo -E ./<executable>
 ```
 
 or administrator on Windows(right click).
