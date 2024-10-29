@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+env_array=(
+	"XDG_CURRENT_DESKTOP=${XDG_CURRENT_DESKTOP}"
+	"QT_QPA_PLATFORM=${QT_QPA_PLATFORM}"
+	"QT_QPA_PLATFORMTHEME=${QT_QPA_PLATFORMTHEME}"
+	"QT_STYLE_OVERRIDE=${QT_STYLE_OVERRIDE}"
+)
+
+if [[ -z "${WAYLAND_DISPLAY}" ]]; then
+	env_array+=("DISPLAY=${DISPLAY}" "XAUTHORITY=${XAUTHORITY}")
+else
+	env_array+=("WAYLAND_DISPLAY=${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}")
+fi
+
+exec pkexec env "${env_array[@]}" QEFIEntryManager "$@"

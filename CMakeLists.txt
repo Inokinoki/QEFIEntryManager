@@ -86,6 +86,9 @@ install(TARGETS QEFIEntryManager
 )
 # For AppImage
 include(GNUInstallDirs)
+install(PROGRAMS qefientrymanager-launcher
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
 install(PROGRAMS qefientrymanager.desktop
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications
 )
