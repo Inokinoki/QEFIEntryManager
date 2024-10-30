@@ -52,9 +52,8 @@ QEFIEntryStaticList *QEFIEntryStaticList::instance()
 
 QEFIEntryStaticList::~QEFIEntryStaticList()
 {
-    QMap<quint16, QEFILoadOption *>::const_iterator i = m_loadOptions.begin();
-    for (; i != m_loadOptions.end(); i++) {
-        if (*i) delete (*i);
+    for (const auto &option: std::as_const(m_loadOptions)) {
+        if (option) delete (option);
     }
     m_loadOptions.clear();
 }
@@ -116,8 +115,8 @@ void QEFIEntryStaticList::setBootOrder(const QList<quint16> &newOrder)
 
     QByteArray orderBuffer(newOrder.size() * 2, 0);
     quint16 *p = (quint16 *)orderBuffer.data();
-    for (int i = 0; i < newOrder.size(); i++, p++) {
-        *p = qToLittleEndian<quint16>(newOrder[i]);
+    for (const auto &i: newOrder) {
+        *p = qToLittleEndian<quint16>(i);
     }
     qefi_set_variable(g_efiUuid,
                       QStringLiteral("BootOrder"), orderBuffer);

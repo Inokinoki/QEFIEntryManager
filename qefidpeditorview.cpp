@@ -39,10 +39,10 @@ QEFIDPEditorView::QEFIDPEditorView(QEFIDevicePath *dp, QWidget *parent)
     // m_dpSubtypeSelector->setPlaceholderText(tr("Device Path subtype"));
     if (dp != nullptr) {
         QList<quint8> subtypes = enum_device_path_subtype(dp->type());
-        for (int i = 0; i < subtypes.size(); i++) {
+        for (const auto &subtype: std::as_const(subtypes)) {
             m_dpSubtypeSelector->addItem(convert_device_path_subtype_to_name(
-                dp->type(), subtypes[i]),
-                QVariant(subtypes[i]));
+                dp->type(), subtype),
+                QVariant(subtype));
         }
         m_dpSubtypeSelected = m_dpSubtypeSelector->findData(QVariant(dp->subType()));
     }
@@ -55,8 +55,8 @@ QEFIDPEditorView::QEFIDPEditorView(QEFIDevicePath *dp, QWidget *parent)
 
     // Add edit view
     m_currentWidgets = constructDPEditView(dp);
-    for (int i = 0; i < m_currentWidgets.size(); i++) {
-        m_topLevelLayout->addRow(m_currentWidgets[i].first, m_currentWidgets[i].second);
+    for (const auto &w: std::as_const(m_currentWidgets)) {
+        m_topLevelLayout->addRow(w.first, w.second);
     }
 
     setLayout(m_topLevelLayout);
@@ -160,37 +160,37 @@ QEFIDevicePath *QEFIDPEditorView::getDevicePath()
                 quint8 format;
                 quint8 signatureType;
                 QString filepath;
-                for (int i = 0; i < m_currentWidgets.size(); i++) {
-                    qDebug() << m_currentWidgets[i].first;
+                for (const auto &w: std::as_const(m_currentWidgets)) {
+                    qDebug() << w.first;
                     // TODO: Int range
-                    if (m_currentWidgets[i].first == tr("Partition Num")) {
+                    if (w.first == tr("Partition Num")) {
                         QVariant data = retrieveDPEditComponent(
-                            QEFIDPEditType::EditType_Number, m_currentWidgets[i].second);
+                            QEFIDPEditType::EditType_Number, w.second);
                         if (data.isNull()) return dp;
                         partitionNumber = data.toInt();
-                    } else if (m_currentWidgets[i].first == tr("Start")) {
+                    } else if (w.first == tr("Start")) {
                         QVariant data = retrieveDPEditComponent(
-                            QEFIDPEditType::EditType_Number, m_currentWidgets[i].second);
+                            QEFIDPEditType::EditType_Number, w.second);
                         if (data.isNull()) return dp;
                         start = data.toInt();
-                    } else if (m_currentWidgets[i].first == tr("Size")) {
+                    } else if (w.first == tr("Size")) {
                         QVariant data = retrieveDPEditComponent(
-                            QEFIDPEditType::EditType_Number, m_currentWidgets[i].second);
+                            QEFIDPEditType::EditType_Number, w.second);
                         if (data.isNull()) return dp;
                         size = data.toInt();
-                    } else if (m_currentWidgets[i].first == tr("Format")) {
+                    } else if (w.first == tr("Format")) {
                         QVariant data = retrieveDPEditComponent(
-                            QEFIDPEditType::EditType_Enum, m_currentWidgets[i].second);
+                            QEFIDPEditType::EditType_Enum, w.second);
                         if (data.isNull()) return dp;
                         format = data.toInt();
-                    } else if (m_currentWidgets[i].first == tr("Signature Type")) {
+                    } else if (w.first == tr("Signature Type")) {
                         QVariant data = retrieveDPEditComponent(
-                            QEFIDPEditType::EditType_Enum, m_currentWidgets[i].second);
+                            QEFIDPEditType::EditType_Enum, w.second);
                         if (data.isNull()) return dp;
                         signatureType = data.toInt();
-                    } else if (m_currentWidgets[i].first == tr("Signature")) {
+                    } else if (w.first == tr("Signature")) {
                         QVariant data = retrieveDPEditComponent(
-                            QEFIDPEditType::EditType_HexData, m_currentWidgets[i].second);
+                            QEFIDPEditType::EditType_HexData, w.second);
                         if (data.isNull() || data.type() != QVariant::Type::ByteArray) return dp;
                         QByteArray sig = data.toByteArray();
                         for (int i = 0; i < 16 && i < sig.size(); i++) {
@@ -209,10 +209,10 @@ QEFIDevicePath *QEFIDPEditorView::getDevicePath()
         case QEFIDevicePathMediaSubType::MEDIA_File:
             {
                 QString filepath;
-                for (int i = 0; i < m_currentWidgets.size(); i++) {
-                    if (m_currentWidgets[i].first == tr("File")) {
+                for (const auto &w: std::as_const(m_currentWidgets)) {
+                    if (w.first == tr("File")) {
                         QVariant data = retrieveDPEditComponent(
-                            QEFIDPEditType::EditType_Path, m_currentWidgets[i].second);
+                            QEFIDPEditType::EditType_Path, w.second);
                         if (data.isNull() || data.type() != QVariant::Type::String) return dp;
                         filepath = data.toString();
                     }
@@ -247,14 +247,14 @@ void QEFIDPEditorView::dpTypeComboBoxCurrentIndexChanged(int index)
     if (m_dpSubtypeSelector != nullptr && m_dpTypeSelected != index) {
         // Change the subtype
         m_dpSubtypeSelector->clear();
-        int subtype = (m_dpTypeSelector != nullptr ?
+        int type = (m_dpTypeSelector != nullptr ?
             m_dpTypeSelector->itemData(index).toInt() : 0);
         QList<quint8> subtypes = enum_device_path_subtype(
-            (enum QEFIDevicePathType)subtype);
-        for (int i = 0; i < subtypes.size(); i++) {
+            (enum QEFIDevicePathType)type);
+        for (const auto &subtype: std::as_const(subtypes)) {
             m_dpSubtypeSelector->addItem(convert_device_path_subtype_to_name(
-                (enum QEFIDevicePathType)subtype, subtypes[i]),
-                QVariant(subtypes[i]));
+                (enum QEFIDevicePathType)type, subtype),
+                QVariant(subtype));
         }
     }
     m_dpTypeSelected = index;
@@ -272,8 +272,8 @@ void QEFIDPEditorView::dpSubtypeComboBoxCurrentIndexChanged(int index)
             (quint8)subtype & 0xFF);
         while (m_topLevelLayout->rowCount() > 2) m_topLevelLayout->removeRow(2);
         m_currentWidgets = widgets;
-        for (int i = 0; i < m_currentWidgets.size(); i++) {
-            m_topLevelLayout->addRow(m_currentWidgets[i].first, m_currentWidgets[i].second);
+        for (const auto &w: std::as_const(m_currentWidgets)) {
+            m_topLevelLayout->addRow(w.first, w.second);
         }
     }
     m_dpSubtypeSelected = index;
@@ -347,10 +347,10 @@ QList<QPair<QString, QWidget *> > QEFIDPEditorView::constructDPEditView(
                 QEFIDevicePathMediaHD hd(0, 0, 0, signature, 0, 0);
                 QList<QPair<QString, enum QEFIDPEditType>> types =
                     convert_device_path_types((QEFIDevicePath *)&hd);
-                for (int i = 0; i < types.size(); i++) {
-                    QWidget *w = constructDPEditComponent(types[i].second);
-                    widgets << QPair<QString, QWidget *>(types[i].first, w);
-                    if (types[i].first == "Format") {
+                for (const auto &t: std::as_const(types)) {
+                    QWidget *w = constructDPEditComponent(t.second);
+                    widgets << QPair<QString, QWidget *>(t.first, w);
+                    if (t.first == "Format") {
                         QComboBox *comboBox = dynamic_cast<QComboBox *>(w);
                         if (comboBox != nullptr) {
                             comboBox->addItem(tr("GPT"),
@@ -361,7 +361,7 @@ QList<QPair<QString, QWidget *> > QEFIDPEditorView::constructDPEditView(
                                     QEFIDevicePathMediaHDFormat::PCAT));
                         }
                     }
-                    if (types[i].first == "Signature Type") {
+                    if (t.first == "Signature Type") {
                         QComboBox *comboBox = dynamic_cast<QComboBox *>(w);
                         if (comboBox != nullptr) {
                             comboBox->addItem(tr("None"),
@@ -387,9 +387,9 @@ QList<QPair<QString, QWidget *> > QEFIDPEditorView::constructDPEditView(
                 QEFIDevicePathMediaFile file(QStringLiteral(""));
                 QList<QPair<QString, enum QEFIDPEditType>> types =
                     convert_device_path_types((QEFIDevicePath *)&file);
-                for (int i = 0; i < types.size(); i++) {
-                    QWidget *w = constructDPEditComponent(types[i].second);
-                    widgets << QPair<QString, QWidget *>(types[i].first, w);
+                for (const auto &t: std::as_const(types)) {
+                    QWidget *w = constructDPEditComponent(t.second);
+                    widgets << QPair<QString, QWidget *>(t.first, w);
                 }
             }
             break;
