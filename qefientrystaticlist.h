@@ -7,9 +7,6 @@
 
 #include <qefientry.h>
 
-extern QUuid g_efiUuid;
-
-
 class QEFIEntryStaticList
 {
 private:
