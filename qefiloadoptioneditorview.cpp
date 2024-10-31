@@ -101,8 +101,8 @@ QEFILoadOptionEditorView::~QEFILoadOptionEditorView()
     if (m_idSpinBox != nullptr) m_idSpinBox->deleteLater();
 
     // Clear and delete
-    for (int i = 0; i < m_dps.size(); i++) {
-        delete m_dps[i];
+    for (const auto &dp: std::as_const(m_dps)) {
+        delete dp;
     }
     m_dps.clear();
 }
@@ -140,8 +140,8 @@ QByteArray QEFILoadOptionEditorView::generateLoadOption()
     if (optionalData.size() * 2 != m_optionalDataTextEdit->text().length()) return data;
     newLoadOption.setOptionalData(optionalData);
     // Format DPs and clear it
-    for (int i = 0; i < m_dps.size(); i++) {
-        newLoadOption.addDevicePath(m_dps[i]);
+    for (const auto &dp: std::as_const(m_dps)) {
+        newLoadOption.addDevicePath(dp);
     }
     m_dps.clear();
 
@@ -157,8 +157,8 @@ quint16 QEFILoadOptionEditorView::getBootEntryID()
 void QEFILoadOptionEditorView::clearDPClicked(bool checked)
 {
     Q_UNUSED(checked);
-    for (int i = 0; i < m_dps.size(); i++) {
-        delete m_dps[i];
+    for (const auto &dp: std::as_const(m_dps)) {
+        delete dp;
     }
     m_dps.clear();
 }

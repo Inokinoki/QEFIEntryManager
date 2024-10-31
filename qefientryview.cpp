@@ -143,9 +143,9 @@ void QEFIEntryView::entryChanged(int currentRow)
 void QEFIEntryView::resetClicked(bool checked)
 {
     m_entries->clear();
-    for (int i = 0; i < m_order.size(); i++) {
-        if (m_entryItems.contains(m_order[i])) {
-            QEFIEntry &entry = m_entryItems[m_order[i]];
+    for (const auto &i: std::as_const(m_order)) {
+        if (m_entryItems.contains(i)) {
+            QEFIEntry &entry = m_entryItems[i];
             QString item = QStringLiteral("[%1] %2")
                 .arg(entry.id(), 4, 16, QLatin1Char('0'))
                 .arg(entry.name());
