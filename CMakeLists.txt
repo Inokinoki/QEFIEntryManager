@@ -8,7 +8,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets Network REQUIRED)
@@ -59,7 +59,16 @@ endif()
 # Find and link efivar/win32 API 
 find_package(PkgConfig)
 if(PkgConfig_FOUND)
-    pkg_check_modules(EFIVAR efivar)
+    pkg_check_modules(EFIVAR efivar>=0.15)
+    if(NOT DEFINED EFIVAR_FOUND)
+        # Find and link efivar<0.15
+        pkg_check_modules(EFIVAR efivar)
+        if(EFIVAR_FOUND)
+            # Consider it as an old lib (without mode and return non-zero)
+            # TODO(Inoki): to check https://github.com/rhboot/efivar/commit/7bd2e309aeec210509d215c803a762725591ccc7
+            add_definitions(-DEFIVAR_OLD_API)
+        endif()
+    endif()
 endif()
 
 if(APP_DATA_DUMMY_BACKEND)
@@ -76,13 +85,10 @@ else()
     message(FATAL_ERROR "No EFI utility found, please make sure you have libefivar installed")
 endif()
 
-if(USE_EFIVAR_OLD_API)
-    add_definitions(-DEFIVAR_OLD_API)
-endif()
-
 target_include_directories(QEFIEntryManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
 if(PATCH_FREEBSD_EFIVAR)
-    # Patch efivar build for FreeBSD
+    # Patch efivar 0.15 build for FreeBSD
+    # TODO(Inoki): check 0.15 build
     add_definitions(-DEFIVAR_FREEBSD_PATCH)
     target_link_libraries(QEFIEntryManager PRIVATE geom)
 endif()
