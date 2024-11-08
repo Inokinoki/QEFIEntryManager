@@ -22,6 +22,9 @@ jobs:
       with:
          submodules: true
 
+    - name: Show libc version
+      run: ls -l /lib/x86_64-linux-gnu/libc.so.6
+
     - name: Install libefivar, libefiboot and their dev files
       run: |
         sudo apt update -y
