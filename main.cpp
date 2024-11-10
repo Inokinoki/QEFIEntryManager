@@ -5,6 +5,14 @@
 #include <qefientrystaticlist.h>
 #include <qefi.h>
 
+#ifdef EFIVAR_FREEBSD_PATCH
+extern "C" {
+#include <efivar.h>
+// Temporarilly patch for FreeBSD
+efi_guid_t efi_guid_zero = {0};
+}
+#endif
+
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);

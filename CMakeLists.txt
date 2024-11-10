@@ -76,7 +76,16 @@ else()
     message(FATAL_ERROR "No EFI utility found, please make sure you have libefivar installed")
 endif()
 
+if(USE_EFIVAR_OLD_API)
+    add_definitions(-DEFIVAR_OLD_API)
+endif()
+
 target_include_directories(QEFIEntryManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
+if(PATCH_FREEBSD_EFIVAR)
+    # Patch efivar build for FreeBSD
+    add_definitions(-DEFIVAR_FREEBSD_PATCH)
+    target_link_libraries(QEFIEntryManager PRIVATE geom)
+endif()
 
 # Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
 target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
