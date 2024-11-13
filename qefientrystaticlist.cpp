@@ -119,6 +119,7 @@ void QEFIEntryStaticList::setBootOrder(const QList<quint16> &newOrder)
     quint16 *p = (quint16 *)orderBuffer.data();
     for (const auto &i: newOrder) {
         *p = qToLittleEndian<quint16>(i);
+        p++;
     }
     qefi_set_variable(g_efiUuid,
                       QStringLiteral("BootOrder"), orderBuffer);
