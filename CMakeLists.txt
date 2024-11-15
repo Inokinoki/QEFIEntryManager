@@ -61,33 +61,19 @@ else()
     )
 endif()
 
-# Find and link efivar/win32 API 
-find_package(PkgConfig)
-if(PkgConfig_FOUND)
-    pkg_check_modules(EFIVAR efivar>=0.15)
-    if(NOT DEFINED EFIVAR_FOUND)
-        # Find and link efivar<0.15
-        pkg_check_modules(EFIVAR efivar)
-        if(EFIVAR_FOUND)
-            # Consider it as an old lib (without mode and return non-zero)
-            # TODO(Inoki): to check https://github.com/rhboot/efivar/commit/7bd2e309aeec210509d215c803a762725591ccc7
-            add_definitions(-DEFIVAR_WITHOUT_MODE)
-        endif()
-    endif()
-endif()
-
 if(APP_DATA_DUMMY_BACKEND)
     # Use the directory under QStandardPaths::AppDataLocation for test purpose
     message("Use dummy backend for EFI operations")
     add_definitions(-DEFIVAR_APP_DATA_DUMMY)
-elseif(EFIVAR_FOUND)
-    message("Use libefivar for EFI operations")
-    include_directories(QEFIEntryManager ${EFIVAR_INCLUDE_DIRS})
-    target_link_libraries(QEFIEntryManager PRIVATE ${EFIVAR_LIBRARIES})
 elseif(WIN32)
     message("Use Windows API for EFI operations")
 else()
-    message(FATAL_ERROR "No EFI utility found, please make sure you have libefivar installed")
+    if(${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+        # Link with FreeBSD system-level libefivar and geom
+        # see source code of usr.sbin/efibootmgr/Makefile and usr.sbin/efivar/Makefile
+        target_link_libraries(QEFIEntryManager PUBLIC efivar geom)
+    endif()
+	message("Use qefivar implementations for EFI operations")
 endif()
 
 if(USE_EFIVAR_OLD_API)
@@ -95,12 +81,6 @@ if(USE_EFIVAR_OLD_API)
 endif()
 
 target_include_directories(QEFIEntryManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
-if(PATCH_FREEBSD_EFIVAR)
-    # Patch efivar 0.15 build for FreeBSD
-    # TODO(Inoki): check 0.15 build
-    add_definitions(-DEFIVAR_FREEBSD_PATCH)
-    target_link_libraries(QEFIEntryManager PRIVATE geom)
-endif()
 
 # Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
 target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
