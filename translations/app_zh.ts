@@ -6,7 +6,7 @@
     <message>
         <location filename="../qefientryview.cpp" line="487"/>
         <source>Add EFI Boot Entry</source>
-        <translation>添加EFI启动项</translation>
+        <translation>添加 EFI 启动项</translation>
     </message>
 </context>
 <context>
@@ -22,7 +22,7 @@
     <message>
         <location filename="../mainwindow.cpp" line="7"/>
         <source>EFI Entry Manager</source>
-        <translation>EFI启动项管理器</translation>
+        <translation>EFI 启动项管理器</translation>
     </message>
 </context>
 <context>
@@ -106,7 +106,7 @@
     <message>
         <location filename="../qefientrydetailview.cpp" line="57"/>
         <source>Brief</source>
-        <translation>简要</translation>
+        <translation>概要</translation>
     </message>
 </context>
 <context>
@@ -129,7 +129,7 @@
     <message>
         <location filename="../qefientryview.cpp" line="70"/>
         <source>Set reboot</source>
-        <translation>设置重启</translation>
+        <translation>设为重启</translation>
     </message>
     <message>
         <location filename="../qefientryview.cpp" line="87"/>
@@ -168,7 +168,7 @@
     <message>
         <location filename="../qefientryview.cpp" line="257"/>
         <source>Do you want to reboot now?</source>
-        <translation>你想现在重启吗？</translation>
+        <translation>您想现在就重启吗？</translation>
     </message>
     <message>
         <location filename="../qefientryview.cpp" line="341"/>
@@ -228,12 +228,12 @@
     <message>
         <location filename="../qefientryview.cpp" line="426"/>
         <source>Choose an ID</source>
-        <translation>选择一个ID</translation>
+        <translation>选择一个 ID</translation>
     </message>
     <message>
         <location filename="../qefientryview.cpp" line="427"/>
         <source>Hex value from 0 to FFFF</source>
-        <translation>0到FFFF的十六进制值</translation>
+        <translation>0 到 FFFF 的十六进制值</translation>
     </message>
     <message>
         <location filename="../qefientryview.cpp" line="436"/>
@@ -245,13 +245,13 @@
     <message>
         <location filename="../qefientryview.cpp" line="444"/>
         <source>The chosen ID is invalidated.</source>
-        <translation>选择的ID无效。</translation>
+        <translation>选择的 ID 无效。</translation>
     </message>
     <message>
         <location filename="../qefientryview.cpp" line="451"/>
         <location filename="../qefientryview.cpp" line="551"/>
         <source>Do you want to override Boot%1?</source>
-        <translation>你想覆盖 Boot%1 吗？</translation>
+        <translation>您想覆盖 Boot%1 吗？</translation>
     </message>
     <message>
         <location filename="../qefientryview.cpp" line="463"/>
@@ -312,7 +312,7 @@
     <message>
         <location filename="../main.cpp" line="30"/>
         <source>Permission insufficient or no EFI environment</source>
-        <translation>权限不足或无EFI环境</translation>
+        <translation>权限不足或非 EFI 环境</translation>
     </message>
 </context>
 </TS>
