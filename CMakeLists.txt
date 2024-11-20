@@ -53,8 +53,11 @@ set(TRANSLATIONS
     translations/app_zh.ts
 )
 set_source_files_properties(
-    ${TRANSLATIONS} PROPERTIES OUTPUT_LOCATION
-    ${CMAKE_CURRENT_SOURCE_DIR}/translations
+    ${TRANSLATIONS} PROPERTIES
+        # Set OUTPUT_LOCATION to the directory where the .qm files should be generated in Qt5
+        OUTPUT_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/translations
+        # Set TARGET_DIRECTORY to the directory where the .qm files should be generated in Qt6
+        TARGET_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/translations
 )
 
 if(WIN32)
