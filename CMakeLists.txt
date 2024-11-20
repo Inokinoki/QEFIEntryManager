@@ -16,7 +16,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets Network REQUIRED)
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets Network LinguistTools REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Network REQUIRED)
 
 set(PROJECT_SOURCES
@@ -46,18 +46,39 @@ set(PROJECT_SOURCES
         qefivar/qefidpmessage.cpp
 )
 
+# Add translations files here
+set(TRANSLATIONS
+    translations/app_en.ts
+    translations/app_fr.ts
+    translations/app_zh.ts
+)
+set_source_files_properties(
+    ${TRANSLATIONS} PROPERTIES
+        # Set OUTPUT_LOCATION to the directory where the .qm files should be generated in Qt5
+        OUTPUT_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/translations
+        # Set TARGET_DIRECTORY to the directory where the .qm files should be generated in Qt6
+        TARGET_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/translations
+)
+
 if(WIN32)
     list(PREPEND PROJECT_SOURCES WIN32)
     set(CMAKE_EXE_LINKER_FLAGS "/MANIFESTUAC:\"level='requireAdministrator'\"")
 endif()
 
+# TODO: Set the linguist tools to optional
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(QEFIEntryManager
-        ${PROJECT_SOURCES}
-    )
-else()
+    find_package(Qt6LinguistTools REQUIRED)
+    qt_create_translation(QM_FILES ${TRANSLATIONS} ${CMAKE_CURRENT_SOURCE_DIR})
     add_executable(QEFIEntryManager
         ${PROJECT_SOURCES}
+        translations/translations.qrc
+    )
+else()
+    find_package(Qt5LinguistTools REQUIRED)
+    qt5_create_translation(QM_FILES ${TRANSLATIONS} ${CMAKE_CURRENT_SOURCE_DIR})
+    add_executable(QEFIEntryManager
+        ${PROJECT_SOURCES}
+        translations/translations.qrc
     )
 endif()
 

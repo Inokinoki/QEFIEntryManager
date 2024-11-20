@@ -21,10 +21,10 @@ jobs:
         include:
           - os: ubuntu-20.04
             qt-ver: 5
-            qt-pkg: qtbase5-dev
+            qt-pkg: qtbase5-dev qttools5-dev
           - os: ubuntu-24.04
             qt-ver: 6
-            qt-pkg: qt6-base-dev
+            qt-pkg: qt6-base-dev qt6-tools-dev
     runs-on: ${{matrix.os}}
 
     steps:
@@ -38,7 +38,7 @@ jobs:
     - name: Install libefivar, libefiboot and their dev files
       run: |
         sudo apt update -y
-        sudo apt install -y libefivar-dev libefiboot-dev ${{matrix.qt-pkg}} fuse
+        sudo apt install -y ${{matrix.qt-pkg}} fuse
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
