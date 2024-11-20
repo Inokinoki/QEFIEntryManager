@@ -21,10 +21,10 @@ jobs:
         include:
           - os: ubuntu-20.04
             qt-ver: 5
-            qt-pkg: qtbase5-dev
+            qt-pkg: qtbase5-dev qttools5-dev
           - os: ubuntu-24.04
             qt-ver: 6
-            qt-pkg: qt6-base-dev
+            qt-pkg: qt6-base-dev qt6-tools-dev
     runs-on: ${{matrix.os}}
 
     steps:
