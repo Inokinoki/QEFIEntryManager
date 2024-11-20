@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        os-version: ['13.2', '14.1']
+        os-version: ['14.1']
       # Don't abort runners if a single one fails
       fail-fast: false
     steps:
