@@ -68,11 +68,11 @@ endif()
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     # TODO: Fix the translation in Qt6
     find_package(Qt6LinguistTools REQUIRED)
-    qt_add_translations(QEFIEntryManager TS_FILES ${TRANSLATIONS})
     qt_add_executable(QEFIEntryManager
         ${PROJECT_SOURCES}
         translations/translations.qrc
     )
+    qt_add_translations(QEFIEntryManager TS_FILES ${TRANSLATIONS})
 else()
     # TODO: Set it to optional
     find_package(Qt5LinguistTools REQUIRED)
