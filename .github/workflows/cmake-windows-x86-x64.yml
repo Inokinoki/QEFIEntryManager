@@ -80,7 +80,7 @@ jobs:
       - name: Packaging using NSIS
         run: |
           cd ${{github.workspace}}\build
-          cpack -G NSIS
+          cpack -G NSIS || type ${{github.workspace}}\build\_CPack_Packages\win64\NSIS\NSISOutput.log
 
       - name: Upload a NSIS Build Artifact
         uses: actions/upload-artifact@v4
