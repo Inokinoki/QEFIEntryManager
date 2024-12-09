@@ -32,6 +32,5 @@ jobs:
           pkg install -y cmake qt5
         run: |
           uname -a
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=ON
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-          cd ${{github.workspace}}/build && cpack -G FreeBSD
