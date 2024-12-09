@@ -159,8 +159,9 @@ set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CM
     set(CPACK_NSIS_PACKAGE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
     set(CPACK_NSIS_CONTACT ${CPACK_PACKAGE_CONTACT})
     set(CPACK_NSIS_URL ${CPACK_PACKAGE_HOMEPAGE_URL})
-    set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/cc.inoki.qefientrymanager.png")
-    set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/cc.inoki.qefientrymanager.png")
+    # NSIS is not happy with the my "icon"
+    # set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/cc.inoki.qefientrymanager.png")
+    # set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/cc.inoki.qefientrymanager.png")
 # End NSIS
 # For FreeBSD
     set(CPACK_FREEBSD_PACKAGE_CATEGORIES "sysutils")
