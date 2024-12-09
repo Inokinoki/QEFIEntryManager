@@ -120,3 +120,56 @@ install(PROGRAMS qefientrymanager.desktop
 install(FILES cc.inoki.qefientrymanager.png
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/96x96/apps
 )
+
+# Use CPack to generate the package(s)
+if(ENABLE_PACKAGING)
+set(CPACK_PACKAGE_NAME "qefientrymanager")
+set(CPACK_PACKAGE_VERSION "${QEFI_ENTRY_MANAGER_VERSION}")
+set(CPACK_PACKAGE_DISPLAY_NAME "EFI Entry Manager")
+set(CPACK_PACKAGE_CONTACT "Inoki <veyx.shaw@gmail.com>")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/Inokinoki/QEFIEntryManager")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A userspace cross-platform EFI boot entry management GUI App based on Qt.")
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/README.md")
+set(CPACK_PACKAGE_VENDOR "Inoki")
+set(CPACK_PACKAGE_LICENSE "GPL-3.0")
+set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_NAME}")
+# For DEB
+    set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
+    set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+    if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+        set(CPACK_DEBIAN_PACKAGE_DEPENDS "qt6-base")
+    else()
+        set(CPACK_DEBIAN_PACKAGE_DEPENDS "qt5-default")
+    endif()
+# End DEB
+# For RPM
+    set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0")
+    set(CPACK_RPM_PACKAGE_GROUP "Applications/System")
+    set(CPACK_RPM_PACKAGE_REQUIRES "qt5-qtbase")
+    if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+        set(CPACK_RPM_PACKAGE_DEPENDS "qt6-qtbase")
+    else()
+        set(CPACK_RPM_PACKAGE_DEPENDS "qt5-qtbase")
+    endif()
+# End RPM
+# For NSIS
+    set(CPACK_NSIS_PACKAGE_NAME ${CPACK_PACKAGE_NAME})
+    set(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_DISPLAY_NAME} ${CPACK_PACKAGE_VERSION}")
+    set(CPACK_NSIS_PACKAGE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
+    set(CPACK_NSIS_CONTACT ${CPACK_PACKAGE_CONTACT})
+    set(CPACK_NSIS_URL ${CPACK_PACKAGE_HOMEPAGE_URL})
+    set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/cc.inoki.qefientrymanager.png")
+    set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/cc.inoki.qefientrymanager.png")
+# End NSIS
+# For FreeBSD
+    set(CPACK_FREEBSD_PACKAGE_CATEGORIES "sysutils")
+    set(CPACK_FREEBSD_PACKAGE_ORIGIN "sysutils/qefientrymanager")
+    if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+        set(CPACK_FREEBSD_PACKAGE_DEPS "qt6")
+    else()
+        set(CPACK_FREEBSD_PACKAGE_DEPS "qt5")
+    endif()
+# End FreeBSD
+include(CPack)
+endif()
