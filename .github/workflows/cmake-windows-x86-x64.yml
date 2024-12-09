@@ -87,4 +87,4 @@ jobs:
         with:
           # Artifact name
           name: QEFI Entry Manager NSIS installer for Windows Qt${{ matrix.qtvers }}
-          path: ${{github.workspace}}\build\${{env.BUILD_TYPE}}\*.exe
+          path: ${{github.workspace}}\build\*.exe
