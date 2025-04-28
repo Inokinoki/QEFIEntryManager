@@ -3,5 +3,7 @@
         <file>app_en.qm</file>
         <file>app_fr.qm</file>
         <file>app_zh.qm</file>
+        <file>app_pt.qm</file>
+        <file>app_es.qm</file>
     </qresource>
 </RCC>

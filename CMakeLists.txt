@@ -49,7 +49,9 @@ set(PROJECT_SOURCES
 # Add translations files here
 set(TRANSLATIONS
     translations/app_en.ts
+    translations/app_es.ts
     translations/app_fr.ts
+    translations/app_pt.ts
     translations/app_zh.ts
 )
 set_source_files_properties(
