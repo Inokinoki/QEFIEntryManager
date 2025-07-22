@@ -16,7 +16,9 @@ You can **change the boot order, add/import new boot entry**:
 
 ![Boot Entry](.github/main.png)
 
-or temporally set the next boot entry to **quickly reboot to another OS**, after setting, click on `Yes` to reboot immediately:
+or temporally set the next boot entry to **quickly reboot to another OS**.
+
+After setting, click on `Yes` to reboot immediately:
 
 ![Reboot Confirmation](.github/reboot_confirm.png)
 
