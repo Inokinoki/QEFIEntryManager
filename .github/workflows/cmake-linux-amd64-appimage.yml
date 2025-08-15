@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             qt-ver: 5
             qt-pkg: qtbase5-dev qttools5-dev
           - os: ubuntu-24.04
