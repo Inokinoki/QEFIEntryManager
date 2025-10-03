@@ -27,42 +27,48 @@ Otherwise, it will boot to the other OS once after your manual reboot.
 Right click on the boot entry to **enable/disable/delete the entry**, or **show the detailed properties**.
 
 ## Install
+
 ### Arch Linux
+
 #### AUR
-- Stable version
 
-```shell
-[yay/paru] -S qefientrymanager
-```
+- Stable version:
 
-- Latest git version
+   ```shell
+   [yay/paru] -S qefientrymanager
+   ```
 
-```shell
-[yay/paru] -S qefientrymanager-git
-```
+- Latest git version:
 
-#### archlinuxcn
-- Stable version
+   ```shell
+   [yay/paru] -S qefientrymanager-git
+   ```
 
-```shell
-sudo pacman -S qefientrymanager
-```
+#### `archlinuxcn`
 
-- Latest git version
+- Stable version:
 
-```shell
-sudo pacman -S qefientrymanager-git
-```
+   ```shell
+   sudo pacman -S qefientrymanager
+   ```
+
+- Latest git version:
+
+   ```shell
+   sudo pacman -S qefientrymanager-git
+   ```
 
 ### Other Linux Distros & Windows
+
 Download the prebuilt app from [release](https://github.com/Inokinoki/QEFIEntryManager/releases) or from CI:
 
 - [Linux AppImages from CI](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-linux-amd64-appimage.yml)
+
 - [Windows from CI](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-windows-x86-x64.yml)
 
 Run it as root (*nix):
 
-```
+```shell
 sudo -E ./<executable>
 ```
 
@@ -72,7 +78,7 @@ or administrator on Windows(right click).
 
 Clone and compile this project:
 
-```
+```shell
 git clone --recursive https://github.com/Inokinoki/QEFIEntryManager.git
 cd QEFIEntryManager
 mkdir build && cd build
