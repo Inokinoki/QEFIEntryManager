@@ -20,17 +20,9 @@ jobs:
         qtvers: ['5.15.2', '6.2.0']
 
     steps:
-      - name: Cache Qt
-        id: cache-qt
-        uses: actions/cache@v1  # not v2!
-        with:
-          path: ../Qt
-          key: ${{ runner.os }}-QtCache-${{ matrix.qtvers }}
-
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
-          cached: ${{ steps.cache-qt.outputs.cache-hit }}
           version: ${{ matrix.qtvers }}
 
       # Setup CMake
