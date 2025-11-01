@@ -19,12 +19,22 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             qt-ver: 5
             qt-pkg: qtbase5-dev qttools5-dev
+            use-pkexec-launcher: OFF
+          - os: ubuntu-22.04
+            qt-ver: 5
+            qt-pkg: qtbase5-dev qttools5-dev
+            use-pkexec-launcher: ON
           - os: ubuntu-24.04
             qt-ver: 6
             qt-pkg: qt6-base-dev qt6-tools-dev
+            use-pkexec-launcher: OFF
+          - os: ubuntu-24.04
+            qt-ver: 6
+            qt-pkg: qt6-base-dev qt6-tools-dev
+            use-pkexec-launcher: ON
     runs-on: ${{matrix.os}}
 
     steps:
@@ -43,7 +53,7 @@ jobs:
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=ON
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=ON -DUSE_PKEXEC_LAUNCHER=${{matrix.use-pkexec-launcher}}
 
     - name: Build
       # Build your program with the given configuration
@@ -66,15 +76,17 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         # Artifact name
-        name: QEFI Entry Manager x86_64 AppImage Qt${{matrix.qt-ver}}
+        name: QEFI Entry Manager x86_64 AppImage Qt${{matrix.qt-ver}} pkexec-launcher-${{matrix.use-pkexec-launcher}}
         # A file, directory or wildcard pattern that describes what to upload
         path: ${{github.workspace}}/build/EFI_Entry_Manager-x86_64-Qt${{matrix.qt-ver}}.AppImage
-    
+
     - name: Packaging Debian
+      if: ${{ matrix.use-pkexec-launcher == 'ON' }}
       working-directory: ${{github.workspace}}/build
       run: cpack -G DEB
 
     - name: Upload a Build Artifact
+      if: ${{ matrix.use-pkexec-launcher == 'ON' }}
       uses: actions/upload-artifact@v4
       with:
         # Artifact name
