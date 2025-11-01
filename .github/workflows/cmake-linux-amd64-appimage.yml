@@ -33,7 +33,7 @@ jobs:
          submodules: true
 
     - name: Show libc version
-      run: ls -l /lib/x86_64-linux-gnu/libc.so.6
+      run: ldd --version | head -n 1
 
     - name: Install libefivar, libefiboot and their dev files
       run: |

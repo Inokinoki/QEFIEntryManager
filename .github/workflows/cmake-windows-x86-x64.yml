@@ -17,7 +17,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        qtvers: ['5.15.2', '6.2.0']
+        qtvers: ['5.15.*', 'latest']
 
     steps:
       - name: Install Qt
