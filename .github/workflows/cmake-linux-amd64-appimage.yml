@@ -22,19 +22,19 @@ jobs:
           - os: ubuntu-22.04
             qt-ver: 5
             qt-pkg: qtbase5-dev qttools5-dev
-            use-pkexec-launcher: OFF
+            use-pkexec-launcher: 'OFF'
           - os: ubuntu-22.04
             qt-ver: 5
             qt-pkg: qtbase5-dev qttools5-dev
-            use-pkexec-launcher: ON
+            use-pkexec-launcher: 'ON'
           - os: ubuntu-24.04
             qt-ver: 6
             qt-pkg: qt6-base-dev qt6-tools-dev
-            use-pkexec-launcher: OFF
+            use-pkexec-launcher: 'OFF'
           - os: ubuntu-24.04
             qt-ver: 6
             qt-pkg: qt6-base-dev qt6-tools-dev
-            use-pkexec-launcher: ON
+            use-pkexec-launcher: 'ON'
     runs-on: ${{matrix.os}}
 
     steps:
@@ -77,20 +77,20 @@ jobs:
         fi
 
     - name: Upload a Build Artifact
-      uses: actions/upload-artifact@v4
       if: ${{matrix.use-pkexec-launcher}} == 'ON'
+      uses: actions/upload-artifact@v4
       with:
         # Artifact name
         name: QEFI Entry Manager x86_64 AppImage Qt${{matrix.qt-ver}}
         # A file, directory or wildcard pattern that describes what to upload
-        path: ${{github.workspace}}/build/EFI_Entry_Manager-x86_64-Qt${{matrix.qt-ver}}*.AppImage
+        path: ${{github.workspace}}/build/EFI_Entry_Manager-x86_64-Qt${{matrix.qt-ver}}.AppImage
 
     - name: Upload a Build Artifact that needs sudo
-      uses: actions/upload-artifact@v4
       if: ${{matrix.use-pkexec-launcher}} == 'OFF'
+      uses: actions/upload-artifact@v4
       with:
         # Artifact name
-        name: QEFI Entry Manager x86_64 AppImage Qt${{matrix.qt-ver}} NEEDS sudo
+        name: QEFI Entry Manager x86_64 AppImage Qt${{matrix.qt-ver}} needing sudo
         # A file, directory or wildcard pattern that describes what to upload
         path: ${{github.workspace}}/build/EFI_Entry_Manager-x86_64-Qt${{matrix.qt-ver}}-need-sudo.AppImage
 
