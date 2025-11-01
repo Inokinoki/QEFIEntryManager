@@ -25,6 +25,7 @@ jobs:
         with:
           version: ${{ matrix.qtvers }}
           cache: 'true'
+          use-official: true
 
       # Setup CMake
       - name: Setup CMake
