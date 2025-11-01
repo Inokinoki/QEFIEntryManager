@@ -116,7 +116,14 @@ include(GNUInstallDirs)
 install(PROGRAMS qefientrymanager-launcher
         DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
-install(PROGRAMS qefientrymanager.desktop
+# Generate the desktop file from the template
+if(USE_PKEXEC_LAUNCHER)
+    set(EXEC_COMMAND "qefientrymanager-launcher")
+else()
+    set(EXEC_COMMAND "QEFIEntryManager")
+endif()
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/qefientrymanager.desktop.in ${CMAKE_CURRENT_BINARY_DIR}/qefientrymanager.desktop @ONLY)
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/qefientrymanager.desktop
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications
 )
 install(FILES cc.inoki.qefientrymanager.png

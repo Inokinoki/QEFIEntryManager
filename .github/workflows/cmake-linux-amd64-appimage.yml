@@ -25,6 +25,8 @@ jobs:
           - os: ubuntu-24.04
             qt-ver: 6
             qt-pkg: qt6-base-dev qt6-tools-dev
+          - use-pkexec-launcher: ON
+          - use-pkexec-launcher: OFF
     runs-on: ${{matrix.os}}
 
     steps:
@@ -43,7 +45,7 @@ jobs:
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=ON
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=ON -DUSE_PKEXEC_LAUNCHER=${{matrix.use-pkexec-launcher}}
 
     - name: Build
       # Build your program with the given configuration
@@ -60,7 +62,11 @@ jobs:
         wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
         chmod +x linuxdeploy*.AppImage
         ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
-        mv EFI_Entry_Manager-x86_64.AppImage EFI_Entry_Manager-x86_64-Qt${{matrix.qt-ver}}.AppImage
+        if [ ${matrix.use-pkexec-launcher} = "ON" ]; then
+          mv EFI_Entry_Manager-x86_64.AppImage EFI_Entry_Manager-x86_64-Qt${{matrix.qt-ver}}.AppImage
+        else
+          mv EFI_Entry_Manager-x86_64.AppImage EFI_Entry_Manager-x86_64-Qt${{matrix.qt-ver}}-need-sudo.AppImage
+        fi
 
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v4
