@@ -22,11 +22,19 @@ jobs:
           - os: ubuntu-20.04
             qt-ver: 5
             qt-pkg: qtbase5-dev qttools5-dev
+            use-pkexec-launcher: OFF
+          - os: ubuntu-20.04
+            qt-ver: 5
+            qt-pkg: qtbase5-dev qttools5-dev
+            use-pkexec-launcher: ON
           - os: ubuntu-24.04
             qt-ver: 6
             qt-pkg: qt6-base-dev qt6-tools-dev
-          - use-pkexec-launcher: ON
-          - use-pkexec-launcher: OFF
+            use-pkexec-launcher: OFF
+          - os: ubuntu-24.04
+            qt-ver: 6
+            qt-pkg: qt6-base-dev qt6-tools-dev
+            use-pkexec-launcher: ON
     runs-on: ${{matrix.os}}
 
     steps:
@@ -62,7 +70,7 @@ jobs:
         wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
         chmod +x linuxdeploy*.AppImage
         ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
-        if [ ${matrix.use-pkexec-launcher} = "ON" ]; then
+        if [ "${{matrix.use-pkexec-launcher}}" = "ON" ]; then
           mv EFI_Entry_Manager-x86_64.AppImage EFI_Entry_Manager-x86_64-Qt${{matrix.qt-ver}}.AppImage
         else
           mv EFI_Entry_Manager-x86_64.AppImage EFI_Entry_Manager-x86_64-Qt${{matrix.qt-ver}}-need-sudo.AppImage
