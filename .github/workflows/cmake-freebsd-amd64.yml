@@ -20,11 +20,11 @@ jobs:
       # Don't abort runners if a single one fails
       fail-fast: false
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
          submodules: true
     # Configure and build
-    - uses: vmactions/freebsd-vm@v1
+    - uses: vmactions/freebsd-vm@v1.2
       with:
         release: ${{ matrix.os-version}}
         usesh: true
