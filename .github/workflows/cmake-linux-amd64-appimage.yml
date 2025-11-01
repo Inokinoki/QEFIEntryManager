@@ -81,12 +81,12 @@ jobs:
         path: ${{github.workspace}}/build/EFI_Entry_Manager-x86_64-Qt${{matrix.qt-ver}}.AppImage
 
     - name: Packaging Debian
-      if: ${{matrix.use-pkexec-launcher}} == ON
+      if: ${{ matrix.use-pkexec-launcher == 'ON' }}
       working-directory: ${{github.workspace}}/build
       run: cpack -G DEB
 
     - name: Upload a Build Artifact
-      if: ${{matrix.use-pkexec-launcher}} == ON
+      if: ${{ matrix.use-pkexec-launcher == 'ON' }}
       uses: actions/upload-artifact@v4
       with:
         # Artifact name
