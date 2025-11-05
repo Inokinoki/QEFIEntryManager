@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 
+this_dir="$(readlink -f "$(dirname "$0")")"
+
 env_array=(
 	"XDG_CURRENT_DESKTOP=${XDG_CURRENT_DESKTOP}"
 	"QT_QPA_PLATFORM=${QT_QPA_PLATFORM}"
 	"QT_QPA_PLATFORMTHEME=${QT_QPA_PLATFORMTHEME}"
 	"QT_STYLE_OVERRIDE=${QT_STYLE_OVERRIDE}"
-	"PATH=${PATH}"
+	"PATH=${PATH}:$this_dir/usr/local/bin"
 )
 
 if [[ -z "${WAYLAND_DISPLAY}" ]]; then
