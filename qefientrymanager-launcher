@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+whoami
+echo $PATH
+
 this_dir="$(readlink -f "$(dirname "$0")")"
 
 env_array=(
