@@ -23,4 +23,11 @@ QList<QPair<QString, enum QEFIDPEditType>> convert_device_path_types(QEFIDeviceP
 QString convert_ipv4_to_string(const QEFIIPv4Address *ipv4);
 QList<quint8> enum_device_path_subtype(QEFIDevicePathType type);
 
+// Create a dummy device path instance for a given type/subtype
+// Used to get field definitions when creating new device paths
+QEFIDevicePath *create_dummy_device_path(QEFIDevicePathType type, quint8 subtype);
+
+// Create a device path from UI values
+QEFIDevicePath *create_device_path_from_values(QEFIDevicePathType type, quint8 subtype, const QMap<QString, QVariant> &values);
+
 #endif // HELPERS_H
