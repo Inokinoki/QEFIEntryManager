@@ -9,9 +9,10 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QDialogButtonBox>
+#include <QScopedPointer>
 
 #include "qefipartitionscanner.h"
-#include "qfatfilesystem.h"
+#include "qfatfilesystem/qfatfilesystem.h"
 
 class QEFIFileSelectionDialog : public QDialog
 {
@@ -51,7 +52,7 @@ private:
 
     QVector<QEFIPartitionInfo> m_partitions;
     QEFIPartitionInfo m_selectedPartition;
-    QFATFilesystem *m_fatFilesystem;
+    QScopedPointer<QFATFileSystem> m_fatFilesystem;
     QString m_currentPath;
     QString m_selectedFilePath;
     QFATFileInfo m_selectedFileInfo;

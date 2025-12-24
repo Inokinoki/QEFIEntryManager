@@ -1,11 +1,12 @@
 #include "qefifileselectiondialog.h"
+#include "qpartitioniodevice.h"
 #include <QMessageBox>
 #include <QDebug>
 #include <QHeaderView>
+#include <QSharedPointer>
 
 QEFIFileSelectionDialog::QEFIFileSelectionDialog(QWidget *parent)
     : QDialog(parent)
-    , m_fatFilesystem(nullptr)
     , m_currentPath("/")
 {
     setWindowTitle(tr("Select EFI Boot File"));
@@ -15,9 +16,6 @@ QEFIFileSelectionDialog::QEFIFileSelectionDialog(QWidget *parent)
 
 QEFIFileSelectionDialog::~QEFIFileSelectionDialog()
 {
-    if (m_fatFilesystem) {
-        delete m_fatFilesystem;
-    }
 }
 
 void QEFIFileSelectionDialog::setupUI()
@@ -116,43 +114,50 @@ void QEFIFileSelectionDialog::partitionChanged(int index)
     m_buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
 
     // Close previous filesystem if open
-    if (m_fatFilesystem) {
-        m_fatFilesystem->close();
-        delete m_fatFilesystem;
-    }
-
-    m_fatFilesystem = new QFATFilesystem(this);
+    m_fatFilesystem.reset();
 
     qDebug() << "Opening partition:" << m_selectedPartition.devicePath
-             << "offset:" << m_selectedPartition.partitionOffset;
+             << "offset:" << m_selectedPartition.partitionOffset
+             << "size:" << m_selectedPartition.partitionSize;
 
-    if (!m_fatFilesystem->open(m_selectedPartition.devicePath, m_selectedPartition.partitionOffset)) {
-        m_statusLabel->setText(tr("Failed to open partition filesystem"));
+    // Create partition IO device
+    QSharedPointer<QPartitionIODevice> partitionDevice(
+        new QPartitionIODevice(m_selectedPartition.devicePath,
+                               m_selectedPartition.partitionOffset,
+                               m_selectedPartition.partitionSize));
+
+    if (!partitionDevice->open(QIODevice::ReadOnly)) {
+        m_statusLabel->setText(tr("Failed to open partition device"));
         QMessageBox::critical(this, tr("Error"),
-                              tr("Failed to read the FAT filesystem on the selected partition.\n"
-                                 "The partition may be corrupted or use an unsupported filesystem."));
+                              tr("Failed to open the partition device.\n"
+                                 "Make sure you are running with administrator/root privileges."));
         return;
     }
+
+    // Try to create FAT32 filesystem (EFI partitions are typically FAT32)
+    m_fatFilesystem.reset(new QFAT32FileSystem(partitionDevice));
 
     m_currentPath = "/";
     loadDirectory(m_currentPath);
 
-    QString fsInfo = QString("Filesystem: %1, Label: %2")
-                         .arg(m_fatFilesystem->fileSystemType())
-                         .arg(m_fatFilesystem->volumeLabel());
-    m_statusLabel->setText(fsInfo);
+    m_statusLabel->setText(tr("Opened FAT32 filesystem successfully"));
 }
 
 void QEFIFileSelectionDialog::loadDirectory(const QString &path)
 {
-    if (!m_fatFilesystem || !m_fatFilesystem->isOpen()) {
+    if (!m_fatFilesystem) {
         return;
     }
 
     m_fileTreeWidget->clear();
     m_currentPath = path;
 
-    QVector<QFATFileInfo> files = m_fatFilesystem->listDirectory(path);
+    QList<QFATFileInfo> files;
+    if (path == "/") {
+        files = m_fatFilesystem->listRootDirectory();
+    } else {
+        files = m_fatFilesystem->listDirectory(path);
+    }
 
     // Add parent directory entry if not root
     if (path != "/") {
@@ -167,8 +172,8 @@ void QEFIFileSelectionDialog::loadDirectory(const QString &path)
     }
 
     // Sort: directories first, then files
-    QVector<QFATFileInfo> directories;
-    QVector<QFATFileInfo> regularFiles;
+    QList<QFATFileInfo> directories;
+    QList<QFATFileInfo> regularFiles;
 
     for (const auto &file : files) {
         if (file.isDirectory) {
@@ -192,7 +197,10 @@ void QEFIFileSelectionDialog::loadDirectory(const QString &path)
 QTreeWidgetItem *QEFIFileSelectionDialog::createFileItem(const QFATFileInfo &fileInfo)
 {
     QTreeWidgetItem *item = new QTreeWidgetItem();
-    item->setText(0, fileInfo.name);
+
+    // Use longName if available, otherwise use name
+    QString displayName = fileInfo.longName.isEmpty() ? fileInfo.name : fileInfo.longName;
+    item->setText(0, displayName);
 
     if (fileInfo.isDirectory) {
         item->setText(1, "");
@@ -203,16 +211,23 @@ QTreeWidgetItem *QEFIFileSelectionDialog::createFileItem(const QFATFileInfo &fil
         item->setText(2, tr("File"));
 
         // Set icon based on file extension
-        if (fileInfo.name.endsWith(".efi", Qt::CaseInsensitive)) {
+        if (displayName.endsWith(".efi", Qt::CaseInsensitive)) {
             item->setIcon(0, style()->standardIcon(QStyle::SP_FileIcon));
         } else {
             item->setIcon(0, style()->standardIcon(QStyle::SP_FileIcon));
         }
     }
 
+    // Build full path
+    QString fullPath = m_currentPath;
+    if (!fullPath.endsWith('/')) {
+        fullPath += '/';
+    }
+    fullPath += displayName;
+
     // Store file info in item data
     item->setData(0, Qt::UserRole, fileInfo.isDirectory);
-    item->setData(0, Qt::UserRole + 1, fileInfo.path);
+    item->setData(0, Qt::UserRole + 1, fullPath);
     item->setData(0, Qt::UserRole + 2, qVariantFromValue(fileInfo));
 
     return item;

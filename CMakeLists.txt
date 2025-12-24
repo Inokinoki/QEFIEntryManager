@@ -43,10 +43,10 @@ set(PROJECT_SOURCES
         qefidpfields.h
         qefiloadoptioneditorview.cpp
         qefiloadoptioneditorview.h
-        qfatfilesystem.cpp
-        qfatfilesystem.h
         qefipartitionscanner.cpp
         qefipartitionscanner.h
+        qpartitioniodevice.cpp
+        qpartitioniodevice.h
         qefifileselectiondialog.cpp
         qefifileselectiondialog.h
         qefivar/qefi.cpp
@@ -113,10 +113,20 @@ if(USE_EFIVAR_OLD_API)
     add_definitions(-DEFIVAR_OLD_API)
 endif()
 
-target_include_directories(QEFIEntryManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
+target_include_directories(QEFIEntryManager PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/qefivar
+    ${CMAKE_CURRENT_SOURCE_DIR}/QFATFS
+)
+
+# Add qfatfilesystem subdirectory
+add_subdirectory(qfatfilesystem)
 
 # Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
-target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
+target_link_libraries(QEFIEntryManager PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Network
+    QFATFS
+)
 
 install(TARGETS QEFIEntryManager
         RUNTIME DESTINATION bin

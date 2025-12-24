@@ -1,3 +1,6 @@
 [submodule "qefivar"]
 	path = qefivar
 	url = https://github.com/Inokinoki/qefivar.git
+[submodule "qfatfilesystem"]
+	path = qfatfilesystem
+	url = https://github.com/Inokinoki/QFATFilesystem.git
