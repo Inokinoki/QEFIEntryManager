@@ -1,9 +1,11 @@
 #include "qefiloadoptioneditorview.h"
 #include "qefidpeditorview.h"
+#include "qefifileselectiondialog.h"
 
 #include <QDebug>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QMessageBox>
 
 #include "helpers.h"
 
@@ -87,6 +89,12 @@ QEFILoadOptionEditorView::QEFILoadOptionEditorView(QEFILoadOption *option, QWidg
     m_optionalDataTextEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_topLevelLayout->addRow(tr("Optional Data:"), m_optionalDataTextEdit);
     #define DP_BEGIN_INDEX 3
+
+    QPushButton *selectEFIButton = new QPushButton(tr("Select from EFI Partition"), this);
+    m_topLevelLayout->addRow(tr(""), selectEFIButton);
+    connect(selectEFIButton, &QPushButton::clicked,
+        this, &QEFILoadOptionEditorView::selectFromEFIClicked);
+
     QPushButton *button = new QPushButton(tr("Add Device Path"), this);
     button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_topLevelLayout->addRow(tr(""), button);
@@ -170,4 +178,85 @@ void QEFILoadOptionEditorView::clearDPClicked(bool checked)
         delete dp;
     }
     m_dps.clear();
+}
+
+void QEFILoadOptionEditorView::selectFromEFIClicked(bool checked)
+{
+    Q_UNUSED(checked);
+
+    QEFIFileSelectionDialog dialog(this);
+    if (dialog.exec() == QDialog::Rejected) {
+        return;
+    }
+
+    QString selectedPath = dialog.selectedFilePath();
+    QFATFileInfo fileInfo = dialog.selectedFileInfo();
+    QEFIPartitionInfo partition = dialog.selectedPartition();
+
+    if (selectedPath.isEmpty()) {
+        QMessageBox::warning(this, tr("No File Selected"),
+                             tr("Please select a file from the EFI partition."));
+        return;
+    }
+
+    qDebug() << "Selected file:" << selectedPath;
+    qDebug() << "File size:" << fileInfo.size;
+    qDebug() << "Partition:" << partition.devicePath;
+    qDebug() << "Partition offset:" << partition.partitionOffset;
+
+    // Clear existing device paths
+    for (const auto &dp: std::as_const(m_dps)) {
+        delete dp;
+    }
+    m_dps.clear();
+
+    // TODO: Create proper device path structure
+    // For now, create a simplified Hard Drive + File Path device path
+
+    // Create Hard Drive Media Device Path
+    QEFIDevicePathHardDrive *hdDP = new QEFIDevicePathHardDrive();
+    hdDP->setPartitionNumber(1);  // Should be extracted from partition info
+    hdDP->setPartitionStart(partition.partitionOffset / 512);  // Convert to LBA
+    hdDP->setPartitionSize(partition.partitionSize / 512);
+    hdDP->setPartitionFormat(QEFIDevicePathHardDrive::FORMAT_GPT);
+    hdDP->setSignatureType(QEFIDevicePathHardDrive::SIGNATURE_GUID);
+    // TODO: Set actual partition GUID signature
+
+    m_dps << hdDP;
+
+    // Create File Path Device Path
+    QEFIDevicePathFile *fileDP = new QEFIDevicePathFile();
+    // Convert Unix path to EFI path (replace / with \)
+    QString efiPath = selectedPath;
+    efiPath.replace('/', '\\');
+    fileDP->setPath(efiPath);
+
+    m_dps << fileDP;
+
+    // Update name field if empty
+    if (m_nameTextEdit && m_nameTextEdit->text().isEmpty()) {
+        QString fileName = selectedPath.split('/').last();
+        fileName.replace(".efi", "", Qt::CaseInsensitive);
+        fileName.replace(".EFI", "", Qt::CaseInsensitive);
+        m_nameTextEdit->setText(fileName);
+    }
+
+    // Update the UI to show device paths
+    int rowIndex = DP_BEGIN_INDEX;
+    for (const auto &dp: std::as_const(m_dps)) {
+        if (m_topLevelLayout->rowCount() > rowIndex) {
+            // Remove existing rows
+            while (m_topLevelLayout->rowCount() > rowIndex + 2) {
+                m_topLevelLayout->removeRow(rowIndex);
+            }
+        }
+        m_topLevelLayout->insertRow(rowIndex++,
+            tr("Device Path:"), new QLabel(
+                convert_device_path_type_to_name(dp->type()) + " " +
+                convert_device_path_subtype_to_name(dp->type(), dp->subType())));
+    }
+
+    QMessageBox::information(this, tr("File Selected"),
+                             tr("Selected: %1\n\nDevice paths have been automatically configured.")
+                             .arg(selectedPath));
 }
