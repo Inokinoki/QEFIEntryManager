@@ -11,8 +11,13 @@ QEFIDPEditorView::QEFIDPEditorView(QEFIDevicePath *dp, QWidget *parent)
     m_dpSubtypeSelected = -1;
 
     m_topLevelLayout = new QFormLayout(this);
+    m_topLevelLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
+    m_topLevelLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    m_topLevelLayout->setHorizontalSpacing(10);
+    m_topLevelLayout->setVerticalSpacing(8);
 
     m_dpTypeSelector = new QComboBox(this);
+    m_dpTypeSelector->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_dpTypeSelector->addItem(convert_device_path_type_to_name(QEFIDevicePathType::DP_Hardware), QVariant(QEFIDevicePathType::DP_Hardware));
     m_dpTypeSelector->addItem(convert_device_path_type_to_name(QEFIDevicePathType::DP_ACPI), QVariant(QEFIDevicePathType::DP_ACPI));
     m_dpTypeSelector->addItem(convert_device_path_type_to_name(QEFIDevicePathType::DP_Message), QVariant(QEFIDevicePathType::DP_Message));
@@ -25,6 +30,7 @@ QEFIDPEditorView::QEFIDPEditorView(QEFIDevicePath *dp, QWidget *parent)
     connect(m_dpTypeSelector, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QEFIDPEditorView::dpTypeComboBoxCurrentIndexChanged);
 
     m_dpSubtypeSelector = new QComboBox(this);
+    m_dpSubtypeSelector->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     // m_dpSubtypeSelector->setPlaceholderText(tr("Device Path subtype"));
     if (dp != nullptr) {
         QList<quint8> subtypes = enum_device_path_subtype(dp->type());
@@ -155,6 +161,21 @@ void QEFIDPEditorView::dpTypeComboBoxCurrentIndexChanged(int index)
         for (const auto &subtype : std::as_const(subtypes)) {
             m_dpSubtypeSelector->addItem(convert_device_path_subtype_to_name((enum QEFIDevicePathType)type, subtype), QVariant(subtype));
         }
+
+        // If we have subtypes, select the first one and create fields
+        if (!subtypes.isEmpty()) {
+            m_dpSubtypeSelector->setCurrentIndex(0);
+            // Manually trigger field creation since setCurrentIndex might not emit signal if already at 0
+            int subtype = m_dpSubtypeSelector->itemData(0).toInt();
+            QList<QPair<QString, QWidget *>> widgets = constructDPEditView((QEFIDevicePathType)type, (quint8)subtype & 0xFF);
+            while (m_topLevelLayout->rowCount() > 2)
+                m_topLevelLayout->removeRow(2);
+            m_currentWidgets = widgets;
+            for (const auto &w : std::as_const(m_currentWidgets)) {
+                m_topLevelLayout->addRow(w.first, w.second);
+            }
+            m_dpSubtypeSelected = 0;
+        }
     }
     m_dpTypeSelected = index;
 }
@@ -236,6 +257,12 @@ QList<QPair<QString, QWidget *>> QEFIDPEditorView::constructDPEditView(enum QEFI
 
     for (const auto &t : std::as_const(fieldTypes)) {
         QWidget *w = constructDPEditComponent(t.second);
+
+        // Apply size policy to ensure widgets fill the available width
+        if (w != nullptr) {
+            w->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+        }
+
         widgets << QPair<QString, QWidget *>(t.first, w);
 
         // Set up enum values for specific fields

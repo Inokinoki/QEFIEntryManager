@@ -473,6 +473,8 @@ void QEFIEntryView::importClicked(bool checked)
 
 class BootEntryEditorDialog : public QDialog
 {
+    Q_OBJECT
+
     QEFILoadOptionEditorView *m_view;
     QBoxLayout *m_topLevelLayout;
     QDialogButtonBox *m_buttonBox;
@@ -570,3 +572,5 @@ void QEFIEntryView::addClicked(bool checked)
     m_selectedItemIndex = -1;
     resetClicked(false);
 }
+
+#include "qefientryview.moc"

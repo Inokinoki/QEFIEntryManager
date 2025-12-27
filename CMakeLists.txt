@@ -37,6 +37,10 @@ set(PROJECT_SOURCES
         helpers.h
         qefidpeditorview.cpp
         qefidpeditorview.h
+        qefidpeditordialog.cpp
+        qefidpeditordialog.h
+        qefidpfields.cpp
+        qefidpfields.h
         qefiloadoptioneditorview.cpp
         qefiloadoptioneditorview.h
         qefivar/qefi.cpp

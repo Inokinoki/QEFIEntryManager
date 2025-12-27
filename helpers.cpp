@@ -124,8 +124,11 @@ QString convert_device_path_subtype_to_name(QEFIDevicePathType type, quint8 subt
         case QEFIDevicePathMediaSubType::MEDIA_RamDisk:
             return "RAMDisk";
         }
+        break;
     case QEFIDevicePathType::DP_BIOSBoot:
         return "Boot";
+    case QEFIDevicePathType::DP_End:
+        return "End";
     }
     return "Unknown";
 }
@@ -143,6 +146,8 @@ QString convert_device_path_type_to_name(QEFIDevicePathType type)
         return "Media";
     case DP_BIOSBoot:
         return "BIOS";
+    case DP_End:
+        return "End";
     }
     return "Unknown";
 }
@@ -613,6 +618,9 @@ QList<QPair<QString, QString>> convert_device_path_attrs(QEFIDevicePath *dp)
             list << qMakePair<QString, QString>("Description", description);
         }
         break;
+    case QEFIDevicePathType::DP_End:
+        // End device path has no attributes
+        break;
     }
     return list;
 }
@@ -971,6 +979,9 @@ QList<QPair<QString, enum QEFIDPEditType>> convert_device_path_types(QEFIDeviceP
             QEFIDevicePathBIOSBoot *dpBIOSBoot = (QEFIDevicePathBIOSBoot *)dynamic_cast<QEFIDevicePathBIOSBoot *>(dp);
             // TODO
         }
+        break;
+    case QEFIDevicePathType::DP_End:
+        // End device path has no editable fields
         break;
     }
     return list;
