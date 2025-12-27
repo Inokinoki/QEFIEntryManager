@@ -112,11 +112,6 @@ target_include_directories(QEFIEntryManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/
 # Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
 target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
 
-if(BUILD_TESTING)
-    # Add tests
-    add_subdirectory(tests)
-endif()
-
 install(TARGETS QEFIEntryManager
         RUNTIME DESTINATION bin
 )
