@@ -43,6 +43,10 @@ set(PROJECT_SOURCES
         qefidpfields.h
         qefiloadoptioneditorview.cpp
         qefiloadoptioneditorview.h
+        qefipartitionmanager.cpp
+        qefipartitionmanager.h
+        qefipartitionview.cpp
+        qefipartitionview.h
         qefivar/qefi.cpp
         qefivar/qefidpacpi.cpp
         qefivar/qefidphw.cpp

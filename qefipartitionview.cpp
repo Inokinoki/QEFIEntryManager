@@ -1,0 +1,245 @@
+#include "qefipartitionview.h"
+#include <QHeaderView>
+#include <QDesktopServices>
+#include <QUrl>
+
+QEFIPartitionView::QEFIPartitionView(QWidget *parent)
+    : QWidget(parent)
+    , m_partitionManager(new QEFIPartitionManager(this))
+    , m_selectedRow(-1)
+{
+    setupUI();
+
+    connect(m_partitionManager, &QEFIPartitionManager::partitionsChanged,
+            this, &QEFIPartitionView::updatePartitionTable);
+    connect(m_partitionManager, &QEFIPartitionManager::mountStatusChanged,
+            this, [this](const QString &, bool) { refreshPartitions(); });
+
+    refreshPartitions();
+}
+
+QEFIPartitionView::~QEFIPartitionView()
+{
+}
+
+void QEFIPartitionView::setupUI()
+{
+    m_mainLayout = new QVBoxLayout(this);
+
+    // Title
+    m_titleLabel = new QLabel(tr("EFI Partition Manager"), this);
+    QFont titleFont = m_titleLabel->font();
+    titleFont.setPointSize(titleFont.pointSize() + 2);
+    titleFont.setBold(true);
+    m_titleLabel->setFont(titleFont);
+    m_mainLayout->addWidget(m_titleLabel);
+
+    // Partition table
+    m_partitionTable = new QTableWidget(this);
+    m_partitionTable->setColumnCount(6);
+    m_partitionTable->setHorizontalHeaderLabels(
+        QStringList() << tr("Device") << tr("Label") << tr("Size")
+                      << tr("File System") << tr("Mount Point") << tr("Status"));
+
+    m_partitionTable->horizontalHeader()->setStretchLastSection(false);
+    m_partitionTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    m_partitionTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    m_partitionTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    m_partitionTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    m_partitionTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
+    m_partitionTable->horizontalHeader()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
+
+    m_partitionTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_partitionTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_partitionTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    connect(m_partitionTable, &QTableWidget::itemSelectionChanged,
+            this, &QEFIPartitionView::selectionChanged);
+
+    m_mainLayout->addWidget(m_partitionTable);
+
+    // Buttons
+    m_buttonLayout = new QHBoxLayout();
+
+    m_refreshButton = new QPushButton(tr("Refresh"), this);
+    connect(m_refreshButton, &QPushButton::clicked,
+            this, &QEFIPartitionView::refreshPartitions);
+    m_buttonLayout->addWidget(m_refreshButton);
+
+    m_mountButton = new QPushButton(tr("Mount"), this);
+    connect(m_mountButton, &QPushButton::clicked,
+            this, &QEFIPartitionView::mountSelectedPartition);
+    m_buttonLayout->addWidget(m_mountButton);
+
+    m_unmountButton = new QPushButton(tr("Unmount"), this);
+    connect(m_unmountButton, &QPushButton::clicked,
+            this, &QEFIPartitionView::unmountSelectedPartition);
+    m_buttonLayout->addWidget(m_unmountButton);
+
+    m_openButton = new QPushButton(tr("Open"), this);
+    connect(m_openButton, &QPushButton::clicked,
+            this, &QEFIPartitionView::openMountPoint);
+    m_buttonLayout->addWidget(m_openButton);
+
+    m_buttonLayout->addStretch();
+
+    m_mainLayout->addLayout(m_buttonLayout);
+
+    // Status label
+    m_statusLabel = new QLabel(this);
+    m_mainLayout->addWidget(m_statusLabel);
+
+    updateButtonStates();
+}
+
+void QEFIPartitionView::refreshPartitions()
+{
+    m_statusLabel->setText(tr("Scanning for EFI partitions..."));
+    m_partitionManager->refresh();
+    updatePartitionTable();
+    updateButtonStates();
+
+    QList<QEFIPartitionInfo> efiPartitions = m_partitionManager->getEFIPartitions();
+    m_statusLabel->setText(tr("Found %1 EFI partition(s)").arg(efiPartitions.size()));
+}
+
+void QEFIPartitionView::updatePartitionTable()
+{
+    m_partitionTable->setRowCount(0);
+
+    QList<QEFIPartitionInfo> partitions = m_partitionManager->getEFIPartitions();
+
+    for (const auto &partition : partitions) {
+        int row = m_partitionTable->rowCount();
+        m_partitionTable->insertRow(row);
+
+        m_partitionTable->setItem(row, 0, new QTableWidgetItem(partition.devicePath));
+        m_partitionTable->setItem(row, 1, new QTableWidgetItem(partition.label));
+        m_partitionTable->setItem(row, 2, new QTableWidgetItem(formatSize(partition.size)));
+        m_partitionTable->setItem(row, 3, new QTableWidgetItem(partition.fileSystem));
+        m_partitionTable->setItem(row, 4, new QTableWidgetItem(partition.mountPoint));
+
+        QString status = partition.isMounted ? tr("Mounted") : tr("Not Mounted");
+        m_partitionTable->setItem(row, 5, new QTableWidgetItem(status));
+    }
+}
+
+void QEFIPartitionView::mountSelectedPartition()
+{
+    if (m_selectedRow < 0) {
+        QMessageBox::warning(this, tr("No Selection"),
+                           tr("Please select a partition to mount."));
+        return;
+    }
+
+    if (!m_partitionManager->hasPrivileges()) {
+        QMessageBox::warning(this, tr("Insufficient Privileges"),
+                           tr("Administrator/root privileges are required to mount partitions."));
+        return;
+    }
+
+    QString devicePath = m_partitionTable->item(m_selectedRow, 0)->text();
+    QString mountPoint;
+    QString errorMessage;
+
+    if (m_partitionManager->mountPartition(devicePath, mountPoint, errorMessage)) {
+        QMessageBox::information(this, tr("Success"),
+                               tr("Partition mounted at: %1").arg(mountPoint));
+        refreshPartitions();
+    } else {
+        QMessageBox::critical(this, tr("Mount Failed"),
+                            tr("Failed to mount partition: %1").arg(errorMessage));
+    }
+}
+
+void QEFIPartitionView::unmountSelectedPartition()
+{
+    if (m_selectedRow < 0) {
+        QMessageBox::warning(this, tr("No Selection"),
+                           tr("Please select a partition to unmount."));
+        return;
+    }
+
+    if (!m_partitionManager->hasPrivileges()) {
+        QMessageBox::warning(this, tr("Insufficient Privileges"),
+                           tr("Administrator/root privileges are required to unmount partitions."));
+        return;
+    }
+
+    QString devicePath = m_partitionTable->item(m_selectedRow, 0)->text();
+    QString errorMessage;
+
+    if (m_partitionManager->unmountPartition(devicePath, errorMessage)) {
+        QMessageBox::information(this, tr("Success"),
+                               tr("Partition unmounted successfully."));
+        refreshPartitions();
+    } else {
+        QMessageBox::critical(this, tr("Unmount Failed"),
+                            tr("Failed to unmount partition: %1").arg(errorMessage));
+    }
+}
+
+void QEFIPartitionView::openMountPoint()
+{
+    if (m_selectedRow < 0) {
+        QMessageBox::warning(this, tr("No Selection"),
+                           tr("Please select a partition."));
+        return;
+    }
+
+    QString mountPoint = m_partitionTable->item(m_selectedRow, 4)->text();
+
+    if (mountPoint.isEmpty()) {
+        QMessageBox::warning(this, tr("Not Mounted"),
+                           tr("The selected partition is not mounted."));
+        return;
+    }
+
+    if (!QDesktopServices::openUrl(QUrl::fromLocalFile(mountPoint))) {
+        QMessageBox::warning(this, tr("Failed to Open"),
+                           tr("Failed to open mount point: %1").arg(mountPoint));
+    }
+}
+
+void QEFIPartitionView::selectionChanged()
+{
+    QList<QTableWidgetItem *> selectedItems = m_partitionTable->selectedItems();
+    if (!selectedItems.isEmpty()) {
+        m_selectedRow = selectedItems.first()->row();
+    } else {
+        m_selectedRow = -1;
+    }
+    updateButtonStates();
+}
+
+void QEFIPartitionView::updateButtonStates()
+{
+    bool hasSelection = (m_selectedRow >= 0);
+    bool isMounted = false;
+
+    if (hasSelection && m_selectedRow < m_partitionTable->rowCount()) {
+        QString status = m_partitionTable->item(m_selectedRow, 5)->text();
+        isMounted = (status == tr("Mounted"));
+    }
+
+    m_mountButton->setEnabled(hasSelection && !isMounted);
+    m_unmountButton->setEnabled(hasSelection && isMounted);
+    m_openButton->setEnabled(hasSelection && isMounted);
+}
+
+QString QEFIPartitionView::formatSize(quint64 bytes)
+{
+    const quint64 KB = 1024;
+    const quint64 MB = 1024 * KB;
+    const quint64 GB = 1024 * MB;
+
+    if (bytes >= GB) {
+        return QString("%1 GB").arg(bytes / (double)GB, 0, 'f', 2);
+    } else if (bytes >= MB) {
+        return QString("%1 MB").arg(bytes / (double)MB, 0, 'f', 2);
+    } else if (bytes >= KB) {
+        return QString("%1 KB").arg(bytes / (double)KB, 0, 'f', 2);
+    } else {
+        return QString("%1 B").arg(bytes);
+    }
+}
