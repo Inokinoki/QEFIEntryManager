@@ -6,6 +6,7 @@
 #include <QRegularExpression>
 #include <QDebug>
 #include <QFileInfo>
+#include <QThread>
 
 #if defined(Q_OS_LINUX) || defined(Q_OS_FREEBSD)
 #include <unistd.h>
@@ -623,7 +624,9 @@ bool QEFIPartitionManager::mountPartitionWindows(const QString &devicePath, QStr
     if (mountPoint.isEmpty()) {
         for (char letter = 'E'; letter <= 'Z'; ++letter) {
             QString testPath = QString("%1:\\").arg(letter);
-            if (!QDir(testPath).exists()) {
+            DWORD attrs = GetFileAttributesW((LPCWSTR)testPath.utf16());
+            if (attrs == INVALID_FILE_ATTRIBUTES) {
+                // This drive letter is not in use
                 driveLetter = letter;
                 mountPoint = testPath;
                 break;
@@ -634,23 +637,51 @@ bool QEFIPartitionManager::mountPartitionWindows(const QString &devicePath, QStr
     }
 
     if (driveLetter == 0) {
-        errorMessage = "No available drive letters";
+        errorMessage = "No available drive letters (E-Z are all in use)";
         return false;
     }
 
-    // Use SetVolumeMountPoint to assign drive letter
-    QString mountPath = QString("%1:\\").arg(QChar(driveLetter));
+    // Use DefineDosDevice to create a drive letter mapping
+    // This is the standard way to assign drive letters in Windows
+    QString dosDeviceName = QString("%1:").arg(QChar(driveLetter));
 
-    if (!SetVolumeMountPointW(
-            (LPCWSTR)mountPath.utf16(),
-            (LPCWSTR)volumeGuid.utf16())) {
+    // Remove the trailing backslash from volume GUID for DefineDosDevice
+    QString volumeGuidNoBSlash = volumeGuid;
+    if (volumeGuidNoBSlash.endsWith('\\')) {
+        volumeGuidNoBSlash.chop(1);
+    }
 
+    BOOL result = DefineDosDeviceW(
+        DDD_RAW_TARGET_PATH,  // Use raw target path
+        (LPCWSTR)dosDeviceName.utf16(),
+        (LPCWSTR)volumeGuidNoBSlash.utf16()
+    );
+
+    if (!result) {
         DWORD error = GetLastError();
-        errorMessage = QString("Failed to assign drive letter (Error %1)").arg(error);
+
+        // Common error codes:
+        // ERROR_ACCESS_DENIED (5) - need admin rights
+        // ERROR_ALREADY_EXISTS (183) - device name already exists
+
+        if (error == 5) {
+            errorMessage = "Access denied - administrator privileges required";
+        } else if (error == 183) {
+            errorMessage = QString("Drive letter %1: is already in use").arg(QChar(driveLetter));
+        } else {
+            errorMessage = QString("Failed to assign drive letter (Windows Error %1)").arg(error);
+        }
+
+        qWarning() << "DefineDosDevice failed:" << errorMessage;
         return false;
     }
 
+    mountPoint = QString("%1:\\").arg(QChar(driveLetter));
+    qDebug() << "Successfully mounted" << devicePath << "at" << mountPoint;
     emit mountStatusChanged(devicePath, true);
+
+    // Wait a moment for Windows to recognize the mount
+    QThread::msleep(500);
     refresh();
     return true;
 }
@@ -672,19 +703,34 @@ bool QEFIPartitionManager::unmountPartitionWindows(const QString &devicePath, QS
         return false;
     }
 
-    // Ensure it ends with backslash
-    if (!currentMountPoint.endsWith('\\')) {
-        currentMountPoint += '\\';
-    }
+    // Extract drive letter (e.g., "E:\\" -> "E:")
+    QString dosDeviceName = currentMountPoint.left(2);  // Get "X:"
 
-    // Use DeleteVolumeMountPoint to remove the drive letter
-    if (!DeleteVolumeMountPointW((LPCWSTR)currentMountPoint.utf16())) {
+    // Use DefineDosDevice with DDD_REMOVE_DEFINITION to remove the mapping
+    BOOL result = DefineDosDeviceW(
+        DDD_REMOVE_DEFINITION | DDD_RAW_TARGET_PATH | DDD_EXACT_MATCH_ON_REMOVE,
+        (LPCWSTR)dosDeviceName.utf16(),
+        NULL  // NULL to remove the definition
+    );
+
+    if (!result) {
         DWORD error = GetLastError();
-        errorMessage = QString("Failed to remove drive letter (Error %1)").arg(error);
+
+        if (error == 5) {
+            errorMessage = "Access denied - administrator privileges required";
+        } else {
+            errorMessage = QString("Failed to remove drive letter (Windows Error %1)").arg(error);
+        }
+
+        qWarning() << "DefineDosDevice (remove) failed:" << errorMessage;
         return false;
     }
 
+    qDebug() << "Successfully unmounted" << devicePath << "from" << currentMountPoint;
     emit mountStatusChanged(devicePath, false);
+
+    // Wait a moment for Windows to recognize the unmount
+    QThread::msleep(500);
     refresh();
     return true;
 }

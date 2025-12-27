@@ -142,13 +142,41 @@ void QEFIPartitionView::mountSelectedPartition()
     QString mountPoint;
     QString errorMessage;
 
+#ifdef Q_OS_WIN
+    // On Windows, let the user choose a drive letter
+    QStringList availableLetters;
+    for (char letter = 'E'; letter <= 'Z'; ++letter) {
+        QString testPath = QString("%1:\\").arg(letter);
+        if (!QDir(testPath).exists()) {
+            availableLetters << QString(letter);
+        }
+    }
+
+    if (availableLetters.isEmpty()) {
+        QMessageBox::warning(this, tr("No Drive Letters Available"),
+                           tr("All drive letters (E-Z) are already in use."));
+        return;
+    }
+
+    bool ok;
+    QString selectedLetter = QInputDialog::getItem(this, tr("Select Drive Letter"),
+                                                   tr("Choose a drive letter for the EFI partition:"),
+                                                   availableLetters, 0, false, &ok);
+    if (!ok || selectedLetter.isEmpty()) {
+        return; // User cancelled
+    }
+
+    mountPoint = selectedLetter + ":\\";
+#endif
+
     if (m_partitionManager->mountPartition(devicePath, mountPoint, errorMessage)) {
         QMessageBox::information(this, tr("Success"),
                                tr("Partition mounted at: %1").arg(mountPoint));
-        refreshPartitions();
     } else {
         QMessageBox::critical(this, tr("Mount Failed"),
                             tr("Failed to mount partition: %1").arg(errorMessage));
+        // Refresh to ensure UI state is correct even after error
+        refreshPartitions();
     }
 }
 
@@ -172,10 +200,11 @@ void QEFIPartitionView::unmountSelectedPartition()
     if (m_partitionManager->unmountPartition(devicePath, errorMessage)) {
         QMessageBox::information(this, tr("Success"),
                                tr("Partition unmounted successfully."));
-        refreshPartitions();
     } else {
         QMessageBox::critical(this, tr("Unmount Failed"),
                             tr("Failed to unmount partition: %1").arg(errorMessage));
+        // Refresh to ensure UI state is correct even after error
+        refreshPartitions();
     }
 }
 

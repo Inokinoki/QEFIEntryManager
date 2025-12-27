@@ -405,20 +405,20 @@
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="122"/>
-        <location filename="../qefipartitionview.cpp" line="222"/>
+        <location filename="../qefipartitionview.cpp" line="251"/>
         <source>Mounted</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="122"/>
-        <location filename="../qefipartitionview.cpp" line="193"/>
+        <location filename="../qefipartitionview.cpp" line="222"/>
         <source>Not Mounted</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="130"/>
-        <location filename="../qefipartitionview.cpp" line="158"/>
-        <location filename="../qefipartitionview.cpp" line="185"/>
+        <location filename="../qefipartitionview.cpp" line="186"/>
+        <location filename="../qefipartitionview.cpp" line="214"/>
         <source>No Selection</source>
         <translation type="unfinished"></translation>
     </message>
@@ -429,7 +429,7 @@
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="136"/>
-        <location filename="../qefipartitionview.cpp" line="164"/>
+        <location filename="../qefipartitionview.cpp" line="192"/>
         <source>Insufficient Privileges</source>
         <translation type="unfinished"></translation>
     </message>
@@ -439,68 +439,88 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qefipartitionview.cpp" line="146"/>
+        <location filename="../qefipartitionview.cpp" line="156"/>
+        <source>No Drive Letters Available</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefipartitionview.cpp" line="157"/>
+        <source>All drive letters (E-Z) are already in use.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefipartitionview.cpp" line="162"/>
+        <source>Select Drive Letter</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefipartitionview.cpp" line="163"/>
+        <source>Choose a drive letter for the EFI partition:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location filename="../qefipartitionview.cpp" line="173"/>
+        <location filename="../qefipartitionview.cpp" line="201"/>
         <source>Success</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qefipartitionview.cpp" line="147"/>
+        <location filename="../qefipartitionview.cpp" line="174"/>
         <source>Partition mounted at: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qefipartitionview.cpp" line="150"/>
+        <location filename="../qefipartitionview.cpp" line="176"/>
         <source>Mount Failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qefipartitionview.cpp" line="151"/>
+        <location filename="../qefipartitionview.cpp" line="177"/>
         <source>Failed to mount partition: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qefipartitionview.cpp" line="159"/>
+        <location filename="../qefipartitionview.cpp" line="187"/>
         <source>Please select a partition to unmount.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qefipartitionview.cpp" line="165"/>
+        <location filename="../qefipartitionview.cpp" line="193"/>
         <source>Administrator/root privileges are required to unmount partitions.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qefipartitionview.cpp" line="174"/>
+        <location filename="../qefipartitionview.cpp" line="202"/>
         <source>Partition unmounted successfully.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qefipartitionview.cpp" line="177"/>
+        <location filename="../qefipartitionview.cpp" line="204"/>
         <source>Unmount Failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qefipartitionview.cpp" line="178"/>
+        <location filename="../qefipartitionview.cpp" line="205"/>
         <source>Failed to unmount partition: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qefipartitionview.cpp" line="186"/>
+        <location filename="../qefipartitionview.cpp" line="215"/>
         <source>Please select a partition.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qefipartitionview.cpp" line="194"/>
+        <location filename="../qefipartitionview.cpp" line="223"/>
         <source>The selected partition is not mounted.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qefipartitionview.cpp" line="199"/>
+        <location filename="../qefipartitionview.cpp" line="228"/>
         <source>Failed to Open</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qefipartitionview.cpp" line="200"/>
+        <location filename="../qefipartitionview.cpp" line="229"/>
         <source>Failed to open mount point: %1</source>
         <translation type="unfinished"></translation>
     </message>
