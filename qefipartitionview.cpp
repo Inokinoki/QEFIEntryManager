@@ -2,6 +2,8 @@
 #include <QHeaderView>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QDir>
+#include <QInputDialog>
 
 QEFIPartitionView::QEFIPartitionView(QWidget *parent)
     : QWidget(parent)
