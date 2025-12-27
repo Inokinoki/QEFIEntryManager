@@ -4,7 +4,7 @@
 <context>
     <name>BootEntryEditorDialog</name>
     <message>
-        <location filename="../qefientryview.cpp" line="487"/>
+        <location filename="../qefientryview.cpp" line="489"/>
         <source>Add EFI Boot Entry</source>
         <translation>添加 EFI 启动项</translation>
     </message>
@@ -18,6 +18,13 @@
     </message>
 </context>
 <context>
+    <name>Helpers</name>
+    <message>
+        <source>File</source>
+        <translation type="vanished">文件</translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
         <location filename="../mainwindow.cpp" line="7"/>
@@ -26,70 +33,79 @@
     </message>
 </context>
 <context>
+    <name>QEFIDPEditorDialog</name>
+    <message>
+        <location filename="../qefidpeditordialog.cpp" line="44"/>
+        <source>Edit Device Path</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>QEFIDPEditorView</name>
     <message>
-        <location filename="../qefidpeditorview.cpp" line="166"/>
         <source>Partition Num</source>
-        <translation>分区号</translation>
+        <translation type="vanished">分区号</translation>
     </message>
     <message>
-        <location filename="../qefidpeditorview.cpp" line="171"/>
         <source>Start</source>
-        <translation>开始</translation>
+        <translation type="vanished">开始</translation>
     </message>
     <message>
-        <location filename="../qefidpeditorview.cpp" line="176"/>
         <source>Size</source>
-        <translation>大小</translation>
+        <translation type="vanished">大小</translation>
     </message>
     <message>
-        <location filename="../qefidpeditorview.cpp" line="181"/>
         <source>Format</source>
-        <translation>格式</translation>
+        <translation type="vanished">格式</translation>
     </message>
     <message>
-        <location filename="../qefidpeditorview.cpp" line="186"/>
         <source>Signature Type</source>
-        <translation>签名类型</translation>
+        <translation type="vanished">签名类型</translation>
     </message>
     <message>
-        <location filename="../qefidpeditorview.cpp" line="191"/>
         <source>Signature</source>
-        <translation>签名</translation>
+        <translation type="vanished">签名</translation>
     </message>
     <message>
-        <location filename="../qefidpeditorview.cpp" line="213"/>
         <source>File</source>
-        <translation>文件</translation>
+        <translation type="vanished">文件</translation>
     </message>
     <message>
-        <location filename="../qefidpeditorview.cpp" line="356"/>
+        <location filename="../qefidpeditorview.cpp" line="273"/>
         <source>GPT</source>
         <translation>GPT</translation>
     </message>
     <message>
-        <location filename="../qefidpeditorview.cpp" line="359"/>
+        <location filename="../qefidpeditorview.cpp" line="274"/>
         <source>PCAT</source>
         <translation>PCAT</translation>
     </message>
     <message>
-        <location filename="../qefidpeditorview.cpp" line="367"/>
+        <location filename="../qefidpeditorview.cpp" line="280"/>
         <source>None</source>
         <translation>无</translation>
     </message>
     <message>
-        <location filename="../qefidpeditorview.cpp" line="370"/>
+        <location filename="../qefidpeditorview.cpp" line="281"/>
         <source>MBR</source>
         <translation>MBR</translation>
     </message>
     <message>
-        <location filename="../qefidpeditorview.cpp" line="373"/>
+        <location filename="../qefidpeditorview.cpp" line="282"/>
         <source>GUID</source>
         <translation>GUID</translation>
     </message>
 </context>
 <context>
     <name>QEFIEntryDetailBriefView</name>
+    <message>
+        <source>ID:</source>
+        <translation type="vanished">ID：</translation>
+    </message>
+    <message>
+        <source>Name:</source>
+        <translation type="vanished">名称：</translation>
+    </message>
     <message>
         <location filename="../qefientrydetailview.cpp" line="17"/>
         <source>Device Path instance:</source>
@@ -139,7 +155,7 @@
     <message>
         <location filename="../qefientryview.cpp" line="89"/>
         <location filename="../qefientryview.cpp" line="385"/>
-        <location filename="../qefientryview.cpp" line="550"/>
+        <location filename="../qefientryview.cpp" line="552"/>
         <source>Add</source>
         <translation>添加</translation>
     </message>
@@ -221,7 +237,7 @@
     </message>
     <message>
         <location filename="../qefientryview.cpp" line="420"/>
-        <location filename="../qefientryview.cpp" line="543"/>
+        <location filename="../qefientryview.cpp" line="545"/>
         <source>Data are invalidated.</source>
         <translation>数据无效。</translation>
     </message>
@@ -238,7 +254,7 @@
     <message>
         <location filename="../qefientryview.cpp" line="436"/>
         <location filename="../qefientryview.cpp" line="455"/>
-        <location filename="../qefientryview.cpp" line="555"/>
+        <location filename="../qefientryview.cpp" line="557"/>
         <source>The action is cancelled.</source>
         <translation>操作已取消。</translation>
     </message>
@@ -249,22 +265,22 @@
     </message>
     <message>
         <location filename="../qefientryview.cpp" line="451"/>
-        <location filename="../qefientryview.cpp" line="551"/>
+        <location filename="../qefientryview.cpp" line="553"/>
         <source>Do you want to override Boot%1?</source>
         <translation>您想覆盖 Boot%1 吗？</translation>
     </message>
     <message>
         <location filename="../qefientryview.cpp" line="463"/>
-        <location filename="../qefientryview.cpp" line="535"/>
-        <location filename="../qefientryview.cpp" line="563"/>
+        <location filename="../qefientryview.cpp" line="537"/>
+        <location filename="../qefientryview.cpp" line="565"/>
         <source>Data might be invalidated.</source>
         <translation>数据可能无效。</translation>
     </message>
     <message>
-        <location filename="../qefientryview.cpp" line="534"/>
-        <location filename="../qefientryview.cpp" line="542"/>
-        <location filename="../qefientryview.cpp" line="554"/>
-        <location filename="../qefientryview.cpp" line="562"/>
+        <location filename="../qefientryview.cpp" line="536"/>
+        <location filename="../qefientryview.cpp" line="544"/>
+        <location filename="../qefientryview.cpp" line="556"/>
+        <location filename="../qefientryview.cpp" line="564"/>
         <source>Add failed</source>
         <translation>添加失败</translation>
     </message>
@@ -272,32 +288,40 @@
 <context>
     <name>QEFILoadOptionEditorView</name>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="75"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="80"/>
         <source>ID:</source>
         <translation>ID：</translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="78"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="81"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="85"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="92"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="97"/>
+        <source></source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefiloadoptioneditorview.cpp" line="84"/>
         <source>Name:</source>
         <translation>名称：</translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="81"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="88"/>
         <source>Optional Data:</source>
         <translation>可选数据：</translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="83"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="90"/>
         <source>Add Device Path</source>
         <translation>添加设备路径</translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="87"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="95"/>
         <source>Clear Device Path</source>
         <translation>清除设备路径</translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="121"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="130"/>
         <source>Device Path:</source>
         <translation>设备路径：</translation>
     </message>
@@ -313,6 +337,14 @@
         <location filename="../main.cpp" line="30"/>
         <source>Permission insufficient or no EFI environment</source>
         <translation>权限不足或非 EFI 环境</translation>
+    </message>
+</context>
+<context>
+    <name>QPathWidget</name>
+    <message>
+        <location filename="../qefidpfields.cpp" line="219"/>
+        <source>Select File</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>
