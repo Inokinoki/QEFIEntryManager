@@ -98,6 +98,8 @@ if(APP_DATA_DUMMY_BACKEND)
     add_definitions(-DEFIVAR_APP_DATA_DUMMY)
 elseif(WIN32)
     message("Use Windows API for EFI operations")
+    # Link with Windows libraries for partition management
+    target_link_libraries(QEFIEntryManager PRIVATE setupapi cfgmgr32)
 else()
     if(${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
         # Link with FreeBSD system-level libefivar and geom

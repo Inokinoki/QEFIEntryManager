@@ -11,6 +11,19 @@
 #include <unistd.h>
 #endif
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <winioctl.h>
+#include <initguid.h>
+#include <setupapi.h>
+#include <devguid.h>
+#include <cfgmgr32.h>
+#include <vector>
+
+// EFI System Partition GUID
+DEFINE_GUID(PARTITION_SYSTEM_GUID, 0xC12A7328, 0xF81F, 0x11D2, 0xBA, 0x4B, 0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B);
+#endif
+
 QEFIPartitionManager::QEFIPartitionManager(QObject *parent)
     : QObject(parent)
 {
@@ -23,6 +36,7 @@ QEFIPartitionManager::~QEFIPartitionManager()
 QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitions()
 {
 #ifdef Q_OS_LINUX
+    // TODO: Merge Linux and FreeBSD implementations if possible, Unix-like should be similar
     return scanPartitionsLinux();
 #elif defined(Q_OS_FREEBSD)
     return scanPartitionsFreeBSD();
@@ -348,84 +362,294 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
 {
     QList<QEFIPartitionInfo> partitions;
 
-    // Use diskpart or WMI to enumerate partitions
-    // This is a simplified implementation
-    QProcess diskpart;
+    // Enumerate all physical drives
+    for (DWORD diskNumber = 0; diskNumber < 32; diskNumber++) {
+        QString diskPath = QString("\\\\.\\PhysicalDrive%1").arg(diskNumber);
 
-    // Create a temporary script for diskpart
-    QString scriptPath = QDir::temp().filePath("diskpart_script.txt");
-    QFile scriptFile(scriptPath);
-    if (scriptFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&scriptFile);
-        out << "list partition\n";
-        scriptFile.close();
+        HANDLE hDisk = CreateFileW(
+            (LPCWSTR)diskPath.utf16(),
+            GENERIC_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            NULL,
+            OPEN_EXISTING,
+            0,
+            NULL
+        );
+
+        if (hDisk == INVALID_HANDLE_VALUE) {
+            continue; // Disk doesn't exist or can't be opened
+        }
+
+        // Get drive layout information
+        DWORD bytesReturned;
+        BYTE buffer[65536]; // Large buffer for drive layout
+        DRIVE_LAYOUT_INFORMATION_EX* layout = (DRIVE_LAYOUT_INFORMATION_EX*)buffer;
+
+        BOOL success = DeviceIoControl(
+            hDisk,
+            IOCTL_DISK_GET_DRIVE_LAYOUT_EX,
+            NULL,
+            0,
+            layout,
+            sizeof(buffer),
+            &bytesReturned,
+            NULL
+        );
+
+        if (!success) {
+            CloseHandle(hDisk);
+            continue;
+        }
+
+        // Check if this is a GPT disk
+        if (layout->PartitionStyle != PARTITION_STYLE_GPT) {
+            CloseHandle(hDisk);
+            continue; // Skip MBR disks
+        }
+
+        // Enumerate partitions
+        for (DWORD i = 0; i < layout->PartitionCount; i++) {
+            PARTITION_INFORMATION_EX& partInfo = layout->PartitionEntry[i];
+
+            // Check if this is an EFI System Partition
+            if (IsEqualGUID(partInfo.Gpt.PartitionType, PARTITION_SYSTEM_GUID)) {
+                QEFIPartitionInfo info;
+                info.isEFI = true;
+                info.partitionNumber = partInfo.PartitionNumber;
+                info.size = partInfo.PartitionLength.QuadPart;
+                info.devicePath = QString("Disk %1 Partition %2").arg(diskNumber).arg(partInfo.PartitionNumber);
+
+                // Convert partition GUID
+                GUID& guid = partInfo.Gpt.PartitionId;
+                info.partitionGuid = QUuid(
+                    guid.Data1, guid.Data2, guid.Data3,
+                    guid.Data4[0], guid.Data4[1], guid.Data4[2], guid.Data4[3],
+                    guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]
+                );
+
+                // Get partition name (label)
+                QString partName = QString::fromWCharArray(partInfo.Gpt.Name);
+                if (!partName.isEmpty()) {
+                    info.label = partName;
+                } else {
+                    info.label = "EFI System Partition";
+                }
+
+                // Try to find the drive letter
+                WCHAR volumeName[MAX_PATH];
+                HANDLE hVolume = FindFirstVolumeW(volumeName, ARRAYSIZE(volumeName));
+
+                if (hVolume != INVALID_HANDLE_VALUE) {
+                    do {
+                        // Remove trailing backslash
+                        size_t len = wcslen(volumeName);
+                        if (len > 0 && volumeName[len - 1] == L'\\') {
+                            volumeName[len - 1] = L'\0';
+                        }
+
+                        HANDLE hVol = CreateFileW(
+                            volumeName,
+                            GENERIC_READ,
+                            FILE_SHARE_READ | FILE_SHARE_WRITE,
+                            NULL,
+                            OPEN_EXISTING,
+                            0,
+                            NULL
+                        );
+
+                        if (hVol != INVALID_HANDLE_VALUE) {
+                            VOLUME_DISK_EXTENTS extents;
+                            DWORD returned;
+
+                            if (DeviceIoControl(hVol, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
+                                              NULL, 0, &extents, sizeof(extents), &returned, NULL)) {
+
+                                if (extents.NumberOfDiskExtents > 0 &&
+                                    extents.Extents[0].DiskNumber == diskNumber) {
+
+                                    // Check if this extent matches our partition
+                                    if (extents.Extents[0].StartingOffset.QuadPart == partInfo.StartingOffset.QuadPart) {
+                                        // Get drive letter
+                                        WCHAR pathNames[MAX_PATH];
+                                        DWORD pathLen;
+
+                                        volumeName[len] = L'\\'; // Restore trailing backslash
+
+                                        if (GetVolumePathNamesForVolumeNameW(volumeName, pathNames,
+                                                                            ARRAYSIZE(pathNames), &pathLen)) {
+                                            QString mountPoint = QString::fromWCharArray(pathNames);
+                                            if (!mountPoint.isEmpty() && mountPoint.length() >= 2 && mountPoint[1] == ':') {
+                                                info.mountPoint = mountPoint;
+                                                info.isMounted = true;
+
+                                                // Get filesystem type
+                                                WCHAR fsName[MAX_PATH];
+                                                if (GetVolumeInformationW(pathNames, NULL, 0, NULL, NULL, NULL,
+                                                                         fsName, ARRAYSIZE(fsName))) {
+                                                    info.fileSystem = QString::fromWCharArray(fsName);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            CloseHandle(hVol);
+                        }
+                    } while (FindNextVolumeW(hVolume, volumeName, ARRAYSIZE(volumeName)));
+                    FindVolumeClose(hVolume);
+                }
+
+                // Default filesystem if not found
+                if (info.fileSystem.isEmpty()) {
+                    info.fileSystem = "FAT32";
+                }
+
+                partitions.append(info);
+            }
+        }
+
+        CloseHandle(hDisk);
     }
 
-    diskpart.start("diskpart", QStringList() << "/s" << scriptPath);
-
-    if (!diskpart.waitForFinished()) {
-        qWarning() << "Failed to execute diskpart";
-        scriptFile.remove();
-        return partitions;
-    }
-
-    QString output = QString::fromUtf8(diskpart.readAllStandardOutput());
-
-    // Parse diskpart output
-    // This is a basic implementation and may need enhancement
-
-    scriptFile.remove();
+    qDebug() << "Found" << partitions.size() << "EFI partition(s) on Windows using native API";
     m_partitions = partitions;
     return partitions;
 }
 
 bool QEFIPartitionManager::mountPartitionWindows(const QString &devicePath, QString &mountPoint, QString &errorMessage)
 {
-    // On Windows, use diskpart or mountvol
-    // This is a simplified implementation
+    // Parse device path to extract disk and partition numbers
+    // Expected format: "Disk X Partition Y"
+    QRegularExpression diskPartRe("Disk (\\d+) Partition (\\d+)");
+    auto match = diskPartRe.match(devicePath);
 
+    if (!match.hasMatch()) {
+        errorMessage = "Invalid device path format: " + devicePath;
+        return false;
+    }
+
+    DWORD diskNum = match.captured(1).toUInt();
+    DWORD partNum = match.captured(2).toUInt();
+
+    // First, find the volume GUID for this partition
+    QString volumeGuid;
+    WCHAR volumeName[MAX_PATH];
+    HANDLE hVolume = FindFirstVolumeW(volumeName, ARRAYSIZE(volumeName));
+
+    if (hVolume == INVALID_HANDLE_VALUE) {
+        errorMessage = "Failed to enumerate volumes";
+        return false;
+    }
+
+    bool foundVolume = false;
+    do {
+        // Remove trailing backslash
+        size_t len = wcslen(volumeName);
+        if (len > 0 && volumeName[len - 1] == L'\\') {
+            volumeName[len - 1] = L'\0';
+        }
+
+        HANDLE hVol = CreateFileW(
+            volumeName,
+            GENERIC_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            NULL,
+            OPEN_EXISTING,
+            0,
+            NULL
+        );
+
+        if (hVol != INVALID_HANDLE_VALUE) {
+            VOLUME_DISK_EXTENTS extents;
+            DWORD returned;
+
+            if (DeviceIoControl(hVol, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
+                              NULL, 0, &extents, sizeof(extents), &returned, NULL)) {
+
+                if (extents.NumberOfDiskExtents > 0 &&
+                    extents.Extents[0].DiskNumber == diskNum) {
+
+                    // Open the disk to get partition info
+                    QString diskPath = QString("\\\\.\\PhysicalDrive%1").arg(diskNum);
+                    HANDLE hDisk = CreateFileW(
+                        (LPCWSTR)diskPath.utf16(),
+                        GENERIC_READ,
+                        FILE_SHARE_READ | FILE_SHARE_WRITE,
+                        NULL,
+                        OPEN_EXISTING,
+                        0,
+                        NULL
+                    );
+
+                    if (hDisk != INVALID_HANDLE_VALUE) {
+                        BYTE buffer[65536];
+                        DRIVE_LAYOUT_INFORMATION_EX* layout = (DRIVE_LAYOUT_INFORMATION_EX*)buffer;
+                        DWORD bytesReturned;
+
+                        if (DeviceIoControl(hDisk, IOCTL_DISK_GET_DRIVE_LAYOUT_EX,
+                                          NULL, 0, layout, sizeof(buffer), &bytesReturned, NULL)) {
+
+                            for (DWORD i = 0; i < layout->PartitionCount; i++) {
+                                if (layout->PartitionEntry[i].PartitionNumber == partNum &&
+                                    extents.Extents[0].StartingOffset.QuadPart ==
+                                    layout->PartitionEntry[i].StartingOffset.QuadPart) {
+
+                                    volumeName[len] = L'\\'; // Restore trailing backslash
+                                    volumeGuid = QString::fromWCharArray(volumeName);
+                                    foundVolume = true;
+                                    break;
+                                }
+                            }
+                        }
+                        CloseHandle(hDisk);
+                    }
+                }
+            }
+            CloseHandle(hVol);
+        }
+
+        if (foundVolume) break;
+
+    } while (FindNextVolumeW(hVolume, volumeName, ARRAYSIZE(volumeName)));
+    FindVolumeClose(hVolume);
+
+    if (!foundVolume) {
+        errorMessage = "Could not find volume for partition";
+        return false;
+    }
+
+    // Find available drive letter if not specified
+    char driveLetter = 0;
     if (mountPoint.isEmpty()) {
-        // Find available drive letter
         for (char letter = 'E'; letter <= 'Z'; ++letter) {
-            QString driveLetter = QString("%1:").arg(letter);
-            if (!QDir(driveLetter).exists()) {
-                mountPoint = driveLetter;
+            QString testPath = QString("%1:\\").arg(letter);
+            if (!QDir(testPath).exists()) {
+                driveLetter = letter;
+                mountPoint = testPath;
                 break;
             }
         }
+    } else {
+        driveLetter = mountPoint[0].toLatin1();
     }
 
-    if (mountPoint.isEmpty()) {
+    if (driveLetter == 0) {
         errorMessage = "No available drive letters";
         return false;
     }
 
-    // Create diskpart script to assign drive letter
-    QString scriptPath = QDir::temp().filePath("mount_script.txt");
-    QFile scriptFile(scriptPath);
-    if (scriptFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&scriptFile);
-        out << "select partition " << devicePath << "\n";
-        out << "assign letter=" << mountPoint.left(1) << "\n";
-        scriptFile.close();
-    }
+    // Use SetVolumeMountPoint to assign drive letter
+    QString mountPath = QString("%1:\\").arg(QChar(driveLetter));
 
-    QProcess diskpart;
-    diskpart.start("diskpart", QStringList() << "/s" << scriptPath);
+    if (!SetVolumeMountPointW(
+            (LPCWSTR)mountPath.utf16(),
+            (LPCWSTR)volumeGuid.utf16())) {
 
-    if (!diskpart.waitForFinished()) {
-        errorMessage = "Diskpart command timed out";
-        scriptFile.remove();
+        DWORD error = GetLastError();
+        errorMessage = QString("Failed to assign drive letter (Error %1)").arg(error);
         return false;
     }
 
-    if (diskpart.exitCode() != 0) {
-        errorMessage = QString("Mount failed: %1").arg(QString::fromUtf8(diskpart.readAllStandardError()));
-        scriptFile.remove();
-        return false;
-    }
-
-    scriptFile.remove();
     emit mountStatusChanged(devicePath, true);
     refresh();
     return true;
@@ -433,32 +657,33 @@ bool QEFIPartitionManager::mountPartitionWindows(const QString &devicePath, QStr
 
 bool QEFIPartitionManager::unmountPartitionWindows(const QString &devicePath, QString &errorMessage)
 {
-    // Use diskpart to remove drive letter
-    QString scriptPath = QDir::temp().filePath("unmount_script.txt");
-    QFile scriptFile(scriptPath);
-    if (scriptFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&scriptFile);
-        out << "select partition " << devicePath << "\n";
-        out << "remove\n";
-        scriptFile.close();
+    // Find the current mount point for this partition
+    QString currentMountPoint;
+
+    for (const auto &partition : m_partitions) {
+        if (partition.devicePath == devicePath && partition.isMounted) {
+            currentMountPoint = partition.mountPoint;
+            break;
+        }
     }
 
-    QProcess diskpart;
-    diskpart.start("diskpart", QStringList() << "/s" << scriptPath);
-
-    if (!diskpart.waitForFinished()) {
-        errorMessage = "Diskpart command timed out";
-        scriptFile.remove();
+    if (currentMountPoint.isEmpty()) {
+        errorMessage = "Partition is not mounted or mount point not found";
         return false;
     }
 
-    if (diskpart.exitCode() != 0) {
-        errorMessage = QString("Unmount failed: %1").arg(QString::fromUtf8(diskpart.readAllStandardError()));
-        scriptFile.remove();
+    // Ensure it ends with backslash
+    if (!currentMountPoint.endsWith('\\')) {
+        currentMountPoint += '\\';
+    }
+
+    // Use DeleteVolumeMountPoint to remove the drive letter
+    if (!DeleteVolumeMountPointW((LPCWSTR)currentMountPoint.utf16())) {
+        DWORD error = GetLastError();
+        errorMessage = QString("Failed to remove drive letter (Error %1)").arg(error);
         return false;
     }
 
-    scriptFile.remove();
     emit mountStatusChanged(devicePath, false);
     refresh();
     return true;
