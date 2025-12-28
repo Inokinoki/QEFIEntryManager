@@ -119,8 +119,6 @@ target_include_directories(QEFIEntryManager PRIVATE
 )
 
 # Add qfatfilesystem subdirectory
-# Disable tests for the submodule
-set(BUILD_TESTING OFF CACHE BOOL "Disable testing for QFATFilesystem" FORCE)
 add_subdirectory(qfatfilesystem)
 
 # Make a CMAKE project config file in QEFI, the libefivar should be linked automatically

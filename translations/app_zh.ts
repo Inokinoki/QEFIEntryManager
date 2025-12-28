@@ -12,7 +12,7 @@
 <context>
     <name>EditorDialog</name>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="24"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="23"/>
         <source>Add Device Path</source>
         <translation>添加设备路径</translation>
     </message>
@@ -388,7 +388,7 @@ Make sure you are running with administrator/root privileges.</source>
 <context>
     <name>QEFILoadOptionEditorView</name>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="82"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="81"/>
         <source>ID:</source>
         <translation>ID：</translation>
     </message>
@@ -401,57 +401,29 @@ Make sure you are running with administrator/root privileges.</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="86"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="85"/>
         <source>Name:</source>
         <translation>名称：</translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="90"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="89"/>
         <source>Optional Data:</source>
         <translation>可选数据：</translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="93"/>
-        <source>Select from EFI Partition</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="98"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="92"/>
         <source>Add Device Path</source>
         <translation>添加设备路径</translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="103"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="97"/>
         <source>Clear Device Path</source>
         <translation>清除设备路径</translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="138"/>
-        <location filename="../qefiloadoptioneditorview.cpp" line="259"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="132"/>
         <source>Device Path:</source>
         <translation>设备路径：</translation>
-    </message>
-    <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="197"/>
-        <source>No File Selected</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="198"/>
-        <source>Please select a file from the EFI partition.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="264"/>
-        <source>File Selected</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="265"/>
-        <source>Selected: %1
-
-Device paths have been automatically configured.</source>
-        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -470,7 +442,7 @@ Device paths have been automatically configured.</source>
 <context>
     <name>QPathWidget</name>
     <message>
-        <location filename="../qefidpfields.cpp" line="219"/>
+        <location filename="../qefidpfields.cpp" line="220"/>
         <source>Select File</source>
         <translation type="unfinished"></translation>
     </message>

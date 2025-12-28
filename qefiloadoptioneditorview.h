@@ -35,7 +35,6 @@ public:
 public slots:
     void createDPClicked(bool checked);
     void clearDPClicked(bool checked);
-    void selectFromEFIClicked(bool checked);
 };
 
 #endif // QEFILOADOPTIONEDITORVIEW_H

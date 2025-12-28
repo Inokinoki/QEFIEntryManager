@@ -1,4 +1,5 @@
 #include "qefidpfields.h"
+#include "qefifileselectiondialog.h"
 
 #include <QLineEdit>
 #include <QSpinBox>
@@ -258,11 +259,13 @@ public:
         m_browseButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
         connect(m_browseButton, &QPushButton::clicked, this, [this]() {
-            // Placeholder: File selection dialog would go here
-            // QString path = QFileDialog::getOpenFileName(this, tr("Select File"), m_lineEdit->text());
-            // if (!path.isEmpty()) {
-            //     m_lineEdit->setText(path);
-            // }
+            QEFIFileSelectionDialog dialog(this);
+            if (dialog.exec() == QDialog::Accepted) {
+                QString path = dialog.selectedFilePath();
+                if (!path.isEmpty()) {
+                    m_lineEdit->setText(path);
+                }
+            }
         });
 
         layout->addWidget(m_lineEdit, 1);  // Stretch factor 1 for line edit

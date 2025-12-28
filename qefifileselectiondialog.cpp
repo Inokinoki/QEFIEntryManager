@@ -302,22 +302,3 @@ void QEFIFileSelectionDialog::navigateToDirectory(const QString &path)
 {
     loadDirectory(path);
 }
-
-QByteArray QEFIFileSelectionDialog::getDevicePathData() const
-{
-    // This method should construct the EFI Device Path structure
-    // that can be used in the boot entry creation
-    // For now, return the file path as a simple representation
-    // In a full implementation, this would construct the proper
-    // ACPI/PCI/HD/File device path structure
-
-    QByteArray devicePath;
-    // TODO: Implement proper EFI device path construction
-    // This would involve creating:
-    // 1. ACPI Device Path for the disk controller
-    // 2. PCI Device Path if applicable
-    // 3. Hard Drive Device Path with partition info
-    // 4. File Path Device Path with the selected file path
-
-    return devicePath;
-}

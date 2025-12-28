@@ -26,9 +26,6 @@ public:
     QEFIPartitionScanInfo selectedPartition() const { return m_selectedPartition; }
     QFATFileInfo selectedFileInfo() const { return m_selectedFileInfo; }
 
-    // Get the device path suitable for creating boot entries
-    QByteArray getDevicePathData() const;
-
 public slots:
     void scanPartitions();
     void partitionChanged(int index);
