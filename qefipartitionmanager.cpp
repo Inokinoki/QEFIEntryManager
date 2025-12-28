@@ -622,12 +622,31 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                                     volInfo.fileSystem = QString::fromWCharArray(fsName);
                                 }
 
+                                qDebug() << "Found volume: Disk" << volInfo.diskNumber
+                                         << "Offset" << volInfo.startingOffset
+                                         << "Mount:" << volInfo.mountPoint
+                                         << "FS:" << volInfo.fileSystem;
+
                                 volumeList.append(volInfo);
+                            } else {
+                                qDebug() << "Volume on Disk" << volInfo.diskNumber
+                                         << "at offset" << volInfo.startingOffset
+                                         << "has no mount point (pathLen=" << pathLen << ")";
                             }
+                        } else {
+                            qDebug() << "Failed to get volume path names for Disk" << volInfo.diskNumber
+                                     << "at offset" << volInfo.startingOffset
+                                     << "(Error:" << GetLastError() << ")";
                         }
                     }
+                } else {
+                    qDebug() << "Failed to get disk extents for volume" << volInfo.volumeGuid
+                             << "(Error:" << GetLastError() << ")";
                 }
                 CloseHandle(hVol);
+            } else {
+                qDebug() << "Failed to open volume" << volInfo.volumeGuid
+                         << "(Error:" << GetLastError() << ")";
             }
         } while (FindNextVolumeW(hVolume, volumeName, ARRAYSIZE(volumeName)));
         FindVolumeClose(hVolume);
@@ -708,7 +727,13 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                     info.label = "EFI System Partition";
                 }
 
+                qDebug() << "Found EFI partition: Disk" << diskNumber
+                         << "Partition" << partInfo.PartitionNumber
+                         << "StartingOffset:" << partInfo.StartingOffset.QuadPart
+                         << "Size:" << partInfo.PartitionLength.QuadPart;
+
                 // Look up the mount point from our pre-built volume list
+                bool matched = false;
                 for (const VolumeInfo& vol : volumeList) {
                     if (vol.diskNumber == diskNumber &&
                         vol.startingOffset == partInfo.StartingOffset.QuadPart) {
@@ -716,10 +741,17 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                         info.isMounted = true;
                         info.fileSystem = vol.fileSystem;
 
-                        qDebug() << "Matched partition" << partInfo.PartitionNumber
-                                 << "on disk" << diskNumber << "to mount point:" << vol.mountPoint;
+                        qDebug() << "  -> Matched to mount point:" << vol.mountPoint
+                                 << "FS:" << vol.fileSystem;
+                        matched = true;
                         break;
                     }
+                }
+
+                if (!matched) {
+                    qDebug() << "  -> No matching volume found in volumeList";
+                    qDebug() << "  -> Checking" << volumeList.size() << "volumes for Disk"
+                             << diskNumber << "Offset" << partInfo.StartingOffset.QuadPart;
                 }
 
                 // Default filesystem if not found
