@@ -641,20 +641,18 @@ bool QEFIPartitionManager::mountPartitionWindows(const QString &devicePath, QStr
         return false;
     }
 
-    // Use DefineDosDevice to create a drive letter mapping
-    // This is the standard way to assign drive letters in Windows
-    QString dosDeviceName = QString("%1:").arg(QChar(driveLetter));
+    // Use SetVolumeMountPoint to properly assign a drive letter
+    // Ensure mountPoint has trailing backslash
+    mountPoint = QString("%1:\\").arg(QChar(driveLetter));
 
-    // Remove the trailing backslash from volume GUID for DefineDosDevice
-    QString volumeGuidNoBSlash = volumeGuid;
-    if (volumeGuidNoBSlash.endsWith('\\')) {
-        volumeGuidNoBSlash.chop(1);
+    // Ensure volumeGuid has trailing backslash
+    if (!volumeGuid.endsWith('\\')) {
+        volumeGuid += '\\';
     }
 
-    BOOL result = DefineDosDeviceW(
-        DDD_RAW_TARGET_PATH,  // Use raw target path
-        (LPCWSTR)dosDeviceName.utf16(),
-        (LPCWSTR)volumeGuidNoBSlash.utf16()
+    BOOL result = SetVolumeMountPointW(
+        (LPCWSTR)mountPoint.utf16(),
+        (LPCWSTR)volumeGuid.utf16()
     );
 
     if (!result) {
@@ -662,21 +660,23 @@ bool QEFIPartitionManager::mountPartitionWindows(const QString &devicePath, QStr
 
         // Common error codes:
         // ERROR_ACCESS_DENIED (5) - need admin rights
-        // ERROR_ALREADY_EXISTS (183) - device name already exists
+        // ERROR_ALREADY_EXISTS (183) - mount point already exists
+        // ERROR_DIR_NOT_SUPPORTED (336) - directory not supported as mount point
 
         if (error == 5) {
             errorMessage = "Access denied - administrator privileges required";
         } else if (error == 183) {
             errorMessage = QString("Drive letter %1: is already in use").arg(QChar(driveLetter));
+        } else if (error == 336) {
+            errorMessage = "Mount point directory is not supported";
         } else {
             errorMessage = QString("Failed to assign drive letter (Windows Error %1)").arg(error);
         }
 
-        qWarning() << "DefineDosDevice failed:" << errorMessage;
+        qWarning() << "SetVolumeMountPoint failed:" << errorMessage;
         return false;
     }
 
-    mountPoint = QString("%1:\\").arg(QChar(driveLetter));
     qDebug() << "Successfully mounted" << devicePath << "at" << mountPoint;
     emit mountStatusChanged(devicePath, true);
 
@@ -703,26 +703,26 @@ bool QEFIPartitionManager::unmountPartitionWindows(const QString &devicePath, QS
         return false;
     }
 
-    // Extract drive letter (e.g., "E:\\" -> "E:")
-    QString dosDeviceName = currentMountPoint.left(2);  // Get "X:"
+    // Ensure the mount point has a trailing backslash
+    if (!currentMountPoint.endsWith('\\')) {
+        currentMountPoint += '\\';
+    }
 
-    // Use DefineDosDevice with DDD_REMOVE_DEFINITION to remove the mapping
-    BOOL result = DefineDosDeviceW(
-        DDD_REMOVE_DEFINITION | DDD_RAW_TARGET_PATH | DDD_EXACT_MATCH_ON_REMOVE,
-        (LPCWSTR)dosDeviceName.utf16(),
-        NULL  // NULL to remove the definition
-    );
+    // Use DeleteVolumeMountPoint to remove the mount
+    BOOL result = DeleteVolumeMountPointW((LPCWSTR)currentMountPoint.utf16());
 
     if (!result) {
         DWORD error = GetLastError();
 
         if (error == 5) {
             errorMessage = "Access denied - administrator privileges required";
+        } else if (error == 3) {
+            errorMessage = "The system cannot find the path specified";
         } else {
             errorMessage = QString("Failed to remove drive letter (Windows Error %1)").arg(error);
         }
 
-        qWarning() << "DefineDosDevice (remove) failed:" << errorMessage;
+        qWarning() << "DeleteVolumeMountPoint failed:" << errorMessage;
         return false;
     }
 
