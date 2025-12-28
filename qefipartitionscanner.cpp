@@ -80,9 +80,9 @@ bool QEFIPartitionScanner::readGPTHeader(const QString &devicePath, GPTHeader &h
     return true;
 }
 
-QVector<QEFIPartitionInfo> QEFIPartitionScanner::readGPTPartitions(const QString &devicePath)
+QVector<QEFIPartitionScanInfo> QEFIPartitionScanner::readGPTPartitions(const QString &devicePath)
 {
-    QVector<QEFIPartitionInfo> partitions;
+    QVector<QEFIPartitionScanInfo> partitions;
 
     GPTHeader header;
     if (!readGPTHeader(devicePath, header)) {
@@ -123,7 +123,7 @@ QVector<QEFIPartitionInfo> QEFIPartitionScanner::readGPTPartitions(const QString
             continue;
         }
 
-        QEFIPartitionInfo info;
+        QEFIPartitionScanInfo info;
         info.devicePath = devicePath;
         info.partitionOffset = entry.firstLBA * 512;
         info.partitionSize = (entry.lastLBA - entry.firstLBA + 1) * 512;
@@ -136,9 +136,9 @@ QVector<QEFIPartitionInfo> QEFIPartitionScanner::readGPTPartitions(const QString
     return partitions;
 }
 
-QVector<QEFIPartitionInfo> QEFIPartitionScanner::scanLinux()
+QVector<QEFIPartitionScanInfo> QEFIPartitionScanner::scanLinux()
 {
-    QVector<QEFIPartitionInfo> allPartitions;
+    QVector<QEFIPartitionScanInfo> allPartitions;
 
 #ifdef Q_OS_LINUX
     // Scan /sys/class/block for devices
@@ -159,7 +159,7 @@ QVector<QEFIPartitionInfo> QEFIPartitionScanner::scanLinux()
         QString devicePath = "/dev/" + device;
         qDebug() << "Scanning device:" << devicePath;
 
-        QVector<QEFIPartitionInfo> partitions = readGPTPartitions(devicePath);
+        QVector<QEFIPartitionScanInfo> partitions = readGPTPartitions(devicePath);
 
         // Update device paths to point to actual partition devices
         for (int i = 0; i < partitions.size(); ++i) {
@@ -184,9 +184,9 @@ QVector<QEFIPartitionInfo> QEFIPartitionScanner::scanLinux()
     return allPartitions;
 }
 
-QVector<QEFIPartitionInfo> QEFIPartitionScanner::scanFreeBSD()
+QVector<QEFIPartitionScanInfo> QEFIPartitionScanner::scanFreeBSD()
 {
-    QVector<QEFIPartitionInfo> allPartitions;
+    QVector<QEFIPartitionScanInfo> allPartitions;
 
 #ifdef Q_OS_FREEBSD
     // Scan /dev for disk devices (ada0, da0, nvd0, etc.)
@@ -208,7 +208,7 @@ QVector<QEFIPartitionInfo> QEFIPartitionScanner::scanFreeBSD()
         QString devicePath = "/dev/" + device;
         qDebug() << "Scanning FreeBSD device:" << devicePath;
 
-        QVector<QEFIPartitionInfo> partitions = readGPTPartitions(devicePath);
+        QVector<QEFIPartitionScanInfo> partitions = readGPTPartitions(devicePath);
 
         // Update device paths
         for (int i = 0; i < partitions.size(); ++i) {
@@ -226,9 +226,9 @@ QVector<QEFIPartitionInfo> QEFIPartitionScanner::scanFreeBSD()
     return allPartitions;
 }
 
-QVector<QEFIPartitionInfo> QEFIPartitionScanner::scanWindows()
+QVector<QEFIPartitionScanInfo> QEFIPartitionScanner::scanWindows()
 {
-    QVector<QEFIPartitionInfo> allPartitions;
+    QVector<QEFIPartitionScanInfo> allPartitions;
 
 #ifdef Q_OS_WIN
     // Scan physical drives
@@ -252,7 +252,7 @@ QVector<QEFIPartitionInfo> QEFIPartitionScanner::scanWindows()
         CloseHandle(hDevice);
 
         qDebug() << "Scanning Windows device:" << devicePath;
-        QVector<QEFIPartitionInfo> partitions = readGPTPartitions(devicePath);
+        QVector<QEFIPartitionScanInfo> partitions = readGPTPartitions(devicePath);
 
         for (int i = 0; i < partitions.size(); ++i) {
             partitions[i].deviceName = QString("Disk %1 Partition %2 (%3 MB)")
@@ -268,9 +268,9 @@ QVector<QEFIPartitionInfo> QEFIPartitionScanner::scanWindows()
     return allPartitions;
 }
 
-QVector<QEFIPartitionInfo> QEFIPartitionScanner::scanForEFIPartitions()
+QVector<QEFIPartitionScanInfo> QEFIPartitionScanner::scanForEFIPartitions()
 {
-    QVector<QEFIPartitionInfo> allPartitions;
+    QVector<QEFIPartitionScanInfo> allPartitions;
 
 #ifdef Q_OS_WIN
     allPartitions = scanWindows();
@@ -281,7 +281,7 @@ QVector<QEFIPartitionInfo> QEFIPartitionScanner::scanForEFIPartitions()
 #endif
 
     // Filter to return only EFI partitions
-    QVector<QEFIPartitionInfo> efiPartitions;
+    QVector<QEFIPartitionScanInfo> efiPartitions;
     for (const auto &partition : allPartitions) {
         if (partition.isEFI) {
             efiPartitions.append(partition);

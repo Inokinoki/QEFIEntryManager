@@ -34,15 +34,18 @@ struct GPTHeader {
 };
 #pragma pack(pop)
 
-struct QEFIPartitionInfo {
+// Low-level partition scan information with byte offsets for direct access
+// Note: This is different from QEFIPartitionInfo in qefipartitionmanager.h (PR #45)
+// which is used for high-level partition mounting/management
+struct QEFIPartitionScanInfo {
     QString devicePath;          // e.g., /dev/sda1, \.\PhysicalDrive0
     QString deviceName;          // User-friendly name
-    quint64 partitionOffset;     // Offset in bytes
+    quint64 partitionOffset;     // Offset in bytes from start of disk
     quint64 partitionSize;       // Size in bytes
-    QString partitionLabel;      // Partition name
+    QString partitionLabel;      // Partition name from GPT
     bool isEFI;                  // Is this an EFI system partition?
 
-    QEFIPartitionInfo() : partitionOffset(0), partitionSize(0), isEFI(false) {}
+    QEFIPartitionScanInfo() : partitionOffset(0), partitionSize(0), isEFI(false) {}
 };
 
 class QEFIPartitionScanner : public QObject
@@ -55,17 +58,17 @@ public:
     explicit QEFIPartitionScanner(QObject *parent = nullptr);
     ~QEFIPartitionScanner();
 
-    QVector<QEFIPartitionInfo> scanForEFIPartitions();
+    QVector<QEFIPartitionScanInfo> scanForEFIPartitions();
     static bool isEFIPartition(const quint8 *partitionTypeGUID);
     static QString parsePartitionName(const quint16 *utf16Name, int maxLen);
 
 private:
-    QVector<QEFIPartitionInfo> scanLinux();
-    QVector<QEFIPartitionInfo> scanFreeBSD();
-    QVector<QEFIPartitionInfo> scanWindows();
+    QVector<QEFIPartitionScanInfo> scanLinux();
+    QVector<QEFIPartitionScanInfo> scanFreeBSD();
+    QVector<QEFIPartitionScanInfo> scanWindows();
 
     bool readGPTHeader(const QString &devicePath, GPTHeader &header);
-    QVector<QEFIPartitionInfo> readGPTPartitions(const QString &devicePath);
+    QVector<QEFIPartitionScanInfo> readGPTPartitions(const QString &devicePath);
 };
 
 #endif // QEFIPARTITIONSCANNER_H

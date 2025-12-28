@@ -23,7 +23,7 @@ public:
     ~QEFIFileSelectionDialog();
 
     QString selectedFilePath() const { return m_selectedFilePath; }
-    QEFIPartitionInfo selectedPartition() const { return m_selectedPartition; }
+    QEFIPartitionScanInfo selectedPartition() const { return m_selectedPartition; }
     QFATFileInfo selectedFileInfo() const { return m_selectedFileInfo; }
 
     // Get the device path suitable for creating boot entries
@@ -50,8 +50,8 @@ private:
     QLabel *m_statusLabel;
     QDialogButtonBox *m_buttonBox;
 
-    QVector<QEFIPartitionInfo> m_partitions;
-    QEFIPartitionInfo m_selectedPartition;
+    QVector<QEFIPartitionScanInfo> m_partitions;
+    QEFIPartitionScanInfo m_selectedPartition;
     QScopedPointer<QFATFileSystem> m_fatFilesystem;
     QString m_currentPath;
     QString m_selectedFilePath;

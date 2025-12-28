@@ -191,7 +191,7 @@ void QEFILoadOptionEditorView::selectFromEFIClicked(bool checked)
 
     QString selectedPath = dialog.selectedFilePath();
     QFATFileInfo fileInfo = dialog.selectedFileInfo();
-    QEFIPartitionInfo partition = dialog.selectedPartition();
+    QEFIPartitionScanInfo partition = dialog.selectedPartition();
 
     if (selectedPath.isEmpty()) {
         QMessageBox::warning(this, tr("No File Selected"),
