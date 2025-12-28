@@ -38,18 +38,17 @@ void QEFIPartitionView::setupUI()
 
     // Partition table
     m_partitionTable = new QTableWidget(this);
-    m_partitionTable->setColumnCount(6);
+    m_partitionTable->setColumnCount(5);
     m_partitionTable->setHorizontalHeaderLabels(
         QStringList() << tr("Device") << tr("Label") << tr("Size")
-                      << tr("File System") << tr("Mount Point") << tr("Status"));
+                      << tr("File System") << tr("Status"));
 
     m_partitionTable->horizontalHeader()->setStretchLastSection(false);
     m_partitionTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    m_partitionTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    m_partitionTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     m_partitionTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
     m_partitionTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     m_partitionTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
-    m_partitionTable->horizontalHeader()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
 
     m_partitionTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_partitionTable->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -119,10 +118,9 @@ void QEFIPartitionView::updatePartitionTable()
         m_partitionTable->setItem(row, 1, new QTableWidgetItem(partition.label));
         m_partitionTable->setItem(row, 2, new QTableWidgetItem(formatSize(partition.size)));
         m_partitionTable->setItem(row, 3, new QTableWidgetItem(partition.fileSystem));
-        m_partitionTable->setItem(row, 4, new QTableWidgetItem(partition.mountPoint));
 
         QString status = partition.isMounted ? tr("Mounted") : tr("Not Mounted");
-        m_partitionTable->setItem(row, 5, new QTableWidgetItem(status));
+        m_partitionTable->setItem(row, 4, new QTableWidgetItem(status));
     }
 }
 
@@ -218,7 +216,17 @@ void QEFIPartitionView::openMountPoint()
         return;
     }
 
-    QString mountPoint = m_partitionTable->item(m_selectedRow, 4)->text();
+    // Get mount point from partition data
+    QString devicePath = m_partitionTable->item(m_selectedRow, 0)->text();
+    QList<QEFIPartitionInfo> partitions = m_partitionManager->getEFIPartitions();
+
+    QString mountPoint;
+    for (const auto &partition : partitions) {
+        if (partition.devicePath == devicePath) {
+            mountPoint = partition.mountPoint;
+            break;
+        }
+    }
 
     if (mountPoint.isEmpty()) {
         QMessageBox::warning(this, tr("Not Mounted"),
@@ -237,8 +245,25 @@ void QEFIPartitionView::selectionChanged()
     QList<QTableWidgetItem *> selectedItems = m_partitionTable->selectedItems();
     if (!selectedItems.isEmpty()) {
         m_selectedRow = selectedItems.first()->row();
+
+        // Update status label with mount point information if partition is mounted
+        QString devicePath = m_partitionTable->item(m_selectedRow, 0)->text();
+        QList<QEFIPartitionInfo> partitions = m_partitionManager->getEFIPartitions();
+
+        for (const auto &partition : partitions) {
+            if (partition.devicePath == devicePath) {
+                if (partition.isMounted && !partition.mountPoint.isEmpty()) {
+                    m_statusLabel->setText(tr("Mounted at: %1").arg(partition.mountPoint));
+                } else {
+                    m_statusLabel->setText(tr("Found %1 EFI partition(s)").arg(partitions.size()));
+                }
+                break;
+            }
+        }
     } else {
         m_selectedRow = -1;
+        QList<QEFIPartitionInfo> efiPartitions = m_partitionManager->getEFIPartitions();
+        m_statusLabel->setText(tr("Found %1 EFI partition(s)").arg(efiPartitions.size()));
     }
     updateButtonStates();
 }
@@ -249,7 +274,7 @@ void QEFIPartitionView::updateButtonStates()
     bool isMounted = false;
 
     if (hasSelection && m_selectedRow < m_partitionTable->rowCount()) {
-        QString status = m_partitionTable->item(m_selectedRow, 5)->text();
+        QString status = m_partitionTable->item(m_selectedRow, 4)->text();
         isMounted = (status == tr("Mounted"));
     }
 
