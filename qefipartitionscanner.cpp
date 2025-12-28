@@ -3,7 +3,7 @@
 #include <QDir>
 #include <QDebug>
 #include <QStorageInfo>
-#include <QRegExp>
+#include <QRegularExpression>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -152,7 +152,8 @@ QVector<QEFIPartitionScanInfo> QEFIPartitionScanner::scanLinux()
 
     for (const QString &device : devices) {
         // Only scan whole disks (sda, nvme0n1, etc.), not partitions
-        if (device.contains(QRegExp("\\d$"))) {
+        QRegularExpression partitionRegex("\\d$");
+        if (partitionRegex.match(device).hasMatch()) {
             continue;  // Skip if ends with a number (partition)
         }
 
