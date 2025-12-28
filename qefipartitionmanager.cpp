@@ -559,7 +559,83 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
 {
     QList<QEFIPartitionInfo> partitions;
 
-    // Enumerate all physical drives
+    // First, build a map of all volumes to their disk/partition info
+    // This is more efficient than enumerating volumes for each partition
+    struct VolumeInfo {
+        QString volumeGuid;
+        QString mountPoint;
+        QString fileSystem;
+        DWORD diskNumber;
+        LONGLONG startingOffset;
+    };
+    QList<VolumeInfo> volumeList;
+
+    WCHAR volumeName[MAX_PATH];
+    HANDLE hVolume = FindFirstVolumeW(volumeName, ARRAYSIZE(volumeName));
+
+    if (hVolume != INVALID_HANDLE_VALUE) {
+        do {
+            VolumeInfo volInfo;
+            volInfo.volumeGuid = QString::fromWCharArray(volumeName);
+
+            // Remove trailing backslash for CreateFile
+            size_t len = wcslen(volumeName);
+            if (len > 0 && volumeName[len - 1] == L'\\') {
+                volumeName[len - 1] = L'\0';
+            }
+
+            HANDLE hVol = CreateFileW(
+                volumeName,
+                GENERIC_READ,
+                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                NULL,
+                OPEN_EXISTING,
+                0,
+                NULL
+            );
+
+            if (hVol != INVALID_HANDLE_VALUE) {
+                VOLUME_DISK_EXTENTS extents;
+                DWORD returned;
+
+                if (DeviceIoControl(hVol, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
+                                  NULL, 0, &extents, sizeof(extents), &returned, NULL)) {
+                    if (extents.NumberOfDiskExtents > 0) {
+                        volInfo.diskNumber = extents.Extents[0].DiskNumber;
+                        volInfo.startingOffset = extents.Extents[0].StartingOffset.QuadPart;
+
+                        // Get drive letter/mount point
+                        WCHAR pathNames[MAX_PATH] = {0};
+                        DWORD pathLen = 0;
+
+                        volumeName[len] = L'\\'; // Restore trailing backslash
+
+                        if (GetVolumePathNamesForVolumeNameW(volumeName, pathNames,
+                                                            ARRAYSIZE(pathNames), &pathLen)) {
+                            if (pathLen > 1 && pathNames[0] != L'\0') {
+                                volInfo.mountPoint = QString::fromWCharArray(pathNames);
+
+                                // Get filesystem type
+                                WCHAR fsName[MAX_PATH];
+                                if (GetVolumeInformationW(pathNames, NULL, 0, NULL, NULL, NULL,
+                                                         fsName, ARRAYSIZE(fsName))) {
+                                    volInfo.fileSystem = QString::fromWCharArray(fsName);
+                                }
+
+                                volumeList.append(volInfo);
+                            }
+                        }
+                    }
+                }
+                CloseHandle(hVol);
+            }
+        } while (FindNextVolumeW(hVolume, volumeName, ARRAYSIZE(volumeName)));
+        FindVolumeClose(hVolume);
+    }
+
+    qDebug() << "Scanned" << volumeList.size() << "mounted volumes";
+
+    // Now enumerate all physical drives
     for (DWORD diskNumber = 0; diskNumber < 32; diskNumber++) {
         QString diskPath = QString("\\\\.\\PhysicalDrive%1").arg(diskNumber);
 
@@ -632,68 +708,18 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                     info.label = "EFI System Partition";
                 }
 
-                // Try to find the drive letter
-                WCHAR volumeName[MAX_PATH];
-                HANDLE hVolume = FindFirstVolumeW(volumeName, ARRAYSIZE(volumeName));
+                // Look up the mount point from our pre-built volume list
+                for (const VolumeInfo& vol : volumeList) {
+                    if (vol.diskNumber == diskNumber &&
+                        vol.startingOffset == partInfo.StartingOffset.QuadPart) {
+                        info.mountPoint = vol.mountPoint;
+                        info.isMounted = true;
+                        info.fileSystem = vol.fileSystem;
 
-                if (hVolume != INVALID_HANDLE_VALUE) {
-                    do {
-                        // Remove trailing backslash
-                        size_t len = wcslen(volumeName);
-                        if (len > 0 && volumeName[len - 1] == L'\\') {
-                            volumeName[len - 1] = L'\0';
-                        }
-
-                        HANDLE hVol = CreateFileW(
-                            volumeName,
-                            GENERIC_READ,
-                            FILE_SHARE_READ | FILE_SHARE_WRITE,
-                            NULL,
-                            OPEN_EXISTING,
-                            0,
-                            NULL
-                        );
-
-                        if (hVol != INVALID_HANDLE_VALUE) {
-                            VOLUME_DISK_EXTENTS extents;
-                            DWORD returned;
-
-                            if (DeviceIoControl(hVol, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
-                                              NULL, 0, &extents, sizeof(extents), &returned, NULL)) {
-
-                                if (extents.NumberOfDiskExtents > 0 &&
-                                    extents.Extents[0].DiskNumber == diskNumber) {
-
-                                    // Check if this extent matches our partition
-                                    if (extents.Extents[0].StartingOffset.QuadPart == partInfo.StartingOffset.QuadPart) {
-                                        // Get drive letter
-                                        WCHAR pathNames[MAX_PATH];
-                                        DWORD pathLen;
-
-                                        volumeName[len] = L'\\'; // Restore trailing backslash
-
-                                        if (GetVolumePathNamesForVolumeNameW(volumeName, pathNames,
-                                                                            ARRAYSIZE(pathNames), &pathLen)) {
-                                            QString mountPoint = QString::fromWCharArray(pathNames);
-                                            if (!mountPoint.isEmpty() && mountPoint.length() >= 2 && mountPoint[1] == ':') {
-                                                info.mountPoint = mountPoint;
-                                                info.isMounted = true;
-
-                                                // Get filesystem type
-                                                WCHAR fsName[MAX_PATH];
-                                                if (GetVolumeInformationW(pathNames, NULL, 0, NULL, NULL, NULL,
-                                                                         fsName, ARRAYSIZE(fsName))) {
-                                                    info.fileSystem = QString::fromWCharArray(fsName);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            CloseHandle(hVol);
-                        }
-                    } while (FindNextVolumeW(hVolume, volumeName, ARRAYSIZE(volumeName)));
-                    FindVolumeClose(hVolume);
+                        qDebug() << "Matched partition" << partInfo.PartitionNumber
+                                 << "on disk" << diskNumber << "to mount point:" << vol.mountPoint;
+                        break;
+                    }
                 }
 
                 // Default filesystem if not found
@@ -874,11 +900,17 @@ bool QEFIPartitionManager::mountPartitionWindows(const QString &devicePath, QStr
     }
 
     qDebug() << "Successfully mounted" << devicePath << "at" << mountPoint;
+
+    // Wait for Windows to recognize the mount and update its internal state
+    // This is critical - Windows needs time to propagate the volume mount point
+    QThread::msleep(500);
+
+    // Force a complete refresh to re-scan all partitions
+    refresh();
+
+    // Now emit the signal after refresh is complete
     emit mountStatusChanged(devicePath, true);
 
-    // Wait a moment for Windows to recognize the mount
-    QThread::msleep(500);
-    refresh();
     return true;
 }
 
@@ -923,11 +955,16 @@ bool QEFIPartitionManager::unmountPartitionWindows(const QString &devicePath, QS
     }
 
     qDebug() << "Successfully unmounted" << devicePath << "from" << currentMountPoint;
+
+    // Wait for Windows to recognize the unmount and update its internal state
+    QThread::msleep(500);
+
+    // Force a complete refresh to re-scan all partitions
+    refresh();
+
+    // Now emit the signal after refresh is complete
     emit mountStatusChanged(devicePath, false);
 
-    // Wait a moment for Windows to recognize the unmount
-    QThread::msleep(500);
-    refresh();
     return true;
 }
 #endif
