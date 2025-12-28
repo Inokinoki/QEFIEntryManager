@@ -580,8 +580,10 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
 
             // Remove trailing backslash for CreateFile
             size_t len = wcslen(volumeName);
+            bool hadTrailingBackslash = false;
             if (len > 0 && volumeName[len - 1] == L'\\') {
                 volumeName[len - 1] = L'\0';
+                hadTrailingBackslash = true;
             }
 
             HANDLE hVol = CreateFileW(
@@ -608,7 +610,13 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                         WCHAR pathNames[MAX_PATH * 4] = {0};  // Larger buffer for multiple paths
                         DWORD pathLen = 0;
 
-                        volumeName[len] = L'\\'; // Restore trailing backslash
+                        // Restore trailing backslash if it was removed
+                        if (hadTrailingBackslash) {
+                            volumeName[len - 1] = L'\\';
+                        }
+
+                        qDebug() << "Volume GUID:" << QString::fromWCharArray(volumeName)
+                                 << "for Disk" << volInfo.diskNumber << "Offset" << volInfo.startingOffset;
 
                         BOOL pathResult = GetVolumePathNamesForVolumeNameW(volumeName, pathNames,
                                                             ARRAYSIZE(pathNames), &pathLen);
