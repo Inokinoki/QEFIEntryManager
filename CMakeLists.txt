@@ -49,6 +49,8 @@ set(PROJECT_SOURCES
         qpartitioniodevice.h
         qefifileselectiondialog.cpp
         qefifileselectiondialog.h
+        qfatfilesystem/qfatfilesystem.cpp
+        qfatfilesystem/qfatfilesystem.h
         qefivar/qefi.cpp
         qefivar/qefidpacpi.cpp
         qefivar/qefidphw.cpp
@@ -118,14 +120,10 @@ target_include_directories(QEFIEntryManager PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/qfatfilesystem
 )
 
-# Add qfatfilesystem subdirectory
-add_subdirectory(qfatfilesystem)
-
 # Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
 target_link_libraries(QEFIEntryManager PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Network
-    QFATFS
 )
 
 install(TARGETS QEFIEntryManager
