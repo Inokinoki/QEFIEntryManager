@@ -8,8 +8,13 @@
 #include <QFileInfo>
 #include <QThread>
 
-#if defined(Q_OS_LINUX) || defined(Q_OS_FREEBSD)
+#if defined(Q_OS_UNIX)
 #include <unistd.h>
+#include <sys/mount.h>
+#include <errno.h>
+#include <cstring>
+
+const QString g_efiPartTypeGuid = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b";
 #endif
 
 #ifdef Q_OS_WIN
@@ -36,11 +41,8 @@ QEFIPartitionManager::~QEFIPartitionManager()
 
 QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitions()
 {
-#ifdef Q_OS_LINUX
-    // TODO: Merge Linux and FreeBSD implementations if possible, Unix-like should be similar
-    return scanPartitionsLinux();
-#elif defined(Q_OS_FREEBSD)
-    return scanPartitionsFreeBSD();
+#if defined(Q_OS_UNIX)
+    return scanPartitionsUnix();
 #elif defined(Q_OS_WIN)
     return scanPartitionsWindows();
 #else
@@ -62,10 +64,8 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::getEFIPartitions()
 
 bool QEFIPartitionManager::mountPartition(const QString &devicePath, QString &mountPoint, QString &errorMessage)
 {
-#ifdef Q_OS_LINUX
-    return mountPartitionLinux(devicePath, mountPoint, errorMessage);
-#elif defined(Q_OS_FREEBSD)
-    return mountPartitionFreeBSD(devicePath, mountPoint, errorMessage);
+#if defined(Q_OS_UNIX)
+    return mountPartitionUnix(devicePath, mountPoint, errorMessage);
 #elif defined(Q_OS_WIN)
     return mountPartitionWindows(devicePath, mountPoint, errorMessage);
 #else
@@ -76,10 +76,8 @@ bool QEFIPartitionManager::mountPartition(const QString &devicePath, QString &mo
 
 bool QEFIPartitionManager::unmountPartition(const QString &devicePath, QString &errorMessage)
 {
-#ifdef Q_OS_LINUX
-    return unmountPartitionLinux(devicePath, errorMessage);
-#elif defined(Q_OS_FREEBSD)
-    return unmountPartitionFreeBSD(devicePath, errorMessage);
+#if defined(Q_OS_UNIX)
+    return unmountPartitionUnix(devicePath, errorMessage);
 #elif defined(Q_OS_WIN)
     return unmountPartitionWindows(devicePath, errorMessage);
 #else
@@ -109,12 +107,13 @@ void QEFIPartitionManager::refresh()
     emit partitionsChanged();
 }
 
-#ifdef Q_OS_LINUX
-QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsLinux()
+#if defined(Q_OS_UNIX)
+QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsUnix()
 {
     QList<QEFIPartitionInfo> partitions;
 
-    // Use lsblk to get partition information
+#ifdef Q_OS_LINUX
+    // Use lsblk to get partition information on Linux
     QProcess lsblk;
     lsblk.start("lsblk", QStringList()
         << "-o" << "PATH,SIZE,LABEL,PARTTYPE,PARTUUID,FSTYPE,MOUNTPOINT"
@@ -128,8 +127,6 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsLinux()
     QString output = QString::fromUtf8(lsblk.readAllStandardOutput());
     QStringList lines = output.split('\n', Qt::SkipEmptyParts);
 
-    // EFI System Partition GUID
-    const QString efiPartTypeGuid = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b";
 
     for (const QString &line : lines) {
         QEFIPartitionInfo info;
@@ -163,7 +160,7 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsLinux()
         auto parttypeMatch = parttypeRe.match(line);
         if (parttypeMatch.hasMatch()) {
             QString partType = parttypeMatch.captured(1).toLower();
-            info.isEFI = (partType == efiPartTypeGuid);
+            info.isEFI = (partType == g_efiPartTypeGuid);
         }
 
         auto partuuidMatch = partuuidRe.match(line);
@@ -194,74 +191,8 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsLinux()
             partitions.append(info);
         }
     }
-
-    m_partitions = partitions;
-    return partitions;
-}
-
-bool QEFIPartitionManager::mountPartitionLinux(const QString &devicePath, QString &mountPoint, QString &errorMessage)
-{
-    // Create mount point in /tmp if not specified
-    if (mountPoint.isEmpty()) {
-        QString baseName = QFileInfo(devicePath).fileName();
-        mountPoint = QString("/tmp/efi_%1").arg(baseName);
-    }
-
-    // Create mount point directory if it doesn't exist
-    QDir dir;
-    if (!dir.exists(mountPoint)) {
-        if (!dir.mkpath(mountPoint)) {
-            errorMessage = QString("Failed to create mount point: %1").arg(mountPoint);
-            return false;
-        }
-    }
-
-    // Mount the partition
-    QProcess mount;
-    mount.start("mount", QStringList() << devicePath << mountPoint);
-
-    if (!mount.waitForFinished()) {
-        errorMessage = "Mount command timed out";
-        return false;
-    }
-
-    if (mount.exitCode() != 0) {
-        errorMessage = QString("Mount failed: %1").arg(QString::fromUtf8(mount.readAllStandardError()));
-        return false;
-    }
-
-    emit mountStatusChanged(devicePath, true);
-    refresh();
-    return true;
-}
-
-bool QEFIPartitionManager::unmountPartitionLinux(const QString &devicePath, QString &errorMessage)
-{
-    QProcess umount;
-    umount.start("umount", QStringList() << devicePath);
-
-    if (!umount.waitForFinished()) {
-        errorMessage = "Unmount command timed out";
-        return false;
-    }
-
-    if (umount.exitCode() != 0) {
-        errorMessage = QString("Unmount failed: %1").arg(QString::fromUtf8(umount.readAllStandardError()));
-        return false;
-    }
-
-    emit mountStatusChanged(devicePath, false);
-    refresh();
-    return true;
-}
-#endif
-
-#ifdef Q_OS_FREEBSD
-QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsFreeBSD()
-{
-    QList<QEFIPartitionInfo> partitions;
-
-    // Use gpart to list partitions
+#elif defined(Q_OS_FREEBSD)
+    // Use gpart to list partitions on FreeBSD
     QProcess gpart;
     gpart.start("gpart", QStringList() << "status" << "-s");
 
@@ -296,20 +227,21 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsFreeBSD()
 
         partitions.append(info);
     }
+#endif
 
     m_partitions = partitions;
     return partitions;
 }
 
-bool QEFIPartitionManager::mountPartitionFreeBSD(const QString &devicePath, QString &mountPoint, QString &errorMessage)
+bool QEFIPartitionManager::mountPartitionUnix(const QString &devicePath, QString &mountPoint, QString &errorMessage)
 {
-    // Create mount point in /tmp if not specified
+    // Mount point is required for Unix systems (selected by user via file picker)
     if (mountPoint.isEmpty()) {
-        QString baseName = QFileInfo(devicePath).fileName();
-        mountPoint = QString("/tmp/efi_%1").arg(baseName);
+        errorMessage = "Mount point is required";
+        return false;
     }
 
-    // Create mount point directory
+    // Create mount point directory if it doesn't exist
     QDir dir;
     if (!dir.exists(mountPoint)) {
         if (!dir.mkpath(mountPoint)) {
@@ -318,38 +250,93 @@ bool QEFIPartitionManager::mountPartitionFreeBSD(const QString &devicePath, QStr
         }
     }
 
-    // Mount the partition
-    QProcess mount;
-    mount.start("mount", QStringList() << "-t" << "msdosfs" << devicePath << mountPoint);
-
-    if (!mount.waitForFinished()) {
-        errorMessage = "Mount command timed out";
+    // Check if directory is empty
+    QDir mountDir(mountPoint);
+    if (!mountDir.isEmpty()) {
+        errorMessage = QString("Mount point directory is not empty: %1").arg(mountPoint);
         return false;
     }
 
-    if (mount.exitCode() != 0) {
-        errorMessage = QString("Mount failed: %1").arg(QString::fromUtf8(mount.readAllStandardError()));
+    // Use POSIX mount system call
+    const char* source = devicePath.toUtf8().constData();
+    const char* target = mountPoint.toUtf8().constData();
+    const char* filesystemtype = nullptr;
+    unsigned long mountflags = 0;
+    void* data = nullptr;
+
+#ifdef Q_OS_LINUX
+    // On Linux, we can let the kernel auto-detect the filesystem
+    // EFI partitions are typically vfat
+    filesystemtype = "vfat";
+    mountflags = 0; // Default mount flags
+    int result = mount(source, target, filesystemtype, mountflags, data);
+#elif defined(Q_OS_FREEBSD)
+    // On FreeBSD, EFI partitions use msdosfs
+    filesystemtype = "msdosfs";
+    mountflags = 0;
+    int result = mount(source, target, filesystemtype, mountflags, data);
+#elif defined(Q_OS_DARWIN)
+    // On macOS, mount uses different parameters - this is only useful on Intel Macs
+    mountflags = 0;
+    int result = mount(source, target, mountflags, data);
+#endif
+
+    if (result != 0) {
+        int err = errno;
+        errorMessage = QString("Mount failed: %1 (errno: %2)").arg(strerror(err)).arg(err);
+
+        // Clean up empty directory if we created it
+        if (dir.isEmpty()) {
+            dir.rmdir(mountPoint);
+        }
+
         return false;
     }
 
+    qDebug() << "Successfully mounted" << devicePath << "at" << mountPoint;
     emit mountStatusChanged(devicePath, true);
     refresh();
     return true;
 }
 
-bool QEFIPartitionManager::unmountPartitionFreeBSD(const QString &devicePath, QString &errorMessage)
+bool QEFIPartitionManager::unmountPartitionUnix(const QString &devicePath, QString &errorMessage)
 {
-    QProcess umount;
-    umount.start("umount", QStringList() << devicePath);
+    // Find the current mount point for this partition
+    QString currentMountPoint;
 
-    if (!umount.waitForFinished()) {
-        errorMessage = "Unmount command timed out";
+    for (const auto &partition : m_partitions) {
+        if (partition.devicePath == devicePath && partition.isMounted) {
+            currentMountPoint = partition.mountPoint;
+            break;
+        }
+    }
+
+    if (currentMountPoint.isEmpty()) {
+        errorMessage = "Partition is not mounted or mount point not found";
         return false;
     }
 
-    if (umount.exitCode() != 0) {
-        errorMessage = QString("Unmount failed: %1").arg(QString::fromUtf8(umount.readAllStandardError()));
+    // Use POSIX umount system call
+    const char* target = currentMountPoint.toUtf8().constData();
+
+#ifdef Q_OS_LINUX
+    int result = umount2(target, 0); // Use umount2 on Linux
+#elif defined(Q_OS_FREEBSD) || defined(Q_OS_DARWIN)
+    int result = unmount(target, 0); // Use unmount on macOS or FreeBSD
+#endif
+
+    if (result != 0) {
+        int err = errno;
+        errorMessage = QString("Unmount failed: %1 (errno: %2)").arg(strerror(err)).arg(err);
         return false;
+    }
+
+    qDebug() << "Successfully unmounted" << devicePath << "from" << currentMountPoint;
+
+    // Try to remove the mount point directory if it's empty
+    QDir dir(currentMountPoint);
+    if (dir.isEmpty()) {
+        dir.rmdir(currentMountPoint);
     }
 
     emit mountStatusChanged(devicePath, false);

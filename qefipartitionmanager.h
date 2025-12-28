@@ -53,18 +53,11 @@ signals:
 private:
     QList<QEFIPartitionInfo> m_partitions;
 
-#ifdef Q_OS_LINUX
-    QList<QEFIPartitionInfo> scanPartitionsLinux();
-    bool mountPartitionLinux(const QString &devicePath, QString &mountPoint, QString &errorMessage);
-    bool unmountPartitionLinux(const QString &devicePath, QString &errorMessage);
-    QString getFileSystemType(const QString &devicePath);
-    bool isEFIPartition(const QString &devicePath);
-#endif
-
-#ifdef Q_OS_FREEBSD
-    QList<QEFIPartitionInfo> scanPartitionsFreeBSD();
-    bool mountPartitionFreeBSD(const QString &devicePath, QString &mountPoint, QString &errorMessage);
-    bool unmountPartitionFreeBSD(const QString &devicePath, QString &errorMessage);
+#if defined(Q_OS_LINUX) || defined(Q_OS_FREEBSD) || defined(Q_OS_DARWIN)
+    // Unified Unix/POSIX implementation
+    QList<QEFIPartitionInfo> scanPartitionsUnix();
+    bool mountPartitionUnix(const QString &devicePath, QString &mountPoint, QString &errorMessage);
+    bool unmountPartitionUnix(const QString &devicePath, QString &errorMessage);
 #endif
 
 #ifdef Q_OS_WIN

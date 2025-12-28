@@ -4,6 +4,7 @@
 #include <QUrl>
 #include <QDir>
 #include <QInputDialog>
+#include <QFileDialog>
 
 QEFIPartitionView::QEFIPartitionView(QWidget *parent)
     : QWidget(parent)
@@ -167,6 +168,26 @@ void QEFIPartitionView::mountSelectedPartition()
     }
 
     mountPoint = selectedLetter + ":\\";
+#else
+    // On Unix systems, let the user choose a directory for the mount point
+    mountPoint = QFileDialog::getExistingDirectory(
+        this,
+        tr("Select Mount Point Directory"),
+        QDir::homePath(),
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
+    );
+
+    if (mountPoint.isEmpty()) {
+        return; // User cancelled
+    }
+
+    // Verify the directory is empty
+    QDir mountDir(mountPoint);
+    if (!mountDir.isEmpty()) {
+        QMessageBox::warning(this, tr("Directory Not Empty"),
+                           tr("The selected directory is not empty. Please choose an empty directory for the mount point."));
+        return;
+    }
 #endif
 
     if (m_partitionManager->mountPartition(devicePath, mountPoint, errorMessage)) {
