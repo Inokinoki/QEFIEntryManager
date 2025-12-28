@@ -58,4 +58,6 @@ private:
     QFATFileInfo m_selectedFileInfo;
 };
 
+Q_DECLARE_METATYPE(QFATFileInfo)
+
 #endif // QEFIFILESELECTIONDIALOG_H

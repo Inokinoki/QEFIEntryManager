@@ -12,7 +12,7 @@
 <context>
     <name>EditorDialog</name>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="22"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="24"/>
         <source>Add Device Path</source>
         <translation>Añadir Ruta de Dispositivo</translation>
     </message>
@@ -286,9 +286,109 @@
     </message>
 </context>
 <context>
+    <name>QEFIFileSelectionDialog</name>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="12"/>
+        <source>Select EFI Boot File</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="27"/>
+        <source>EFI Partition:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="29"/>
+        <source>Scan</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="39"/>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="39"/>
+        <source>Size</source>
+        <translation type="unfinished">Tamaño</translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="39"/>
+        <source>Type</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="72"/>
+        <source>Scanning for EFI partitions...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="80"/>
+        <source>No EFI partitions found. Please make sure you run this application with administrator/root privileges.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="81"/>
+        <source>No EFI Partitions</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="82"/>
+        <source>No EFI system partitions were found on this system.
+
+Make sure:
+1. You are running this application with administrator/root privileges
+2. Your system uses UEFI boot mode
+3. You have a valid EFI system partition</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="98"/>
+        <source>Found %1 EFI partition(s)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="130"/>
+        <source>Failed to open partition device</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="131"/>
+        <source>Error</source>
+        <translation type="unfinished">Error</translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="132"/>
+        <source>Failed to open the partition device.
+Make sure you are running with administrator/root privileges.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="143"/>
+        <source>Opened FAT32 filesystem successfully</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="167"/>
+        <location filename="../qefifileselectiondialog.cpp" line="207"/>
+        <source>Directory</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="211"/>
+        <source>File</source>
+        <translation type="unfinished">Archivo</translation>
+    </message>
+    <message>
+        <location filename="../qefifileselectiondialog.cpp" line="288"/>
+        <source>Selected: %1 (%2 bytes)</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>QEFILoadOptionEditorView</name>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="80"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="82"/>
         <source>ID:</source>
         <translation>ID:</translation>
     </message>
@@ -298,32 +398,60 @@
         <location filename="../qefiloadoptioneditorview.cpp" line="92"/>
         <location filename="../qefiloadoptioneditorview.cpp" line="97"/>
         <source></source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="84"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="86"/>
         <source>Name:</source>
         <translation>Nombre:</translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="88"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="90"/>
         <source>Optional Data:</source>
         <translation>Datos Opcionales:</translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="90"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="93"/>
+        <source>Select from EFI Partition</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefiloadoptioneditorview.cpp" line="98"/>
         <source>Add Device Path</source>
         <translation>Añadir Ruta de Dispositivo</translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="95"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="103"/>
         <source>Clear Device Path</source>
         <translation>Limpiar Ruta de Dispositivo</translation>
     </message>
     <message>
-        <location filename="../qefiloadoptioneditorview.cpp" line="130"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="138"/>
+        <location filename="../qefiloadoptioneditorview.cpp" line="259"/>
         <source>Device Path:</source>
         <translation>Ruta de Dispositivo:</translation>
+    </message>
+    <message>
+        <location filename="../qefiloadoptioneditorview.cpp" line="197"/>
+        <source>No File Selected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefiloadoptioneditorview.cpp" line="198"/>
+        <source>Please select a file from the EFI partition.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefiloadoptioneditorview.cpp" line="264"/>
+        <source>File Selected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qefiloadoptioneditorview.cpp" line="265"/>
+        <source>Selected: %1
+
+Device paths have been automatically configured.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

@@ -228,7 +228,7 @@ QTreeWidgetItem *QEFIFileSelectionDialog::createFileItem(const QFATFileInfo &fil
     // Store file info in item data
     item->setData(0, Qt::UserRole, fileInfo.isDirectory);
     item->setData(0, Qt::UserRole + 1, fullPath);
-    item->setData(0, Qt::UserRole + 2, qVariantFromValue(fileInfo));
+    item->setData(0, Qt::UserRole + 2, QVariant::fromValue(fileInfo));
 
     return item;
 }

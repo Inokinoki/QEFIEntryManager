@@ -214,22 +214,27 @@ void QEFILoadOptionEditorView::selectFromEFIClicked(bool checked)
     // For now, create a simplified Hard Drive + File Path device path
 
     // Create Hard Drive Media Device Path
-    QEFIDevicePathHardDrive *hdDP = new QEFIDevicePathHardDrive();
-    hdDP->setPartitionNumber(1);  // Should be extracted from partition info
-    hdDP->setPartitionStart(partition.partitionOffset / 512);  // Convert to LBA
-    hdDP->setPartitionSize(partition.partitionSize / 512);
-    hdDP->setPartitionFormat(QEFIDevicePathHardDrive::FORMAT_GPT);
-    hdDP->setSignatureType(QEFIDevicePathHardDrive::SIGNATURE_GUID);
-    // TODO: Set actual partition GUID signature
+    // Prepare signature (16 bytes for GUID, all zeros for now)
+    quint8 signature[16] = {0};
+    // TODO: Extract actual partition GUID from GPT
+
+    QEFIDevicePathMediaHD *hdDP = new QEFIDevicePathMediaHD(
+        1,  // Partition number (TODO: Should be extracted from partition info)
+        partition.partitionOffset / 512,  // Convert byte offset to LBA
+        partition.partitionSize / 512,    // Convert byte size to LBA
+        signature,
+        QEFIDevicePathMediaHD::GPT,       // GPT format
+        QEFIDevicePathMediaHD::GUID       // GUID signature type
+    );
 
     m_dps << hdDP;
 
     // Create File Path Device Path
-    QEFIDevicePathFile *fileDP = new QEFIDevicePathFile();
     // Convert Unix path to EFI path (replace / with \)
     QString efiPath = selectedPath;
     efiPath.replace('/', '\\');
-    fileDP->setPath(efiPath);
+
+    QEFIDevicePathMediaFile *fileDP = new QEFIDevicePathMediaFile(efiPath);
 
     m_dps << fileDP;
 
