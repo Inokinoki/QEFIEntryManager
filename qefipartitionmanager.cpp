@@ -605,45 +605,48 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                         volInfo.startingOffset = extents.Extents[0].StartingOffset.QuadPart;
 
                         // Get drive letter/mount point
-                        WCHAR pathNames[MAX_PATH] = {0};
+                        WCHAR pathNames[MAX_PATH * 4] = {0};  // Larger buffer for multiple paths
                         DWORD pathLen = 0;
 
                         volumeName[len] = L'\\'; // Restore trailing backslash
 
-                        if (GetVolumePathNamesForVolumeNameW(volumeName, pathNames,
-                                                            ARRAYSIZE(pathNames), &pathLen)) {
-                            if (pathLen > 1 && pathNames[0] != L'\0') {
-                                volInfo.mountPoint = QString::fromWCharArray(pathNames);
+                        BOOL pathResult = GetVolumePathNamesForVolumeNameW(volumeName, pathNames,
+                                                            ARRAYSIZE(pathNames), &pathLen);
+                        DWORD pathError = GetLastError();
 
-                                // Get filesystem type
-                                WCHAR fsName[MAX_PATH];
-                                if (GetVolumeInformationW(pathNames, NULL, 0, NULL, NULL, NULL,
-                                                         fsName, ARRAYSIZE(fsName))) {
-                                    volInfo.fileSystem = QString::fromWCharArray(fsName);
-                                }
+                        qDebug() << "GetVolumePathNamesForVolumeNameW: result=" << pathResult
+                                 << "pathLen=" << pathLen << "error=" << pathError
+                                 << "for Disk" << volInfo.diskNumber << "Offset" << volInfo.startingOffset;
 
-                                qDebug() << "Found mounted volume: Disk" << volInfo.diskNumber
-                                         << "Offset" << volInfo.startingOffset
-                                         << "Mount:" << volInfo.mountPoint
-                                         << "FS:" << volInfo.fileSystem;
-                            } else {
-                                // Volume has no mount point - it's not mounted yet
-                                // But we still need to track it for matching with partitions
-                                volInfo.mountPoint = "";  // Empty mount point
-                                volInfo.fileSystem = "";  // Unknown filesystem until mounted
+                        // Check if we got a valid mount point
+                        if (pathResult && pathLen > 1 && pathNames[0] != L'\0') {
+                            volInfo.mountPoint = QString::fromWCharArray(pathNames);
 
-                                qDebug() << "Found unmounted volume: Disk" << volInfo.diskNumber
-                                         << "Offset" << volInfo.startingOffset
-                                         << "(no mount point)";
+                            // Get filesystem type
+                            WCHAR fsName[MAX_PATH];
+                            if (GetVolumeInformationW(pathNames, NULL, 0, NULL, NULL, NULL,
+                                                     fsName, ARRAYSIZE(fsName))) {
+                                volInfo.fileSystem = QString::fromWCharArray(fsName);
                             }
 
-                            // Add to volumeList regardless of mount status
-                            volumeList.append(volInfo);
+                            qDebug() << "Found mounted volume: Disk" << volInfo.diskNumber
+                                     << "Offset" << volInfo.startingOffset
+                                     << "Mount:" << volInfo.mountPoint
+                                     << "FS:" << volInfo.fileSystem;
                         } else {
-                            qDebug() << "Failed to get volume path names for Disk" << volInfo.diskNumber
-                                     << "at offset" << volInfo.startingOffset
-                                     << "(Error:" << GetLastError() << ")";
+                            // Volume has no mount point or call failed
+                            // Still need to track it for matching with partitions
+                            volInfo.mountPoint = "";  // Empty mount point
+                            volInfo.fileSystem = "";  // Unknown filesystem until mounted
+
+                            qDebug() << "Found unmounted volume: Disk" << volInfo.diskNumber
+                                     << "Offset" << volInfo.startingOffset
+                                     << "(result=" << pathResult << ", pathLen=" << pathLen
+                                     << ", error=" << pathError << ")";
                         }
+
+                        // ALWAYS add to volumeList - we need to track all volumes
+                        volumeList.append(volInfo);
                     }
                 } else {
                     qDebug() << "Failed to get disk extents for volume" << volInfo.volumeGuid
