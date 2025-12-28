@@ -53,7 +53,7 @@ signals:
 private:
     QList<QEFIPartitionInfo> m_partitions;
 
-#if defined(Q_OS_LINUX) || defined(Q_OS_FREEBSD) || defined(Q_OS_DARWIN)
+#if defined(Q_OS_UNIX)
     // Unified Unix/POSIX implementation
     QList<QEFIPartitionInfo> scanPartitionsUnix();
     bool mountPartitionUnix(const QString &devicePath, QString &mountPoint, QString &errorMessage);

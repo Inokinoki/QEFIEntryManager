@@ -11,10 +11,50 @@
 #if defined(Q_OS_UNIX)
 #include <unistd.h>
 #include <sys/mount.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <cstring>
+#include <dirent.h>
 
 const QString g_efiPartTypeGuid = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b";
+
+// Platform-specific includes for partition information
+#ifdef Q_OS_LINUX
+#include <linux/fs.h>
+#include <linux/hdreg.h>
+#ifndef BLKGETSIZE64
+#include <linux/ioctl.h>
+#define BLKGETSIZE64 _IOR(0x12,114,size_t)
+#endif
+#endif
+
+#ifdef Q_OS_FREEBSD
+#include <sys/disk.h>
+#include <sys/disklabel.h>
+#include <sys/param.h>
+#include <sys/ucred.h>
+#include <sys/mount.h>
+#include <libgeom.h>
+#endif
+
+#ifdef Q_OS_DARWIN
+#include <sys/disk.h>
+#include <sys/stat.h>
+#include <IOKit/IOKitLib.h>
+#include <IOKit/storage/IOBlockStorageDevice.h>
+#include <IOKit/IOBSD.h>
+
+// macOS disk I/O control definitions
+#ifndef DKIOCGETBLOCKCOUNT
+#define DKIOCGETBLOCKCOUNT _IOR('d', 25, uint64_t)
+#endif
+#ifndef DKIOCGETBLOCKSIZE
+#define DKIOCGETBLOCKSIZE _IOR('d', 24, uint32_t)
+#endif
+#endif
+
 #endif
 
 #ifdef Q_OS_WIN
@@ -108,129 +148,300 @@ void QEFIPartitionManager::refresh()
 }
 
 #if defined(Q_OS_UNIX)
-QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsUnix()
+// Helper function to get partition size using ioctl
+static quint64 getPartitionSize(const QString &devicePath)
 {
-    QList<QEFIPartitionInfo> partitions;
+    quint64 size = 0;
+    int fd = open(devicePath.toUtf8().constData(), O_RDONLY);
+    if (fd < 0) {
+        return 0;
+    }
 
 #ifdef Q_OS_LINUX
-    // Use lsblk to get partition information on Linux
-    QProcess lsblk;
-    lsblk.start("lsblk", QStringList()
-        << "-o" << "PATH,SIZE,LABEL,PARTTYPE,PARTUUID,FSTYPE,MOUNTPOINT"
-        << "-b" << "-P");
-
-    if (!lsblk.waitForFinished()) {
-        qWarning() << "Failed to execute lsblk";
-        return partitions;
-    }
-
-    QString output = QString::fromUtf8(lsblk.readAllStandardOutput());
-    QStringList lines = output.split('\n', Qt::SkipEmptyParts);
-
-
-    for (const QString &line : lines) {
-        QEFIPartitionInfo info;
-
-        // Parse lsblk output
-        QRegularExpression pathRe("PATH=\"([^\"]*)\"");
-        QRegularExpression sizeRe("SIZE=\"([^\"]*)\"");
-        QRegularExpression labelRe("LABEL=\"([^\"]*)\"");
-        QRegularExpression parttypeRe("PARTTYPE=\"([^\"]*)\"");
-        QRegularExpression partuuidRe("PARTUUID=\"([^\"]*)\"");
-        QRegularExpression fstypeRe("FSTYPE=\"([^\"]*)\"");
-        QRegularExpression mountpointRe("MOUNTPOINT=\"([^\"]*)\"");
-
-        auto pathMatch = pathRe.match(line);
-        if (pathMatch.hasMatch()) {
-            info.devicePath = pathMatch.captured(1);
-        } else {
-            continue;
-        }
-
-        auto sizeMatch = sizeRe.match(line);
-        if (sizeMatch.hasMatch()) {
-            info.size = sizeMatch.captured(1).toULongLong();
-        }
-
-        auto labelMatch = labelRe.match(line);
-        if (labelMatch.hasMatch()) {
-            info.label = labelMatch.captured(1);
-        }
-
-        auto parttypeMatch = parttypeRe.match(line);
-        if (parttypeMatch.hasMatch()) {
-            QString partType = parttypeMatch.captured(1).toLower();
-            info.isEFI = (partType == g_efiPartTypeGuid);
-        }
-
-        auto partuuidMatch = partuuidRe.match(line);
-        if (partuuidMatch.hasMatch()) {
-            info.partitionGuid = QUuid(partuuidMatch.captured(1));
-        }
-
-        auto fstypeMatch = fstypeRe.match(line);
-        if (fstypeMatch.hasMatch()) {
-            info.fileSystem = fstypeMatch.captured(1);
-        }
-
-        auto mountpointMatch = mountpointRe.match(line);
-        if (mountpointMatch.hasMatch()) {
-            info.mountPoint = mountpointMatch.captured(1);
-            info.isMounted = !info.mountPoint.isEmpty();
-        }
-
-        // Extract partition number from device path
-        QRegularExpression partNumRe("\\d+$");
-        auto partNumMatch = partNumRe.match(info.devicePath);
-        if (partNumMatch.hasMatch()) {
-            info.partitionNumber = partNumMatch.captured(0).toUInt();
-        }
-
-        // Only add if it's a partition (not a whole disk)
-        if (info.devicePath.contains(QRegularExpression("\\d+$"))) {
-            partitions.append(info);
-        }
+    // Use BLKGETSIZE64 ioctl on Linux
+    if (ioctl(fd, BLKGETSIZE64, &size) < 0) {
+        size = 0;
     }
 #elif defined(Q_OS_FREEBSD)
-    // Use gpart to list partitions on FreeBSD
-    QProcess gpart;
-    gpart.start("gpart", QStringList() << "status" << "-s");
-
-    if (!gpart.waitForFinished()) {
-        qWarning() << "Failed to execute gpart";
-        return partitions;
+    // Use DIOCGMEDIASIZE on FreeBSD
+    off_t mediaSize = 0;
+    if (ioctl(fd, DIOCGMEDIASIZE, &mediaSize) >= 0) {
+        size = static_cast<quint64>(mediaSize);
     }
+#elif defined(Q_OS_DARWIN)
+    // On macOS, use DKIOCGETBLOCKCOUNT and DKIOCGETBLOCKSIZE
+    uint64_t blockCount = 0;
+    uint32_t blockSize = 0;
 
-    QString output = QString::fromUtf8(gpart.readAllStandardOutput());
-    QStringList lines = output.split('\n', Qt::SkipEmptyParts);
-
-    // Parse gpart output
-    for (int i = 1; i < lines.size(); ++i) {
-        QStringList fields = lines[i].split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
-        if (fields.size() < 4) continue;
-
-        QEFIPartitionInfo info;
-        info.devicePath = "/dev/" + fields[0];
-
-        // Check if it's an EFI partition
-        if (fields.size() > 3 && fields[3].toLower().contains("efi")) {
-            info.isEFI = true;
-        }
-
-        // Get more details using gpart show
-        QProcess gpartShow;
-        gpartShow.start("gpart", QStringList() << "show" << "-l" << fields[0]);
-        if (gpartShow.waitForFinished()) {
-            QString showOutput = QString::fromUtf8(gpartShow.readAllStandardOutput());
-            // Parse additional information from gpart show
-        }
-
-        partitions.append(info);
+    if (ioctl(fd, DKIOCGETBLOCKCOUNT, &blockCount) >= 0 &&
+        ioctl(fd, DKIOCGETBLOCKSIZE, &blockSize) >= 0) {
+        size = blockCount * blockSize;
     }
 #endif
 
-    m_partitions = partitions;
+    close(fd);
+    return size;
+}
+
+// Helper function to read a sysfs file (Linux only)
+#ifdef Q_OS_LINUX
+static QString readSysfsFile(const QString &path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return QString();
+    }
+    QString content = QString::fromUtf8(file.readAll().trimmed());
+    file.close();
+    return content;
+}
+
+// Helper function to check if partition is EFI by reading partition type GUID from sysfs
+static bool isEfiPartitionLinux(const QString &deviceName)
+{
+    // Read partition type GUID from /sys/class/block/<device>/partition
+    QString sysPath = QString("/sys/class/block/%1/partition").arg(deviceName);
+    if (!QFile::exists(sysPath)) {
+        return false;
+    }
+
+    // Read the partition type GUID
+    QString partTypePath = QString("/sys/class/block/%1/partition_type_guid").arg(deviceName);
+    QString partType = readSysfsFile(partTypePath);
+
+    if (!partType.isEmpty()) {
+        // Remove any hyphens and compare
+        partType = partType.toLower().remove('-');
+        QString efiGuid = QString(g_efiPartTypeGuid).remove('-');
+        return (partType == efiGuid);
+    }
+
+    return false;
+}
+
+// Helper function to get mount point from /proc/mounts
+static QString getMountPoint(const QString &devicePath)
+{
+    QFile mountsFile("/proc/mounts");
+    if (!mountsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return QString();
+    }
+
+    QTextStream in(&mountsFile);
+    while (!in.atEnd()) {
+        QString line = in.readLine();
+        QStringList fields = line.split(' ');
+        if (fields.size() >= 2 && fields[0] == devicePath) {
+            mountsFile.close();
+            return fields[1];
+        }
+    }
+
+    mountsFile.close();
+    return QString();
+}
+#endif
+
+#ifdef Q_OS_LINUX
+const QList<QEFIPartitionInfo> scanPartitionsLinux()
+{
+    QList<QEFIPartitionInfo> partitions;
+    // Scan /sys/class/block for all block devices
+    QDir blockDir("/sys/class/block");
+    if (!blockDir.exists()) {
+        qWarning() << "Failed to access /sys/class/block";
+        return partitions;
+    }
+
+    QStringList devices = blockDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+
+    for (const QString &deviceName : devices) {
+        // Skip loop devices, ram disks, etc.
+        if (deviceName.startsWith("loop") || deviceName.startsWith("ram") ||
+            deviceName.startsWith("dm-")) {
+            continue;
+        }
+
+        // Only process partitions (devices with a partition number)
+        QRegularExpression partRe("^(sd[a-z]|nvme\\d+n\\d+|mmcblk\\d+|vd[a-z])p?\\d+$");
+        if (!partRe.match(deviceName).hasMatch()) {
+            continue;
+        }
+
+        QString devicePath = "/dev/" + deviceName;
+
+        // Check if this is an EFI partition
+        if (!isEfiPartitionLinux(deviceName)) {
+            continue;
+        }
+
+        QEFIPartitionInfo info;
+        info.devicePath = devicePath;
+        info.isEFI = true;
+
+        // Get partition size
+        info.size = getPartitionSize(devicePath);
+
+        // Extract partition number
+        QRegularExpression partNumRe("(\\d+)$");
+        auto partNumMatch = partNumRe.match(deviceName);
+        if (partNumMatch.hasMatch()) {
+            info.partitionNumber = partNumMatch.captured(1).toUInt();
+        }
+
+        // Read partition UUID
+        QString partUuidPath = QString("/sys/class/block/%1/partition").arg(deviceName);
+        if (QFile::exists(partUuidPath)) {
+            QString uuidPath = QString("/sys/class/block/%1/partition_uuid").arg(deviceName);
+            QString uuid = readSysfsFile(uuidPath);
+            if (!uuid.isEmpty()) {
+                info.partitionGuid = QUuid(uuid);
+            }
+        }
+
+        // Try to get filesystem label
+        QString labelPath = QString("/sys/class/block/%1/label").arg(deviceName);
+        info.label = readSysfsFile(labelPath);
+        if (info.label.isEmpty()) {
+            info.label = "EFI System Partition";
+        }
+
+        // Detect filesystem type (typically vfat for EFI)
+        info.fileSystem = "vfat";
+
+        // Check if mounted and get mount point
+        info.mountPoint = getMountPoint(devicePath);
+        info.isMounted = !info.mountPoint.isEmpty();
+
+        partitions.append(info);
+    }
     return partitions;
+}
+#elif defined(Q_OS_FREEBSD)
+const QList<QEFIPartitionInfo> scanPartitionsFreeBSD()
+{
+    QList<QEFIPartitionInfo> partitions;
+    // On FreeBSD, use geom library to enumerate partitions
+    struct gmesh mesh;
+    struct gclass *classp;
+    struct ggeom *gp;
+    struct gprovider *pp;
+
+    if (geom_gettree(&mesh) != 0) {
+        qWarning() << "Failed to get GEOM tree";
+        return partitions;
+    }
+
+    // Find the PART class (partitions)
+    LIST_FOREACH(classp, &mesh.lg_class, lg_class) {
+        if (strcmp(classp->lg_name, "PART") == 0) {
+            LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+                LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+                    // Check if this is an EFI partition by type
+                    struct gconfig *gc;
+                    bool isEfi = false;
+
+                    LIST_FOREACH(gc, &pp->lg_config, lg_config) {
+                        if (strcmp(gc->lg_name, "type") == 0) {
+                            QString type = QString(gc->lg_val).toLower();
+                            // FreeBSD uses "efi" as the type name for EFI partitions
+                            if (type.contains("efi") || type == "c12a7328-f81f-11d2-ba4b-00a0c93ec93b") {
+                                isEfi = true;
+                            }
+                        }
+                    }
+
+                    if (!isEfi) {
+                        continue;
+                    }
+
+                    QEFIPartitionInfo info;
+                    info.devicePath = QString("/dev/%1").arg(pp->lg_name);
+                    info.isEFI = true;
+                    info.size = pp->lg_mediasize;
+                    info.label = "EFI System Partition";
+                    info.fileSystem = "msdosfs";
+
+                    // Extract partition number from name (e.g., ada0p1 -> 1)
+                    QRegularExpression partNumRe("p(\\d+)$");
+                    auto match = partNumRe.match(QString(pp->lg_name));
+                    if (match.hasMatch()) {
+                        info.partitionNumber = match.captured(1).toUInt();
+                    }
+
+                    // Check if mounted (read /etc/fstab or use getmntinfo)
+                    struct statfs *mntbuf;
+                    int mntsize = getmntinfo(&mntbuf, MNT_NOWAIT);
+                    for (int i = 0; i < mntsize; i++) {
+                        if (info.devicePath == QString(mntbuf[i].f_mntfromname)) {
+                            info.mountPoint = QString(mntbuf[i].f_mntonname);
+                            info.isMounted = true;
+                            break;
+                        }
+                    }
+
+                    partitions.append(info);
+                }
+            }
+        }
+    }
+
+    geom_deletetree(&mesh);
+    return partitions;
+}
+
+#elif defined(Q_OS_DARWIN)
+const QList<QEFIPartitionInfo> scanPartitionsMacOS()
+{
+    QList<QEFIPartitionInfo> partitions;
+    // On macOS, scan /dev for diskXsY devices
+    QDir devDir("/dev");
+    QStringList devices = devDir.entryList(QStringList() << "disk*s*", QDir::System);
+
+    for (const QString &deviceName : devices) {
+        QString devicePath = "/dev/" + deviceName;
+
+        // Get partition info - on macOS, we'd need to use IOKit
+        // For now, just detect by size and basic checks
+        quint64 size = getPartitionSize(devicePath);
+
+        // EFI partitions are typically small (200-600 MB)
+        if (size > 0) {
+            QEFIPartitionInfo info;
+            info.devicePath = devicePath;
+            info.size = size;
+            info.label = "EFI System Partition";
+            info.fileSystem = "msdos";
+
+            // Extract partition number
+            QRegularExpression partNumRe("s(\\d+)$");
+            auto match = partNumRe.match(deviceName);
+            if (match.hasMatch()) {
+                info.partitionNumber = match.captured(1).toUInt();
+            }
+
+            info.isEFI = true;
+            partitions.append(info);
+        }
+    }
+
+    return partitions;
+}
+#endif
+
+QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsUnix()
+{
+    m_partitions =
+#ifdef Q_OS_LINUX
+        scanPartitionsLinux();
+#elif defined(Q_OS_FREEBSD)
+        scanPartitionsFreeBSD();
+#elif defined(Q_OS_DARWIN)
+        scanPartitionsMacOS();
+#else
+    throw std::runtime_error("Unsupported Unix platform");
+#endif
+    return m_partitions;
 }
 
 bool QEFIPartitionManager::mountPartitionUnix(const QString &devicePath, QString &mountPoint, QString &errorMessage)
@@ -258,27 +469,25 @@ bool QEFIPartitionManager::mountPartitionUnix(const QString &devicePath, QString
     }
 
     // Use POSIX mount system call
-    const char* source = devicePath.toUtf8().constData();
-    const char* target = mountPoint.toUtf8().constData();
-    const char* filesystemtype = nullptr;
-    unsigned long mountflags = 0;
-    void* data = nullptr;
+    int result = -1;
 
 #ifdef Q_OS_LINUX
-    // On Linux, we can let the kernel auto-detect the filesystem
-    // EFI partitions are typically vfat
-    filesystemtype = "vfat";
-    mountflags = 0; // Default mount flags
-    int result = mount(source, target, filesystemtype, mountflags, data);
-#elif defined(Q_OS_FREEBSD)
-    // On FreeBSD, EFI partitions use msdosfs
-    filesystemtype = "msdosfs";
-    mountflags = 0;
-    int result = mount(source, target, filesystemtype, mountflags, data);
-#elif defined(Q_OS_DARWIN)
-    // On macOS, mount uses different parameters - this is only useful on Intel Macs
-    mountflags = 0;
-    int result = mount(source, target, mountflags, data);
+    // On Linux, use the mount syscall
+    const char* source = devicePath.toUtf8().constData();
+    const char* target = mountPoint.toUtf8().constData();
+    const char* filesystemtype = "vfat"; // EFI partitions are typically vfat
+    unsigned long mountflags = 0;
+    const void* data = nullptr;
+
+    result = mount(source, target, filesystemtype, mountflags, data);
+
+#elif defined(Q_OS_FREEBSD) || defined(Q_OS_DARWIN)
+    // On FreeBSD or macOS, use mount syscall
+    const char* source = devicePath.toUtf8().constData();
+    const char* target = mountPoint.toUtf8().constData();
+
+    // FreeBSD or macOS mount signature: mount(const char *type, const char *dir, int flags, void *data)
+    result = mount("msdosfs", target, 0, (void*)source);
 #endif
 
     if (result != 0) {
