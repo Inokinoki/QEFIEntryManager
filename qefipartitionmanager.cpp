@@ -622,17 +622,23 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                                     volInfo.fileSystem = QString::fromWCharArray(fsName);
                                 }
 
-                                qDebug() << "Found volume: Disk" << volInfo.diskNumber
+                                qDebug() << "Found mounted volume: Disk" << volInfo.diskNumber
                                          << "Offset" << volInfo.startingOffset
                                          << "Mount:" << volInfo.mountPoint
                                          << "FS:" << volInfo.fileSystem;
-
-                                volumeList.append(volInfo);
                             } else {
-                                qDebug() << "Volume on Disk" << volInfo.diskNumber
-                                         << "at offset" << volInfo.startingOffset
-                                         << "has no mount point (pathLen=" << pathLen << ")";
+                                // Volume has no mount point - it's not mounted yet
+                                // But we still need to track it for matching with partitions
+                                volInfo.mountPoint = "";  // Empty mount point
+                                volInfo.fileSystem = "";  // Unknown filesystem until mounted
+
+                                qDebug() << "Found unmounted volume: Disk" << volInfo.diskNumber
+                                         << "Offset" << volInfo.startingOffset
+                                         << "(no mount point)";
                             }
+
+                            // Add to volumeList regardless of mount status
+                            volumeList.append(volInfo);
                         } else {
                             qDebug() << "Failed to get volume path names for Disk" << volInfo.diskNumber
                                      << "at offset" << volInfo.startingOffset
@@ -738,11 +744,17 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                     if (vol.diskNumber == diskNumber &&
                         vol.startingOffset == partInfo.StartingOffset.QuadPart) {
                         info.mountPoint = vol.mountPoint;
-                        info.isMounted = true;
                         info.fileSystem = vol.fileSystem;
 
-                        qDebug() << "  -> Matched to mount point:" << vol.mountPoint
-                                 << "FS:" << vol.fileSystem;
+                        // Only mark as mounted if the volume has a mount point
+                        info.isMounted = !vol.mountPoint.isEmpty();
+
+                        if (info.isMounted) {
+                            qDebug() << "  -> Matched to mounted volume:" << vol.mountPoint
+                                     << "FS:" << vol.fileSystem;
+                        } else {
+                            qDebug() << "  -> Matched to unmounted volume (no mount point)";
+                        }
                         matched = true;
                         break;
                     }
@@ -750,7 +762,7 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
 
                 if (!matched) {
                     qDebug() << "  -> No matching volume found in volumeList";
-                    qDebug() << "  -> Checking" << volumeList.size() << "volumes for Disk"
+                    qDebug() << "  -> Checked" << volumeList.size() << "volumes for Disk"
                              << diskNumber << "Offset" << partInfo.StartingOffset.QuadPart;
                 }
 
