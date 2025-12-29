@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "qefipartitionmanager.h"
+#include "cli.h"
 
 #include <QApplication>
 #include <QDebug>
@@ -85,8 +86,30 @@ static int runPartitionScanTest()
     return 0;
 }
 
+// Check if we should run in CLI mode
+bool shouldUseCLIMode(int argc, char *argv[])
+{
+    // If there are command-line arguments (other than program name), use CLI mode
+    for (int i = 1; i < argc; i++) {
+        QString arg = QString::fromLocal8Bit(argv[i]);
+        // Any argument triggers CLI mode
+        if (!arg.isEmpty()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 int main(int argc, char *argv[])
 {
+    // Detect CLI mode early
+    if (shouldUseCLIMode(argc, argv)) {
+        // CLI mode
+        CLI cli(argc, argv);
+        return cli.execute();
+    }
+
+    // GUI mode (original behavior)
     QApplication a(argc, argv);
     a.setApplicationName("QEFIEntryManager");
     // TODO: Move this to a generated header file during building

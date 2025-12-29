@@ -1,0 +1,213 @@
+.TH QEFIBOOTMGR 8 "December 2025" "QEFIEntryManager 0.4.1" "System Administration"
+.SH NAME
+qefibootmgr, efibootmgr \- manipulate the UEFI Boot Manager
+.SH SYNOPSIS
+.B qefibootmgr
+[\fIOPTIONS\fR]
+.br
+.B efibootmgr
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+.B qefibootmgr
+is a userspace application to modify the UEFI Boot Manager. It provides a command-line interface compatible with the standard
+.BR efibootmgr (8)
+tool, allowing users to view and modify boot entries, change boot order, set boot timeout, and configure BootNext.
+.PP
+.B efibootmgr
+is provided as an alias (symlink on Unix-like systems, separate executable on Windows) for drop-in compatibility with existing scripts and tools.
+.PP
+This application requires administrator/root privileges to modify EFI variables and must be run on a system booted in UEFI mode (not BIOS/CSM).
+.SH OPTIONS
+.SS Display Options
+.TP
+.BR \-h ", " \-\-help
+Display help information and exit.
+.TP
+.BR \-v ", " \-\-verbose
+Verbose mode. Print additional information including device paths.
+.TP
+.BR \-q ", " \-\-quiet
+Quiet mode. Suppress all non-error output.
+.TP
+.BR \-V ", " \-\-version
+Print version string and exit.
+.SS Boot Entry Selection
+.TP
+.BR \-b ", " \-\-bootnum \ \fIXXXX\fR
+Specify boot entry number in hexadecimal (e.g., 0000, 0001). Required for
+.BR \-a ,
+.BR \-A ,
+and
+.B \-B
+options.
+.SS Boot Entry Modification
+.TP
+.BR \-a ", " \-\-active
+Set the boot entry specified by
+.B \-b
+as active.
+.TP
+.BR \-A ", " \-\-inactive
+Set the boot entry specified by
+.B \-b
+as inactive.
+.TP
+.BR \-B ", " \-\-delete-bootnum
+Delete the boot entry specified by
+.BR \-b .
+.SS Boot Order Management
+.TP
+.BR \-o ", " \-\-bootorder \ \fIXXXX,YYYY,ZZZZ\fR
+Explicitly set the boot order. Boot entry numbers are specified in hexadecimal, separated by commas.
+.TP
+.BR \-O ", " \-\-delete-bootorder
+Delete the boot order variable.
+.TP
+.BR \-n ", " \-\-bootnext \ \fIXXXX\fR
+Set BootNext to the specified boot entry (in hexadecimal). This entry will be booted on the next reboot only, superseding the boot order for one boot.
+.TP
+.BR \-N ", " \-\-delete-bootnext
+Delete the BootNext variable.
+.SS Timeout Management
+.TP
+.BR \-t ", " \-\-timeout \ \fISECONDS\fR
+Set the boot manager timeout in seconds.
+.TP
+.BR \-T ", " \-\-delete-timeout
+Delete the timeout variable.
+.SS Maintenance
+.TP
+.BR \-D ", " \-\-remove-dups
+Remove duplicate entries from the boot order.
+.SS Boot Entry Creation (Not Implemented)
+.TP
+.BR \-c ", " \-\-create
+Create new boot entry and add to boot order. \fBNot yet implemented.\fR Use the GUI for creating boot entries.
+.TP
+.BR \-C ", " \-\-create-only
+Create new boot entry without adding to boot order. \fBNot yet implemented.\fR
+.TP
+.BR \-d ", " \-\-disk \ \fIDISK\fR
+Specify disk containing the loader (for use with
+.BR \-c ).
+.TP
+.BR \-p ", " \-\-part \ \fIPART\fR
+Specify partition number containing the bootloader (for use with
+.BR \-c ).
+.TP
+.BR \-l ", " \-\-loader \ \fINAME\fR
+Specify loader path (for use with
+.BR \-c ).
+.TP
+.BR \-L ", " \-\-label \ \fILABEL\fR
+Specify boot manager display label (for use with
+.BR \-c ).
+.SH EXAMPLES
+.SS View all boot entries with verbose output
+.nf
+.B sudo qefibootmgr \-v
+.fi
+.SS Change boot order to prioritize a specific entry
+.nf
+.B sudo efibootmgr \-o 0001,0000,0002
+.fi
+.SS Disable a boot entry
+.nf
+.B sudo qefibootmgr \-b 0002 \-A
+.fi
+.SS Enable a boot entry
+.nf
+.B sudo qefibootmgr \-b 0001 \-a
+.fi
+.SS Boot into a specific entry on next reboot only
+.nf
+.B sudo efibootmgr \-n 0001
+.B sudo reboot
+.fi
+.SS Delete a boot entry
+.nf
+.B sudo qefibootmgr \-b 0003 \-B
+.fi
+.SS Set timeout and clean up duplicates
+.nf
+.B sudo qefibootmgr \-t 10 \-D
+.fi
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+Error occurred (no EFI environment, insufficient privileges, invalid arguments, or operation failed).
+.SH NOTES
+.IP \(bu 2
+All boot entry numbers must be specified in hexadecimal (e.g., 0000, 0001, 00FF).
+.IP \(bu 2
+Changes are immediate and permanent. Use with caution.
+.IP \(bu 2
+Always verify changes with
+.B \-v
+before rebooting.
+.IP \(bu 2
+Keep a backup boot entry or recovery media available.
+.SH PLATFORM-SPECIFIC NOTES
+.SS Linux/Unix
+Run with
+.BR sudo (8)
+or as root:
+.PP
+.nf
+.B sudo qefibootmgr \-v
+.fi
+.SS FreeBSD
+Run with
+.BR su (1)
+or
+.BR doas (1):
+.PP
+.nf
+.B doas qefibootmgr \-v
+.fi
+.SS Windows
+The executables include an embedded UAC manifest for automatic administrator elevation. A UAC prompt will appear when running the command.
+.PP
+For scripting on Windows, run scripts from an already-elevated console (Command Prompt or PowerShell run as Administrator).
+.PP
+On Windows, use backslashes in paths:
+.BR \\EFI\\Microsoft\\Boot\\bootmgfw.efi
+.SH COMPATIBILITY
+This implementation is designed to be compatible with the standard
+.BR efibootmgr (8)
+command-line tool. Most common options are supported with the same syntax.
+.PP
+The following advanced options from standard efibootmgr are not yet implemented:
+.IP \(bu 2
+Network boot options (\fB\-i\fR)
+.IP \(bu 2
+EDD options (\fB\-e\fR, \fB\-E\fR)
+.IP \(bu 2
+Driver variables (\fB\-r\fR)
+.IP \(bu 2
+SysPrep variables (\fB\-y\fR)
+.IP \(bu 2
+Binary arguments (\fB\-@\fR)
+.IP \(bu 2
+Mirror options (\fB\-m\fR, \fB\-M\fR)
+.PP
+For these advanced features, please use the QEFIEntryManager GUI or contribute to the project.
+.SH REQUIREMENTS
+.IP \(bu 2
+Administrator or root privileges
+.IP \(bu 2
+System must be booted in UEFI mode (not BIOS/CSM)
+.SH BUGS
+Boot entry creation (\fB\-c\fR, \fB\-C\fR) is not yet implemented in CLI mode. Use the GUI for creating new boot entries.
+.PP
+Report bugs at: https://github.com/Inokinoki/QEFIEntryManager/issues
+.SH SEE ALSO
+.BR efibootmgr (8),
+.BR efivar (1)
+.PP
+QEFIEntryManager project: https://github.com/Inokinoki/QEFIEntryManager
+.SH AUTHOR
+Inoki <veyx.shaw@gmail.com>

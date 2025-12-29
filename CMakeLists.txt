@@ -23,6 +23,8 @@ set(PROJECT_SOURCES
         main.cpp
         mainwindow.cpp
         mainwindow.h
+        cli.cpp
+        cli.h
         qefientrydetailview.cpp
         qefientrydetailview.h
         qefientrydpdetailview.cpp
@@ -118,9 +120,67 @@ target_include_directories(QEFIEntryManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/
 # Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
 target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
 
-install(TARGETS QEFIEntryManager
-        RUNTIME DESTINATION bin
+# Build qefibootmgr CLI-only executable
+set(CLI_SOURCES
+        cli.cpp
+        cli.h
+        qefientry.cpp
+        qefientry.h
+        qefientrystaticlist.cpp
+        qefientrystaticlist.h
+        qefivar/qefi.cpp
+        qefivar/qefidpacpi.cpp
+        qefivar/qefidphw.cpp
+        qefivar/qefidpmedia.cpp
+        qefivar/qefidpmessage.cpp
 )
+
+add_executable(qefibootmgr qefibootmgr.cpp ${CLI_SOURCES})
+
+# qefibootmgr only needs Core (no Widgets/GUI)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
+target_link_libraries(qefibootmgr PRIVATE Qt${QT_VERSION_MAJOR}::Core)
+target_include_directories(qefibootmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
+
+# Set Windows admin elevation for CLI tools
+if(WIN32)
+    # qefibootmgr requires admin privileges on Windows
+    set_target_properties(qefibootmgr PROPERTIES
+        WIN32_EXECUTABLE FALSE
+    )
+    target_link_options(qefibootmgr PRIVATE "/MANIFESTUAC:level='requireAdministrator'")
+
+    # Build efibootmgr executable (for Windows compatibility)
+    # On Windows, we create a separate executable instead of symlink
+    # using the same source as qefibootmgr
+    add_executable(efibootmgr qefibootmgr.cpp ${CLI_SOURCES})
+    target_link_libraries(efibootmgr PRIVATE Qt${QT_VERSION_MAJOR}::Core)
+    target_include_directories(efibootmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
+
+    # efibootmgr also requires admin elevation
+    set_target_properties(efibootmgr PROPERTIES
+        WIN32_EXECUTABLE FALSE
+    )
+    target_link_options(efibootmgr PRIVATE "/MANIFESTUAC:level='requireAdministrator'")
+endif()
+
+# Link FreeBSD libraries for CLI tools if needed
+if(NOT APP_DATA_DUMMY_BACKEND AND NOT WIN32)
+    if(${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+        target_link_libraries(qefibootmgr PUBLIC efivar geom)
+    endif()
+endif()
+
+# Install executables
+if(WIN32)
+    install(TARGETS QEFIEntryManager qefibootmgr efibootmgr
+            RUNTIME DESTINATION bin
+    )
+else()
+    install(TARGETS QEFIEntryManager qefibootmgr
+            RUNTIME DESTINATION bin
+    )
+endif()
 # For AppImage
 include(GNUInstallDirs)
 install(PROGRAMS qefientrymanager-launcher
@@ -139,6 +199,20 @@ install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/qefientrymanager.desktop
 install(FILES cc.inoki.qefientrymanager.png
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/96x96/apps
 )
+
+# Install man page for qefibootmgr/efibootmgr on Unix-like systems
+if(UNIX)
+    install(FILES qefibootmgr.8
+            DESTINATION ${CMAKE_INSTALL_MANDIR}/man8
+    )
+endif()
+
+# Create efibootmgr symlink to qefibootmgr on Unix-like systems
+if(UNIX)
+    install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \
+        qefibootmgr \
+        \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/efibootmgr)")
+endif()
 
 # Use CPack to generate the package(s)
 if(ENABLE_PACKAGING)
