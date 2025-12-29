@@ -116,7 +116,6 @@ target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt
 
 # Build qefibootmgr CLI-only executable
 set(CLI_SOURCES
-        qefibootmgr.cpp
         cli.cpp
         cli.h
         qefientry.cpp
@@ -130,24 +129,44 @@ set(CLI_SOURCES
         qefivar/qefidpmessage.cpp
 )
 
-add_executable(qefibootmgr ${CLI_SOURCES})
+add_executable(qefibootmgr qefibootmgr.cpp ${CLI_SOURCES})
 
 # qefibootmgr only needs Core (no Widgets/GUI)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
 target_link_libraries(qefibootmgr PRIVATE Qt${QT_VERSION_MAJOR}::Core)
-
 target_include_directories(qefibootmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
 
-# Link FreeBSD libraries for qefibootmgr if needed
+# Build efibootmgr executable (for Windows compatibility)
+# On Windows, we create a separate executable instead of symlink
+# using the same source as qefibootmgr
+if(WIN32)
+    add_executable(efibootmgr qefibootmgr.cpp ${CLI_SOURCES})
+    target_link_libraries(efibootmgr PRIVATE Qt${QT_VERSION_MAJOR}::Core)
+    target_include_directories(efibootmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
+
+    # Windows requires admin elevation
+    set_target_properties(efibootmgr PROPERTIES
+        WIN32_EXECUTABLE FALSE
+    )
+endif()
+
+# Link FreeBSD libraries for CLI tools if needed
 if(NOT APP_DATA_DUMMY_BACKEND AND NOT WIN32)
     if(${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
         target_link_libraries(qefibootmgr PUBLIC efivar geom)
     endif()
 endif()
 
-install(TARGETS QEFIEntryManager qefibootmgr
-        RUNTIME DESTINATION bin
-)
+# Install executables
+if(WIN32)
+    install(TARGETS QEFIEntryManager qefibootmgr efibootmgr
+            RUNTIME DESTINATION bin
+    )
+else()
+    install(TARGETS QEFIEntryManager qefibootmgr
+            RUNTIME DESTINATION bin
+    )
+endif()
 # For AppImage
 include(GNUInstallDirs)
 install(PROGRAMS qefientrymanager-launcher

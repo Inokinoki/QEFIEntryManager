@@ -4,10 +4,12 @@ QEFIEntryManager now supports a command-line interface (CLI) mode that is compat
 
 ## CLI Executables
 
-The project provides two ways to use the CLI:
+The project provides three ways to use the CLI:
 
 1. **qefibootmgr** - Dedicated CLI-only executable (recommended for CLI usage)
-2. **efibootmgr** - Symlink/alias to qefibootmgr for drop-in compatibility with standard efibootmgr
+2. **efibootmgr** - Drop-in compatible alias for standard efibootmgr
+   - On Unix-like systems (Linux, macOS, FreeBSD): Symlink to qefibootmgr
+   - On Windows: Separate executable name (same binary as qefibootmgr)
 3. **QEFIEntryManager** - Main executable that auto-detects CLI mode when arguments are provided
 
 ## Usage
