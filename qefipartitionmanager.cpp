@@ -746,6 +746,9 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
             continue; // Can't open this disk
         }
 
+        // Declare bytesReturned for DeviceIoControl calls
+        DWORD bytesReturned = 0;
+
         // Get the disk number using STORAGE_DEVICE_NUMBER
         STORAGE_DEVICE_NUMBER diskNumber;
         if (!DeviceIoControl(hDisk, IOCTL_STORAGE_GET_DEVICE_NUMBER,
