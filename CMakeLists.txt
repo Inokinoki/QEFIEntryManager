@@ -141,8 +141,8 @@ if(WIN32)
     # qefibootmgr requires admin privileges on Windows
     set_target_properties(qefibootmgr PROPERTIES
         WIN32_EXECUTABLE FALSE
-        LINK_FLAGS "/MANIFESTUAC:\"level='requireAdministrator'\""
     )
+    target_link_options(qefibootmgr PRIVATE "/MANIFESTUAC:level='requireAdministrator'")
 
     # Build efibootmgr executable (for Windows compatibility)
     # On Windows, we create a separate executable instead of symlink
@@ -154,8 +154,8 @@ if(WIN32)
     # efibootmgr also requires admin elevation
     set_target_properties(efibootmgr PROPERTIES
         WIN32_EXECUTABLE FALSE
-        LINK_FLAGS "/MANIFESTUAC:\"level='requireAdministrator'\""
     )
+    target_link_options(efibootmgr PRIVATE "/MANIFESTUAC:level='requireAdministrator'")
 endif()
 
 # Link FreeBSD libraries for CLI tools if needed

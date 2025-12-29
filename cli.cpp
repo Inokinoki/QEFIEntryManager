@@ -1,7 +1,6 @@
 #include "cli.h"
 #include "qefientrystaticlist.h"
 #include "qefientry.h"
-#include "qefiloadoptioneditorview.h"
 
 #include <QDebug>
 #include <QTextStream>
@@ -22,6 +21,11 @@ CLI::CLI(int argc, char *argv[])
 {
     m_app = new QCoreApplication(m_argc, m_argv);
     setupParser();
+}
+
+CLI::~CLI()
+{
+    delete m_app;
 }
 
 void CLI::setupParser()
@@ -173,6 +177,11 @@ bool CLI::handleModifications()
             return false;
         }
 
+        if (m_parser.isSet("active") && m_parser.isSet("inactive")) {
+            err << "Error: Cannot specify both --active and --inactive" << Qt::endl;
+            return false;
+        }
+
         QString bootnumStr = m_parser.value("bootnum");
         bool ok;
         quint16 bootnum = bootnumStr.toUShort(&ok, 16);
@@ -309,7 +318,7 @@ bool CLI::handleModifications()
         return false;
     }
 
-    return modified;
+    return true;  // Success (whether or not modifications were made)
 }
 
 int CLI::execute()
