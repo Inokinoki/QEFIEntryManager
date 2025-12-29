@@ -120,7 +120,12 @@ void QEFIPartitionView::updatePartitionTable()
         m_partitionTable->setItem(row, 2, new QTableWidgetItem(formatSize(partition.size)));
         m_partitionTable->setItem(row, 3, new QTableWidgetItem(partition.fileSystem));
 
-        QString status = partition.isMounted ? tr("Mounted") : tr("Not Mounted");
+        QString status;
+        if (partition.isMounted) {
+            status = tr("Mounted at: %1").arg(partition.mountPoint);
+        } else {
+            status = tr("Not Mounted");
+        }
         m_partitionTable->setItem(row, 4, new QTableWidgetItem(status));
     }
 }
@@ -255,10 +260,23 @@ void QEFIPartitionView::openMountPoint()
         return;
     }
 
+#ifdef Q_OS_WIN
+    // On Windows, use a file dialog to browse the mount point
+    QString selectedFile = QFileDialog::getOpenFileName(
+        this,
+        tr("Browse EFI Partition - %1").arg(mountPoint),
+        mountPoint,
+        tr("All Files (*.*)")
+    );
+    // User can browse and select files, or just close the dialog
+    // No need to do anything with the selected file
+#else
+    // On Unix systems, open the mount point in file manager
     if (!QDesktopServices::openUrl(QUrl::fromLocalFile(mountPoint))) {
         QMessageBox::warning(this, tr("Failed to Open"),
                            tr("Failed to open mount point: %1").arg(mountPoint));
     }
+#endif
 }
 
 void QEFIPartitionView::selectionChanged()
@@ -296,7 +314,8 @@ void QEFIPartitionView::updateButtonStates()
 
     if (hasSelection && m_selectedRow < m_partitionTable->rowCount()) {
         QString status = m_partitionTable->item(m_selectedRow, 4)->text();
-        isMounted = (status == tr("Mounted"));
+        // Status now shows "Mounted at: <path>" or "Not Mounted"
+        isMounted = status.startsWith(tr("Mounted at:"));
     }
 
     m_mountButton->setEnabled(hasSelection && !isMounted);
