@@ -13,15 +13,15 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-# Create a memory disk (256MB - large enough for FAT32)
+# Create a memory disk (512MB - large enough for FAT32 with GPT overhead)
 echo "Creating memory disk..."
-MD_UNIT=$(mdconfig -a -t malloc -s 256M)
+MD_UNIT=$(mdconfig -a -t malloc -s 512M)
 echo "Memory disk created: /dev/$MD_UNIT"
 
 # Create GPT partition table with EFI partition
 echo "Creating GPT partition table with EFI System Partition..."
 gpart create -s gpt "$MD_UNIT"
-gpart add -t efi -s 250M -l "EFISYS" "$MD_UNIT"
+gpart add -t efi -l "EFISYS" "$MD_UNIT"
 
 # Show partition layout
 echo "Partition table created:"
