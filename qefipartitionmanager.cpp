@@ -610,21 +610,35 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                         WCHAR pathNames[MAX_PATH * 4] = {0};  // Larger buffer for multiple paths
                         DWORD pathLen = 0;
 
-                        // Restore trailing backslash if it was removed
+                        // Restore trailing backslash for GetVolumePathNamesForVolumeNameW
+                        // This API requires the volume GUID path to have a trailing backslash
                         if (hadTrailingBackslash) {
                             volumeName[len - 1] = L'\\';
                         }
 
-                        qDebug() << "Volume GUID:" << QString::fromWCharArray(volumeName)
+                        // Validate volume name format before calling GetVolumePathNamesForVolumeNameW
+                        // Expected format: "\\?\Volume{GUID}\" or "\\?\Volume{GUID}"
+                        QString volNameStr = QString::fromWCharArray(volumeName);
+                        qDebug() << "Volume GUID:" << volNameStr
                                  << "for Disk" << volInfo.diskNumber << "Offset" << volInfo.startingOffset;
 
                         BOOL pathResult = GetVolumePathNamesForVolumeNameW(volumeName, pathNames,
                                                             ARRAYSIZE(pathNames), &pathLen);
-                        DWORD pathError = GetLastError();
 
-                        qDebug() << "GetVolumePathNamesForVolumeNameW: result=" << pathResult
-                                 << "pathLen=" << pathLen << "error=" << pathError
-                                 << "for Disk" << volInfo.diskNumber << "Offset" << volInfo.startingOffset;
+                        if (!pathResult) {
+                            // Only check GetLastError() when the function fails
+                            DWORD pathError = GetLastError();
+
+                            QString errorMsg;
+                            if (pathError == 123) { // ERROR_INVALID_NAME
+                                errorMsg = QString("ERROR_INVALID_NAME - Volume name format is invalid: '%1'").arg(volNameStr);
+                            } else {
+                                errorMsg = QString("Error %1 - Volume: '%2'").arg(pathError).arg(volNameStr);
+                            }
+
+                            qDebug() << "GetVolumePathNamesForVolumeNameW FAILED:" << errorMsg
+                                     << "Disk" << volInfo.diskNumber << "Offset" << volInfo.startingOffset;
+                        }
 
                         // Check if we got a valid mount point
                         if (pathResult && pathLen > 1 && pathNames[0] != L'\0') {
@@ -642,15 +656,16 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                                      << "Mount:" << volInfo.mountPoint
                                      << "FS:" << volInfo.fileSystem;
                         } else {
-                            // Volume has no mount point or call failed
+                            // Volume has no mount point (either unmounted or call failed)
                             // Still need to track it for matching with partitions
                             volInfo.mountPoint = "";  // Empty mount point
                             volInfo.fileSystem = "";  // Unknown filesystem until mounted
 
-                            qDebug() << "Found unmounted volume: Disk" << volInfo.diskNumber
-                                     << "Offset" << volInfo.startingOffset
-                                     << "(result=" << pathResult << ", pathLen=" << pathLen
-                                     << ", error=" << pathError << ")";
+                            if (pathResult) {
+                                qDebug() << "Found unmounted volume: Disk" << volInfo.diskNumber
+                                         << "Offset" << volInfo.startingOffset
+                                         << "(no mount points)";
+                            }
                         }
 
                         // ALWAYS add to volumeList - we need to track all volumes
