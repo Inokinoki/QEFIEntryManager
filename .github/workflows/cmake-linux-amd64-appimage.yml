@@ -59,6 +59,11 @@ jobs:
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
+    - name: Test EFI Partition Scanning
+      run: |
+        chmod +x ${{github.workspace}}/scripts/test-efi-partition-scan-linux.sh
+        sudo ${{github.workspace}}/scripts/test-efi-partition-scan-linux.sh ${{github.workspace}}/build/QEFIEntryManager
+
     - name: Packaging
       working-directory: ${{github.workspace}}/build
       # Execute tests defined by the CMake configuration.  
