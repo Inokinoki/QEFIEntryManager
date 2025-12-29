@@ -684,14 +684,56 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
         FindVolumeClose(hVolume);
     }
 
-    qDebug() << "Scanned" << volumeList.size() << "mounted volumes";
+    qDebug() << "Scanned" << volumeList.size() << "volumes recognized on system.";
 
-    // Now enumerate all physical drives
-    for (DWORD diskNumber = 0; diskNumber < 32; diskNumber++) {
-        QString diskPath = QString("\\\\.\\PhysicalDrive%1").arg(diskNumber);
+    // Enumerate all physical drives using SetupAPI
+    HDEVINFO diskClassDevices = SetupDiGetClassDevsW(
+        &GUID_DEVINTERFACE_DISK,
+        NULL,
+        NULL,
+        DIGCF_PRESENT | DIGCF_DEVICEINTERFACE
+    );
 
+    if (diskClassDevices == INVALID_HANDLE_VALUE) {
+        qWarning() << "Failed to enumerate disk devices";
+        m_partitions = partitions;
+        return partitions;
+    }
+
+    SP_DEVICE_INTERFACE_DATA deviceInterfaceData;
+    deviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+
+    DWORD deviceIndex = 0;
+    while (SetupDiEnumDeviceInterfaces(diskClassDevices, NULL, &GUID_DEVINTERFACE_DISK,
+                                       deviceIndex, &deviceInterfaceData)) {
+        deviceIndex++;
+
+        // Get the required buffer size for device interface detail
+        DWORD requiredSize = 0;
+        SetupDiGetDeviceInterfaceDetailW(diskClassDevices, &deviceInterfaceData,
+                                        NULL, 0, &requiredSize, NULL);
+
+        if (requiredSize == 0) {
+            continue;
+        }
+
+        // Allocate buffer for device interface detail
+        std::vector<BYTE> buffer(requiredSize);
+        PSP_DEVICE_INTERFACE_DETAIL_DATA_W detailData =
+            reinterpret_cast<PSP_DEVICE_INTERFACE_DETAIL_DATA_W>(buffer.data());
+        detailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W);
+
+        // Get device interface detail
+        if (!SetupDiGetDeviceInterfaceDetailW(diskClassDevices, &deviceInterfaceData,
+                                             detailData, requiredSize, NULL, NULL)) {
+            continue;
+        }
+
+        QString diskPath = QString::fromWCharArray(detailData->DevicePath);
+
+        // Open the disk device
         HANDLE hDisk = CreateFileW(
-            (LPCWSTR)diskPath.utf16(),
+            detailData->DevicePath,
             GENERIC_READ,
             FILE_SHARE_READ | FILE_SHARE_WRITE,
             NULL,
@@ -701,13 +743,25 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
         );
 
         if (hDisk == INVALID_HANDLE_VALUE) {
-            continue; // Disk doesn't exist or can't be opened
+            continue; // Can't open this disk
         }
 
+        // Get the disk number using STORAGE_DEVICE_NUMBER
+        STORAGE_DEVICE_NUMBER diskNumber;
+        if (!DeviceIoControl(hDisk, IOCTL_STORAGE_GET_DEVICE_NUMBER,
+                            NULL, 0, &diskNumber, sizeof(diskNumber),
+                            &bytesReturned, NULL)) {
+            qDebug() << "Failed to get disk number for" << diskPath;
+            CloseHandle(hDisk);
+            continue;
+        }
+
+        DWORD diskNum = diskNumber.DeviceNumber;
+        qDebug() << "Scanning disk" << diskNum << "(" << diskPath << ")";
+
         // Get drive layout information
-        DWORD bytesReturned;
-        BYTE buffer[65536]; // Large buffer for drive layout
-        DRIVE_LAYOUT_INFORMATION_EX* layout = (DRIVE_LAYOUT_INFORMATION_EX*)buffer;
+        BYTE layoutBuffer[65536]; // Large buffer for drive layout
+        DRIVE_LAYOUT_INFORMATION_EX* layout = (DRIVE_LAYOUT_INFORMATION_EX*)layoutBuffer;
 
         BOOL success = DeviceIoControl(
             hDisk,
@@ -715,7 +769,7 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
             NULL,
             0,
             layout,
-            sizeof(buffer),
+            sizeof(layoutBuffer),
             &bytesReturned,
             NULL
         );
@@ -741,7 +795,7 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                 info.isEFI = true;
                 info.partitionNumber = partInfo.PartitionNumber;
                 info.size = partInfo.PartitionLength.QuadPart;
-                info.devicePath = QString("Disk %1 Partition %2").arg(diskNumber).arg(partInfo.PartitionNumber);
+                info.devicePath = QString("Disk %1 Partition %2").arg(diskNum).arg(partInfo.PartitionNumber);
 
                 // Convert partition GUID
                 GUID& guid = partInfo.Gpt.PartitionId;
@@ -759,7 +813,7 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                     info.label = "EFI System Partition";
                 }
 
-                qDebug() << "Found EFI partition: Disk" << diskNumber
+                qDebug() << "Found EFI partition: Disk" << diskNum
                          << "Partition" << partInfo.PartitionNumber
                          << "StartingOffset:" << partInfo.StartingOffset.QuadPart
                          << "Size:" << partInfo.PartitionLength.QuadPart;
@@ -767,7 +821,7 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                 // Look up the mount point from our pre-built volume list
                 bool matched = false;
                 for (const VolumeInfo& vol : volumeList) {
-                    if (vol.diskNumber == diskNumber &&
+                    if (vol.diskNumber == diskNum &&
                         vol.startingOffset == partInfo.StartingOffset.QuadPart) {
                         info.mountPoint = vol.mountPoint;
                         info.fileSystem = vol.fileSystem;
@@ -789,7 +843,7 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                 if (!matched) {
                     qDebug() << "  -> No matching volume found in volumeList";
                     qDebug() << "  -> Checked" << volumeList.size() << "volumes for Disk"
-                             << diskNumber << "Offset" << partInfo.StartingOffset.QuadPart;
+                             << diskNum << "Offset" << partInfo.StartingOffset.QuadPart;
                 }
 
                 // Default filesystem if not found
@@ -804,7 +858,10 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
         CloseHandle(hDisk);
     }
 
-    qDebug() << "Found" << partitions.size() << "EFI partition(s) on Windows using native API";
+    // Clean up SetupAPI device info set
+    SetupDiDestroyDeviceInfoList(diskClassDevices);
+
+    qDebug() << "Found" << partitions.size() << "EFI partition(s) on Windows using SetupAPI";
     m_partitions = partitions;
     return partitions;
 }
