@@ -194,6 +194,13 @@ install(FILES cc.inoki.qefientrymanager.png
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/96x96/apps
 )
 
+# Install man page for qefibootmgr/efibootmgr on Unix-like systems
+if(UNIX)
+    install(FILES qefibootmgr.8
+            DESTINATION ${CMAKE_INSTALL_MANDIR}/man8
+    )
+endif()
+
 # Create efibootmgr symlink to qefibootmgr on Unix-like systems
 if(UNIX)
     install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \
