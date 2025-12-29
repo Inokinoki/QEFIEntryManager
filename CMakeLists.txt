@@ -114,7 +114,38 @@ target_include_directories(QEFIEntryManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/
 # Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
 target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
 
-install(TARGETS QEFIEntryManager
+# Build qefibootmgr CLI-only executable
+set(CLI_SOURCES
+        qefibootmgr.cpp
+        cli.cpp
+        cli.h
+        qefientry.cpp
+        qefientry.h
+        qefientrystaticlist.cpp
+        qefientrystaticlist.h
+        qefivar/qefi.cpp
+        qefivar/qefidpacpi.cpp
+        qefivar/qefidphw.cpp
+        qefivar/qefidpmedia.cpp
+        qefivar/qefidpmessage.cpp
+)
+
+add_executable(qefibootmgr ${CLI_SOURCES})
+
+# qefibootmgr only needs Core (no Widgets/GUI)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
+target_link_libraries(qefibootmgr PRIVATE Qt${QT_VERSION_MAJOR}::Core)
+
+target_include_directories(qefibootmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
+
+# Link FreeBSD libraries for qefibootmgr if needed
+if(NOT APP_DATA_DUMMY_BACKEND AND NOT WIN32)
+    if(${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+        target_link_libraries(qefibootmgr PUBLIC efivar geom)
+    endif()
+endif()
+
+install(TARGETS QEFIEntryManager qefibootmgr
         RUNTIME DESTINATION bin
 )
 # For AppImage
@@ -135,6 +166,13 @@ install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/qefientrymanager.desktop
 install(FILES cc.inoki.qefientrymanager.png
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/96x96/apps
 )
+
+# Create efibootmgr symlink to qefibootmgr on Unix-like systems
+if(UNIX)
+    install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \
+        qefibootmgr \
+        \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/efibootmgr)")
+endif()
 
 # Use CPack to generate the package(s)
 if(ENABLE_PACKAGING)

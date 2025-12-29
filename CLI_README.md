@@ -2,9 +2,31 @@
 
 QEFIEntryManager now supports a command-line interface (CLI) mode that is compatible with `efibootmgr` command-line options. This allows you to manage EFI boot entries directly from the terminal without launching the GUI.
 
+## CLI Executables
+
+The project provides two ways to use the CLI:
+
+1. **qefibootmgr** - Dedicated CLI-only executable (recommended for CLI usage)
+2. **efibootmgr** - Symlink/alias to qefibootmgr for drop-in compatibility with standard efibootmgr
+3. **QEFIEntryManager** - Main executable that auto-detects CLI mode when arguments are provided
+
 ## Usage
 
-The application automatically detects CLI mode when you pass any command-line arguments. Without arguments, it launches the GUI.
+### Using qefibootmgr or efibootmgr
+
+```bash
+# Using qefibootmgr (dedicated CLI tool)
+sudo qefibootmgr -v
+sudo qefibootmgr --help
+
+# Using efibootmgr alias (drop-in replacement)
+sudo efibootmgr -v
+sudo efibootmgr -o 0001,0000,0002
+```
+
+### Using QEFIEntryManager
+
+The main application automatically detects CLI mode when you pass command-line arguments. Without arguments, it launches the GUI.
 
 ```bash
 # Launch GUI (no arguments)
@@ -125,29 +147,40 @@ sudo QEFIEntryManager -D
 
 ## Examples
 
+All examples below can use `qefibootmgr`, `efibootmgr`, or `QEFIEntryManager` interchangeably.
+
 ### Example 1: View all boot entries with verbose output
 ```bash
-sudo QEFIEntryManager -v
+sudo qefibootmgr -v
+# or
+sudo efibootmgr -v
 ```
 
 ### Example 2: Change boot order to prioritize Windows
 ```bash
-sudo QEFIEntryManager -o 0001,0000,0002
+sudo efibootmgr -o 0001,0000,0002
 ```
 
 ### Example 3: Disable a boot entry
 ```bash
-sudo QEFIEntryManager -b 0002 -A
+sudo qefibootmgr -b 0002 -A
 ```
 
 ### Example 4: Boot into Windows on next reboot only
 ```bash
-sudo QEFIEntryManager -n 0001 && sudo reboot
+sudo efibootmgr -n 0001 && sudo reboot
 ```
 
 ### Example 5: Set timeout and clean up duplicates
 ```bash
-sudo QEFIEntryManager -t 3 -D
+sudo qefibootmgr -t 3 -D
+```
+
+### Example 6: Drop-in replacement for efibootmgr scripts
+```bash
+# This works with existing efibootmgr scripts!
+sudo efibootmgr -v | grep "Boot0000"
+sudo efibootmgr -b 0001 -a
 ```
 
 ## Compatibility with efibootmgr
