@@ -136,17 +136,25 @@ find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
 target_link_libraries(qefibootmgr PRIVATE Qt${QT_VERSION_MAJOR}::Core)
 target_include_directories(qefibootmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
 
-# Build efibootmgr executable (for Windows compatibility)
-# On Windows, we create a separate executable instead of symlink
-# using the same source as qefibootmgr
+# Set Windows admin elevation for CLI tools
 if(WIN32)
+    # qefibootmgr requires admin privileges on Windows
+    set_target_properties(qefibootmgr PROPERTIES
+        WIN32_EXECUTABLE FALSE
+        LINK_FLAGS "/MANIFESTUAC:\"level='requireAdministrator'\""
+    )
+
+    # Build efibootmgr executable (for Windows compatibility)
+    # On Windows, we create a separate executable instead of symlink
+    # using the same source as qefibootmgr
     add_executable(efibootmgr qefibootmgr.cpp ${CLI_SOURCES})
     target_link_libraries(efibootmgr PRIVATE Qt${QT_VERSION_MAJOR}::Core)
     target_include_directories(efibootmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
 
-    # Windows requires admin elevation
+    # efibootmgr also requires admin elevation
     set_target_properties(efibootmgr PROPERTIES
         WIN32_EXECUTABLE FALSE
+        LINK_FLAGS "/MANIFESTUAC:\"level='requireAdministrator'\""
     )
 endif()
 

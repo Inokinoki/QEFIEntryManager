@@ -41,7 +41,10 @@ sudo QEFIEntryManager -v
 
 ## Requirements
 
-- **Root/Administrator privileges**: Required for modifying EFI variables
+- **Administrator/Root privileges**: Required for modifying EFI variables
+  - **Windows**: Run as Administrator (the executables include a manifest for UAC elevation)
+  - **Linux/macOS**: Use `sudo` or run as root
+  - **FreeBSD**: Use `su` or `doas`
 - **EFI environment**: System must be booted in UEFI mode (not BIOS/CSM)
 
 ## Command-Line Options
@@ -209,6 +212,30 @@ Some advanced options are not yet implemented:
 - Mirror options (`-m`, `-M`)
 
 For these advanced features, please use the GUI mode or contribute to the project!
+
+## Windows-Specific Notes
+
+On Windows, the CLI executables (`qefibootmgr.exe` and `efibootmgr.exe`) are built with an embedded manifest that requests administrator elevation:
+
+### Running on Windows:
+
+```cmd
+# The UAC prompt will appear automatically when you run the executable
+qefibootmgr -v
+efibootmgr -v
+
+# Or run from an elevated Command Prompt or PowerShell
+# Right-click Command Prompt/PowerShell -> "Run as Administrator"
+qefibootmgr -o 0001,0000,0002
+```
+
+### Important Windows Considerations:
+
+- Both `qefibootmgr.exe` and `efibootmgr.exe` include UAC manifests for automatic elevation
+- You cannot use these from a normal command prompt without the UAC dialog appearing
+- For scripting, run your script from an already-elevated console
+- On Windows, use backslashes in paths: `\EFI\Microsoft\Boot\bootmgfw.efi`
+- Output uses Windows line endings (CRLF)
 
 ## Exit Codes
 
