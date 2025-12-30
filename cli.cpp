@@ -146,7 +146,7 @@ void CLI::setupParser()
 
 #ifndef QT_NO_DEBUG
     // Test scan option
-    m_parser.addOption(QCommandLineOption({"test-scan"}, "Test EFI partition scanning (CLI mode for testing)"));
+    m_parser.addOption(QCommandLineOption("test-scan", "Test EFI partition scanning (CLI mode for testing)"));
 #endif
 }
 
