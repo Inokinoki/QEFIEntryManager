@@ -13,9 +13,9 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-# Create a memory disk (512MB - large enough for FAT32 with GPT overhead)
+# Create a memory disk (100MB - large enough for FAT32 with GPT overhead)
 echo "Creating memory disk..."
-MD_UNIT=$(mdconfig -a -t malloc -s 512M)
+MD_UNIT=$(mdconfig -a -t malloc -s 100M)
 echo "Memory disk created: /dev/$MD_UNIT"
 
 # Create GPT partition table with EFI partition
@@ -27,10 +27,10 @@ gpart add -t efi -l "EFISYS" "$MD_UNIT"
 echo "Partition table created:"
 gpart show "$MD_UNIT"
 
-# Format the EFI partition as FAT32 (msdosfs on FreeBSD)
+# Format the EFI partition as FAT32 (msdosfs on FreeBSD) - set sector size to 1
 PARTITION_DEVICE="/dev/${MD_UNIT}p1"
 echo "Formatting EFI partition as FAT32: $PARTITION_DEVICE"
-newfs_msdos -F 32 -L "EFISYS" "$PARTITION_DEVICE"
+newfs_msdos -F 32 -s 1 -L "EFISYS" "$PARTITION_DEVICE"
 
 # Wait for filesystem creation to complete
 sync

@@ -34,6 +34,16 @@ jobs:
             uname -a
             cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr
             cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+      # Configure and build in debug mode
+      - uses: vmactions/freebsd-vm@v1
+        with:
+          release: ${{ matrix.os-version}}
+          usesh: true
+          prepare: |
+            pkg install -y cmake qt5
+          run: |
+            uname -a
             cmake -B ${{github.workspace}}/build-debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=OFF
             cmake --build ${{github.workspace}}/build-debug --config Debug
             chmod +x ${{github.workspace}}/scripts/test-efi-partition-scan-freebsd.sh
