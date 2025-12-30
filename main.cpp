@@ -1,16 +1,17 @@
+#include "cli.h"
 #include "mainwindow.h"
 #include "qefipartitionmanager.h"
-#include "cli.h"
+#include "version.h"
 
 #include <QApplication>
+#include <QCommandLineParser>
 #include <QDebug>
 #include <QMessageBox>
 #include <QResource>
 #include <QTranslator>
-#include <QCommandLineParser>
-#include <qefientrystaticlist.h>
-#include <qefi.h>
 #include <iostream>
+#include <qefi.h>
+#include <qefientrystaticlist.h>
 
 // Run partition scanning test in CLI mode
 static int runPartitionScanTest()
@@ -46,7 +47,7 @@ static int runPartitionScanTest()
     QList<QEFIPartitionInfo> partitions;
     try {
         partitions = manager.scanPartitions();
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
         std::cerr << "ERROR: Exception during scanning: " << e.what() << std::endl;
         return 1;
     } catch (...) {
@@ -65,7 +66,7 @@ static int runPartitionScanTest()
     // Display partition information
     std::cout << "\n=== Partition Details ===" << std::endl;
     for (int i = 0; i < partitions.size(); ++i) {
-        const QEFIPartitionInfo& part = partitions[i];
+        const QEFIPartitionInfo &part = partitions[i];
         std::cout << "\nPartition #" << (i + 1) << ":" << std::endl;
         std::cout << "  Device Path:  " << part.devicePath.toStdString() << std::endl;
         std::cout << "  Is EFI:       " << (part.isEFI ? "YES" : "NO") << std::endl;
@@ -112,8 +113,7 @@ int main(int argc, char *argv[])
     // GUI mode (original behavior)
     QApplication a(argc, argv);
     a.setApplicationName("QEFIEntryManager");
-    // TODO: Move this to a generated header file during building
-    a.setApplicationVersion("0.4.1");
+    a.setApplicationVersion(QEFI_ENTRY_MANAGER_VERSION);
 
     // Parse command line arguments
     QCommandLineParser parser;
@@ -121,8 +121,7 @@ int main(int argc, char *argv[])
     parser.addHelpOption();
     parser.addVersionOption();
 
-    QCommandLineOption testScanOption("test-scan",
-        "Test EFI partition scanning (CLI mode for testing)");
+    QCommandLineOption testScanOption("test-scan", "Test EFI partition scanning (CLI mode for testing)");
     parser.addOption(testScanOption);
 
     parser.process(a);
@@ -137,19 +136,14 @@ int main(int argc, char *argv[])
     a.setWindowIcon(QIcon("../cc.inoki.qefientrymanager.png"));
 
     QTranslator translator;
-    if (translator.load(QLocale(), QStringLiteral("app"), QStringLiteral("_"), QStringLiteral(":/translations"), QStringLiteral(".qm")))
-    {
+    if (translator.load(QLocale(), QStringLiteral("app"), QStringLiteral("_"), QStringLiteral(":/translations"), QStringLiteral(".qm"))) {
         a.installTranslator(&translator);
-    }
-    else
-    {
+    } else {
         qDebug() << "Failed to load translation";
     }
 
-    if (!qefi_is_available() || !qefi_has_privilege())
-    {
-        QMessageBox::critical(nullptr, QObject::tr("Error"),
-                              QObject::tr("Permission insufficient or no EFI environment"));
+    if (!qefi_is_available() || !qefi_has_privilege()) {
+        QMessageBox::critical(nullptr, QObject::tr("Error"), QObject::tr("Permission insufficient or no EFI environment"));
         return 1;
     }
 

@@ -9,6 +9,13 @@ project(QEFIEntryManager LANGUAGES CXX VERSION ${QEFI_ENTRY_MANAGER_VERSION})
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+# Generate version header from template
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/version.h
+    @ONLY
+)
+
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -115,7 +122,10 @@ if(USE_EFIVAR_OLD_API)
     add_definitions(-DEFIVAR_OLD_API)
 endif()
 
-target_include_directories(QEFIEntryManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
+target_include_directories(QEFIEntryManager PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/qefivar
+    ${CMAKE_CURRENT_BINARY_DIR}
+)
 
 # Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
 target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
