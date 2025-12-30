@@ -122,9 +122,11 @@ echo "=== Scan Results ==="
 cat /tmp/scan-output.txt
 
 # Verify that scanning completed without crashing
+FAILURE=0
 if grep -q "partition" /tmp/scan-output.txt; then
     echo "✓ Partition scanning executed successfully"
 else
+    FAILURE=1
     echo "⚠ Warning: No partition information in output"
 fi
 
@@ -152,4 +154,4 @@ echo "so the scanner might not detect the EFI partition."
 echo "This test primarily validates that the code doesn't crash and can"
 echo "safely scan the system without errors."
 
-exit 0
+exit $FAILURE

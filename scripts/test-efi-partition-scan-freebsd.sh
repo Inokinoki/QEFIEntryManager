@@ -68,6 +68,7 @@ echo "=== Scan Results ==="
 cat /tmp/scan-output.txt
 
 # Verify that scanning completed without crashing
+FAILURE=0
 if grep -q "partition\|EFI" /tmp/scan-output.txt; then
     echo "✓ Partition scanning executed successfully"
 
@@ -76,9 +77,11 @@ if grep -q "partition\|EFI" /tmp/scan-output.txt; then
         echo "✓ Test EFI partition was detected!"
     else
         echo "⚠ Warning: Test partition not detected in output"
+        FAILURE=1
     fi
 else
     echo "⚠ Warning: No partition information in output"
+    FAILURE=1
 fi
 
 # Cleanup
@@ -93,4 +96,4 @@ mdconfig -d -u "$MD_UNIT"
 echo "=== Test Complete ==="
 echo "The scanner should have detected the EFI partition on /dev/$MD_UNIT"
 
-exit 0
+exit $FAILURE
