@@ -1,22 +1,22 @@
 #include "qefipartitionmanager.h"
-#include <QProcess>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
-#include <QTextStream>
-#include <QRegularExpression>
-#include <QDebug>
 #include <QFileInfo>
+#include <QProcess>
+#include <QRegularExpression>
+#include <QTextStream>
 #include <QThread>
 
 #if defined(Q_OS_UNIX)
-#include <unistd.h>
-#include <sys/mount.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <errno.h>
 #include <cstring>
 #include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 const QString g_efiPartTypeGuid = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b";
 
@@ -26,25 +26,25 @@ const QString g_efiPartTypeGuid = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b";
 #include <linux/hdreg.h>
 #ifndef BLKGETSIZE64
 #include <linux/ioctl.h>
-#define BLKGETSIZE64 _IOR(0x12,114,size_t)
+#define BLKGETSIZE64 _IOR(0x12, 114, size_t)
 #endif
 #endif
 
 #ifdef Q_OS_FREEBSD
+#include <libgeom.h>
 #include <sys/disk.h>
 #include <sys/disklabel.h>
+#include <sys/mount.h>
 #include <sys/param.h>
 #include <sys/ucred.h>
-#include <sys/mount.h>
-#include <libgeom.h>
 #endif
 
 #ifdef Q_OS_DARWIN
-#include <sys/disk.h>
-#include <sys/stat.h>
+#include <IOKit/IOBSD.h>
 #include <IOKit/IOKitLib.h>
 #include <IOKit/storage/IOBlockStorageDevice.h>
-#include <IOKit/IOBSD.h>
+#include <sys/disk.h>
+#include <sys/stat.h>
 
 // macOS disk I/O control definitions
 #ifndef DKIOCGETBLOCKCOUNT
@@ -58,13 +58,13 @@ const QString g_efiPartTypeGuid = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b";
 #endif
 
 #ifdef Q_OS_WIN
-#include <windows.h>
-#include <winioctl.h>
+#include <cfgmgr32.h>
+#include <devguid.h>
 #include <initguid.h>
 #include <setupapi.h>
-#include <devguid.h>
-#include <cfgmgr32.h>
 #include <vector>
+#include <windows.h>
+#include <winioctl.h>
 
 // EFI System Partition GUID
 DEFINE_GUID(PARTITION_SYSTEM_GUID, 0xC12A7328, 0xF81F, 0x11D2, 0xBA, 0x4B, 0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B);
@@ -173,8 +173,7 @@ static quint64 getPartitionSize(const QString &devicePath)
     uint64_t blockCount = 0;
     uint32_t blockSize = 0;
 
-    if (ioctl(fd, DKIOCGETBLOCKCOUNT, &blockCount) >= 0 &&
-        ioctl(fd, DKIOCGETBLOCKSIZE, &blockSize) >= 0) {
+    if (ioctl(fd, DKIOCGETBLOCKCOUNT, &blockCount) >= 0 && ioctl(fd, DKIOCGETBLOCKSIZE, &blockSize) >= 0) {
         size = blockCount * blockSize;
     }
 #endif
@@ -196,19 +195,43 @@ static QString readSysfsFile(const QString &path)
     return content;
 }
 
-// Helper function to check if partition is EFI by reading partition type GUID from sysfs
-static bool isEfiPartitionLinux(const QString &deviceName)
+// Helper function to get partition type GUID using blkid (fallback for loop devices)
+static QString getPartitionTypeGuidBlkid(const QString &devicePath)
 {
-    // Read partition type GUID from /sys/class/block/<device>/partition
+    QProcess blkid;
+    blkid.start("blkid", QStringList() << "-s" << "PART_ENTRY_TYPE" << "-o" << "value" << devicePath);
+    if (!blkid.waitForFinished(5000)) {
+        return QString();
+    }
+    if (blkid.exitCode() != 0) {
+        return QString();
+    }
+    QString output = QString::fromUtf8(blkid.readAllStandardOutput()).trimmed();
+    return output;
+}
+
+// Helper function to check if partition is EFI by reading partition type GUID from sysfs
+// Falls back to blkid for loop devices that may not expose partition_type_guid in sysfs
+static bool isEfiPartitionLinux(const QString &deviceName, const QString &devicePath = QString())
+{
+    QString fullDevicePath = devicePath.isEmpty() ? QString("/dev/%1").arg(deviceName) : devicePath;
+
+    // First try sysfs (preferred method for regular block devices)
     QString sysPath = QString("/sys/class/block/%1/partition").arg(deviceName);
-    if (!QFile::exists(sysPath)) {
-        return false;
+    if (QFile::exists(sysPath)) {
+        QString partTypePath = QString("/sys/class/block/%1/partition_type_guid").arg(deviceName);
+        QString partType = readSysfsFile(partTypePath);
+
+        if (!partType.isEmpty()) {
+            // Remove any hyphens and compare
+            partType = partType.toLower().remove('-');
+            QString efiGuid = QString(g_efiPartTypeGuid).remove('-');
+            return (partType == efiGuid);
+        }
     }
 
-    // Read the partition type GUID
-    QString partTypePath = QString("/sys/class/block/%1/partition_type_guid").arg(deviceName);
-    QString partType = readSysfsFile(partTypePath);
-
+    // Fallback to blkid for loop devices or when sysfs doesn't have the GUID
+    QString partType = getPartitionTypeGuidBlkid(fullDevicePath);
     if (!partType.isEmpty()) {
         // Remove any hyphens and compare
         partType = partType.toLower().remove('-');
@@ -256,22 +279,32 @@ const QList<QEFIPartitionInfo> scanPartitionsLinux()
     QStringList devices = blockDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
 
     for (const QString &deviceName : devices) {
-        // Skip loop devices, ram disks, etc.
-        if (deviceName.startsWith("loop") || deviceName.startsWith("ram") ||
-            deviceName.startsWith("dm-")) {
-            continue;
-        }
-
-        // Only process partitions (devices with a partition number)
-        QRegularExpression partRe("^(sd[a-z]|nvme\\d+n\\d+|mmcblk\\d+|vd[a-z])p?\\d+$");
-        if (!partRe.match(deviceName).hasMatch()) {
+        // Skip ram disks and device mapper (but allow loop devices)
+        if (deviceName.startsWith("ram") || deviceName.startsWith("dm-")) {
             continue;
         }
 
         QString devicePath = "/dev/" + deviceName;
 
-        // Check if this is an EFI partition
-        if (!isEfiPartitionLinux(deviceName)) {
+        // Check if this is a partition (has partition number)
+        // For regular devices: sdX1, nvme0n1p1, mmcblk0p1, vda1
+        // For loop devices: loop0p1
+        QRegularExpression partRe("^(sd[a-z]|nvme\\d+n\\d+|mmcblk\\d+|vd[a-z]|loop\\d+)p?\\d+$");
+        bool isPartition = partRe.match(deviceName).hasMatch();
+
+        // Also check if it's a partition by looking for /sys/class/block/<device>/partition
+        // This catches loop devices that might not match the regex
+        if (!isPartition) {
+            QString partitionIndicator = QString("/sys/class/block/%1/partition").arg(deviceName);
+            isPartition = QFile::exists(partitionIndicator);
+        }
+
+        if (!isPartition) {
+            continue;
+        }
+
+        // Check if this is an EFI partition (uses blkid fallback for loop devices)
+        if (!isEfiPartitionLinux(deviceName, devicePath)) {
             continue;
         }
 
@@ -289,14 +322,23 @@ const QList<QEFIPartitionInfo> scanPartitionsLinux()
             info.partitionNumber = partNumMatch.captured(1).toUInt();
         }
 
-        // Read partition UUID
+        // Read partition UUID (try sysfs first, fallback to blkid for loop devices)
         QString partUuidPath = QString("/sys/class/block/%1/partition").arg(deviceName);
+        QString uuid;
         if (QFile::exists(partUuidPath)) {
             QString uuidPath = QString("/sys/class/block/%1/partition_uuid").arg(deviceName);
-            QString uuid = readSysfsFile(uuidPath);
-            if (!uuid.isEmpty()) {
-                info.partitionGuid = QUuid(uuid);
+            uuid = readSysfsFile(uuidPath);
+        }
+        // Fallback to blkid if sysfs doesn't have it (e.g., loop devices)
+        if (uuid.isEmpty()) {
+            QProcess blkid;
+            blkid.start("blkid", QStringList() << "-s" << "PART_ENTRY_UUID" << "-o" << "value" << devicePath);
+            if (blkid.waitForFinished(5000) && blkid.exitCode() == 0) {
+                uuid = QString::fromUtf8(blkid.readAllStandardOutput()).trimmed();
             }
+        }
+        if (!uuid.isEmpty()) {
+            info.partitionGuid = QUuid(uuid);
         }
 
         // Try to get filesystem label
@@ -333,15 +375,19 @@ const QList<QEFIPartitionInfo> scanPartitionsFreeBSD()
     }
 
     // Find the PART class (partitions)
-    LIST_FOREACH(classp, &mesh.lg_class, lg_class) {
+    LIST_FOREACH(classp, &mesh.lg_class, lg_class)
+    {
         if (strcmp(classp->lg_name, "PART") == 0) {
-            LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
-                LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+            LIST_FOREACH(gp, &classp->lg_geom, lg_geom)
+            {
+                LIST_FOREACH(pp, &gp->lg_provider, lg_provider)
+                {
                     // Check if this is an EFI partition by type
                     struct gconfig *gc;
                     bool isEfi = false;
 
-                    LIST_FOREACH(gc, &pp->lg_config, lg_config) {
+                    LIST_FOREACH(gc, &pp->lg_config, lg_config)
+                    {
                         if (strcmp(gc->lg_name, "type") == 0) {
                             QString type = QString(gc->lg_val).toLower();
                             // FreeBSD uses "efi" as the type name for EFI partitions
@@ -439,7 +485,7 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsUnix()
 #elif defined(Q_OS_DARWIN)
         scanPartitionsMacOS();
 #else
-    throw std::runtime_error("Unsupported Unix platform");
+        throw std::runtime_error("Unsupported Unix platform");
 #endif
     return m_partitions;
 }
@@ -473,21 +519,21 @@ bool QEFIPartitionManager::mountPartitionUnix(const QString &devicePath, QString
 
 #ifdef Q_OS_LINUX
     // On Linux, use the mount syscall
-    const char* source = devicePath.toUtf8().constData();
-    const char* target = mountPoint.toUtf8().constData();
-    const char* filesystemtype = "vfat"; // EFI partitions are typically vfat
+    const char *source = devicePath.toUtf8().constData();
+    const char *target = mountPoint.toUtf8().constData();
+    const char *filesystemtype = "vfat"; // EFI partitions are typically vfat
     unsigned long mountflags = 0;
-    const void* data = nullptr;
+    const void *data = nullptr;
 
     result = mount(source, target, filesystemtype, mountflags, data);
 
 #elif defined(Q_OS_FREEBSD) || defined(Q_OS_DARWIN)
     // On FreeBSD or macOS, use mount syscall
-    const char* source = devicePath.toUtf8().constData();
-    const char* target = mountPoint.toUtf8().constData();
+    const char *source = devicePath.toUtf8().constData();
+    const char *target = mountPoint.toUtf8().constData();
 
     // FreeBSD or macOS mount signature: mount(const char *type, const char *dir, int flags, void *data)
-    result = mount("msdosfs", target, 0, (void*)source);
+    result = mount("msdosfs", target, 0, (void *)source);
 #endif
 
     if (result != 0) {
@@ -526,7 +572,7 @@ bool QEFIPartitionManager::unmountPartitionUnix(const QString &devicePath, QStri
     }
 
     // Use POSIX umount system call
-    const char* target = currentMountPoint.toUtf8().constData();
+    const char *target = currentMountPoint.toUtf8().constData();
 
 #ifdef Q_OS_LINUX
     int result = umount2(target, 0); // Use umount2 on Linux
@@ -586,28 +632,19 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                 hadTrailingBackslash = true;
             }
 
-            HANDLE hVol = CreateFileW(
-                volumeName,
-                GENERIC_READ,
-                FILE_SHARE_READ | FILE_SHARE_WRITE,
-                NULL,
-                OPEN_EXISTING,
-                0,
-                NULL
-            );
+            HANDLE hVol = CreateFileW(volumeName, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 
             if (hVol != INVALID_HANDLE_VALUE) {
                 VOLUME_DISK_EXTENTS extents;
                 DWORD returned;
 
-                if (DeviceIoControl(hVol, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
-                                  NULL, 0, &extents, sizeof(extents), &returned, NULL)) {
+                if (DeviceIoControl(hVol, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS, NULL, 0, &extents, sizeof(extents), &returned, NULL)) {
                     if (extents.NumberOfDiskExtents > 0) {
                         volInfo.diskNumber = extents.Extents[0].DiskNumber;
                         volInfo.startingOffset = extents.Extents[0].StartingOffset.QuadPart;
 
                         // Get drive letter/mount point
-                        WCHAR pathNames[MAX_PATH * 4] = {0};  // Larger buffer for multiple paths
+                        WCHAR pathNames[MAX_PATH * 4] = {0}; // Larger buffer for multiple paths
                         DWORD pathLen = 0;
 
                         // Restore trailing backslash for GetVolumePathNamesForVolumeNameW
@@ -619,11 +656,9 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                         // Validate volume name format before calling GetVolumePathNamesForVolumeNameW
                         // Expected format: "\\?\Volume{GUID}\" or "\\?\Volume{GUID}"
                         QString volNameStr = QString::fromWCharArray(volumeName);
-                        qDebug() << "Volume GUID:" << volNameStr
-                                 << "for Disk" << volInfo.diskNumber << "Offset" << volInfo.startingOffset;
+                        qDebug() << "Volume GUID:" << volNameStr << "for Disk" << volInfo.diskNumber << "Offset" << volInfo.startingOffset;
 
-                        BOOL pathResult = GetVolumePathNamesForVolumeNameW(volumeName, pathNames,
-                                                            ARRAYSIZE(pathNames), &pathLen);
+                        BOOL pathResult = GetVolumePathNamesForVolumeNameW(volumeName, pathNames, ARRAYSIZE(pathNames), &pathLen);
 
                         if (!pathResult) {
                             // Only check GetLastError() when the function fails
@@ -636,8 +671,8 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                                 errorMsg = QString("Error %1 - Volume: '%2'").arg(pathError).arg(volNameStr);
                             }
 
-                            qDebug() << "GetVolumePathNamesForVolumeNameW FAILED:" << errorMsg
-                                     << "Disk" << volInfo.diskNumber << "Offset" << volInfo.startingOffset;
+                            qDebug() << "GetVolumePathNamesForVolumeNameW FAILED:" << errorMsg << "Disk" << volInfo.diskNumber << "Offset"
+                                     << volInfo.startingOffset;
                         }
 
                         // Check if we got a valid mount point
@@ -646,25 +681,20 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
 
                             // Get filesystem type
                             WCHAR fsName[MAX_PATH];
-                            if (GetVolumeInformationW(pathNames, NULL, 0, NULL, NULL, NULL,
-                                                     fsName, ARRAYSIZE(fsName))) {
+                            if (GetVolumeInformationW(pathNames, NULL, 0, NULL, NULL, NULL, fsName, ARRAYSIZE(fsName))) {
                                 volInfo.fileSystem = QString::fromWCharArray(fsName);
                             }
 
-                            qDebug() << "Found mounted volume: Disk" << volInfo.diskNumber
-                                     << "Offset" << volInfo.startingOffset
-                                     << "Mount:" << volInfo.mountPoint
-                                     << "FS:" << volInfo.fileSystem;
+                            qDebug() << "Found mounted volume: Disk" << volInfo.diskNumber << "Offset" << volInfo.startingOffset
+                                     << "Mount:" << volInfo.mountPoint << "FS:" << volInfo.fileSystem;
                         } else {
                             // Volume has no mount point (either unmounted or call failed)
                             // Still need to track it for matching with partitions
-                            volInfo.mountPoint = "";  // Empty mount point
-                            volInfo.fileSystem = "";  // Unknown filesystem until mounted
+                            volInfo.mountPoint = ""; // Empty mount point
+                            volInfo.fileSystem = ""; // Unknown filesystem until mounted
 
                             if (pathResult) {
-                                qDebug() << "Found unmounted volume: Disk" << volInfo.diskNumber
-                                         << "Offset" << volInfo.startingOffset
-                                         << "(no mount points)";
+                                qDebug() << "Found unmounted volume: Disk" << volInfo.diskNumber << "Offset" << volInfo.startingOffset << "(no mount points)";
                             }
                         }
 
@@ -672,13 +702,11 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                         volumeList.append(volInfo);
                     }
                 } else {
-                    qDebug() << "Failed to get disk extents for volume" << volInfo.volumeGuid
-                             << "(Error:" << GetLastError() << ")";
+                    qDebug() << "Failed to get disk extents for volume" << volInfo.volumeGuid << "(Error:" << GetLastError() << ")";
                 }
                 CloseHandle(hVol);
             } else {
-                qDebug() << "Failed to open volume" << volInfo.volumeGuid
-                         << "(Error:" << GetLastError() << ")";
+                qDebug() << "Failed to open volume" << volInfo.volumeGuid << "(Error:" << GetLastError() << ")";
             }
         } while (FindNextVolumeW(hVolume, volumeName, ARRAYSIZE(volumeName)));
         FindVolumeClose(hVolume);
@@ -687,12 +715,7 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
     qDebug() << "Scanned" << volumeList.size() << "volumes recognized on system.";
 
     // Enumerate all physical drives using SetupAPI
-    HDEVINFO diskClassDevices = SetupDiGetClassDevsW(
-        &GUID_DEVINTERFACE_DISK,
-        NULL,
-        NULL,
-        DIGCF_PRESENT | DIGCF_DEVICEINTERFACE
-    );
+    HDEVINFO diskClassDevices = SetupDiGetClassDevsW(&GUID_DEVINTERFACE_DISK, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
 
     if (diskClassDevices == INVALID_HANDLE_VALUE) {
         qWarning() << "Failed to enumerate disk devices";
@@ -704,14 +727,12 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
     deviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
 
     DWORD deviceIndex = 0;
-    while (SetupDiEnumDeviceInterfaces(diskClassDevices, NULL, &GUID_DEVINTERFACE_DISK,
-                                       deviceIndex, &deviceInterfaceData)) {
+    while (SetupDiEnumDeviceInterfaces(diskClassDevices, NULL, &GUID_DEVINTERFACE_DISK, deviceIndex, &deviceInterfaceData)) {
         deviceIndex++;
 
         // Get the required buffer size for device interface detail
         DWORD requiredSize = 0;
-        SetupDiGetDeviceInterfaceDetailW(diskClassDevices, &deviceInterfaceData,
-                                        NULL, 0, &requiredSize, NULL);
+        SetupDiGetDeviceInterfaceDetailW(diskClassDevices, &deviceInterfaceData, NULL, 0, &requiredSize, NULL);
 
         if (requiredSize == 0) {
             continue;
@@ -719,28 +740,18 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
 
         // Allocate buffer for device interface detail
         std::vector<BYTE> buffer(requiredSize);
-        PSP_DEVICE_INTERFACE_DETAIL_DATA_W detailData =
-            reinterpret_cast<PSP_DEVICE_INTERFACE_DETAIL_DATA_W>(buffer.data());
+        PSP_DEVICE_INTERFACE_DETAIL_DATA_W detailData = reinterpret_cast<PSP_DEVICE_INTERFACE_DETAIL_DATA_W>(buffer.data());
         detailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W);
 
         // Get device interface detail
-        if (!SetupDiGetDeviceInterfaceDetailW(diskClassDevices, &deviceInterfaceData,
-                                             detailData, requiredSize, NULL, NULL)) {
+        if (!SetupDiGetDeviceInterfaceDetailW(diskClassDevices, &deviceInterfaceData, detailData, requiredSize, NULL, NULL)) {
             continue;
         }
 
         QString diskPath = QString::fromWCharArray(detailData->DevicePath);
 
         // Open the disk device
-        HANDLE hDisk = CreateFileW(
-            detailData->DevicePath,
-            GENERIC_READ,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            NULL,
-            OPEN_EXISTING,
-            0,
-            NULL
-        );
+        HANDLE hDisk = CreateFileW(detailData->DevicePath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 
         if (hDisk == INVALID_HANDLE_VALUE) {
             continue; // Can't open this disk
@@ -751,9 +762,7 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
 
         // Get the disk number using STORAGE_DEVICE_NUMBER
         STORAGE_DEVICE_NUMBER diskNumber;
-        if (!DeviceIoControl(hDisk, IOCTL_STORAGE_GET_DEVICE_NUMBER,
-                            NULL, 0, &diskNumber, sizeof(diskNumber),
-                            &bytesReturned, NULL)) {
+        if (!DeviceIoControl(hDisk, IOCTL_STORAGE_GET_DEVICE_NUMBER, NULL, 0, &diskNumber, sizeof(diskNumber), &bytesReturned, NULL)) {
             qDebug() << "Failed to get disk number for" << diskPath;
             CloseHandle(hDisk);
             continue;
@@ -764,18 +773,9 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
 
         // Get drive layout information
         BYTE layoutBuffer[65536]; // Large buffer for drive layout
-        DRIVE_LAYOUT_INFORMATION_EX* layout = (DRIVE_LAYOUT_INFORMATION_EX*)layoutBuffer;
+        DRIVE_LAYOUT_INFORMATION_EX *layout = (DRIVE_LAYOUT_INFORMATION_EX *)layoutBuffer;
 
-        BOOL success = DeviceIoControl(
-            hDisk,
-            IOCTL_DISK_GET_DRIVE_LAYOUT_EX,
-            NULL,
-            0,
-            layout,
-            sizeof(layoutBuffer),
-            &bytesReturned,
-            NULL
-        );
+        BOOL success = DeviceIoControl(hDisk, IOCTL_DISK_GET_DRIVE_LAYOUT_EX, NULL, 0, layout, sizeof(layoutBuffer), &bytesReturned, NULL);
 
         if (!success) {
             CloseHandle(hDisk);
@@ -790,7 +790,7 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
 
         // Enumerate partitions
         for (DWORD i = 0; i < layout->PartitionCount; i++) {
-            PARTITION_INFORMATION_EX& partInfo = layout->PartitionEntry[i];
+            PARTITION_INFORMATION_EX &partInfo = layout->PartitionEntry[i];
 
             // Check if this is an EFI System Partition
             if (IsEqualGUID(partInfo.Gpt.PartitionType, PARTITION_SYSTEM_GUID)) {
@@ -801,12 +801,18 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                 info.devicePath = QString("Disk %1 Partition %2").arg(diskNum).arg(partInfo.PartitionNumber);
 
                 // Convert partition GUID
-                GUID& guid = partInfo.Gpt.PartitionId;
-                info.partitionGuid = QUuid(
-                    guid.Data1, guid.Data2, guid.Data3,
-                    guid.Data4[0], guid.Data4[1], guid.Data4[2], guid.Data4[3],
-                    guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]
-                );
+                GUID &guid = partInfo.Gpt.PartitionId;
+                info.partitionGuid = QUuid(guid.Data1,
+                                           guid.Data2,
+                                           guid.Data3,
+                                           guid.Data4[0],
+                                           guid.Data4[1],
+                                           guid.Data4[2],
+                                           guid.Data4[3],
+                                           guid.Data4[4],
+                                           guid.Data4[5],
+                                           guid.Data4[6],
+                                           guid.Data4[7]);
 
                 // Get partition name (label)
                 QString partName = QString::fromWCharArray(partInfo.Gpt.Name);
@@ -816,16 +822,13 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                     info.label = "EFI System Partition";
                 }
 
-                qDebug() << "Found EFI partition: Disk" << diskNum
-                         << "Partition" << partInfo.PartitionNumber
-                         << "StartingOffset:" << partInfo.StartingOffset.QuadPart
-                         << "Size:" << partInfo.PartitionLength.QuadPart;
+                qDebug() << "Found EFI partition: Disk" << diskNum << "Partition" << partInfo.PartitionNumber
+                         << "StartingOffset:" << partInfo.StartingOffset.QuadPart << "Size:" << partInfo.PartitionLength.QuadPart;
 
                 // Look up the mount point from our pre-built volume list
                 bool matched = false;
-                for (const VolumeInfo& vol : volumeList) {
-                    if (vol.diskNumber == diskNum &&
-                        vol.startingOffset == partInfo.StartingOffset.QuadPart) {
+                for (const VolumeInfo &vol : volumeList) {
+                    if (vol.diskNumber == diskNum && vol.startingOffset == partInfo.StartingOffset.QuadPart) {
                         info.mountPoint = vol.mountPoint;
                         info.fileSystem = vol.fileSystem;
 
@@ -833,8 +836,7 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                         info.isMounted = !vol.mountPoint.isEmpty();
 
                         if (info.isMounted) {
-                            qDebug() << "  -> Matched to mounted volume:" << vol.mountPoint
-                                     << "FS:" << vol.fileSystem;
+                            qDebug() << "  -> Matched to mounted volume:" << vol.mountPoint << "FS:" << vol.fileSystem;
                         } else {
                             qDebug() << "  -> Matched to unmounted volume (no mount point)";
                         }
@@ -845,8 +847,7 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
 
                 if (!matched) {
                     qDebug() << "  -> No matching volume found in volumeList";
-                    qDebug() << "  -> Checked" << volumeList.size() << "volumes for Disk"
-                             << diskNum << "Offset" << partInfo.StartingOffset.QuadPart;
+                    qDebug() << "  -> Checked" << volumeList.size() << "volumes for Disk" << diskNum << "Offset" << partInfo.StartingOffset.QuadPart;
                 }
 
                 // Default filesystem if not found
@@ -902,51 +903,27 @@ bool QEFIPartitionManager::mountPartitionWindows(const QString &devicePath, QStr
             volumeName[len - 1] = L'\0';
         }
 
-        HANDLE hVol = CreateFileW(
-            volumeName,
-            GENERIC_READ,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            NULL,
-            OPEN_EXISTING,
-            0,
-            NULL
-        );
+        HANDLE hVol = CreateFileW(volumeName, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 
         if (hVol != INVALID_HANDLE_VALUE) {
             VOLUME_DISK_EXTENTS extents;
             DWORD returned;
 
-            if (DeviceIoControl(hVol, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
-                              NULL, 0, &extents, sizeof(extents), &returned, NULL)) {
-
-                if (extents.NumberOfDiskExtents > 0 &&
-                    extents.Extents[0].DiskNumber == diskNum) {
-
+            if (DeviceIoControl(hVol, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS, NULL, 0, &extents, sizeof(extents), &returned, NULL)) {
+                if (extents.NumberOfDiskExtents > 0 && extents.Extents[0].DiskNumber == diskNum) {
                     // Open the disk to get partition info
                     QString diskPath = QString("\\\\.\\PhysicalDrive%1").arg(diskNum);
-                    HANDLE hDisk = CreateFileW(
-                        (LPCWSTR)diskPath.utf16(),
-                        GENERIC_READ,
-                        FILE_SHARE_READ | FILE_SHARE_WRITE,
-                        NULL,
-                        OPEN_EXISTING,
-                        0,
-                        NULL
-                    );
+                    HANDLE hDisk = CreateFileW((LPCWSTR)diskPath.utf16(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 
                     if (hDisk != INVALID_HANDLE_VALUE) {
                         BYTE buffer[65536];
-                        DRIVE_LAYOUT_INFORMATION_EX* layout = (DRIVE_LAYOUT_INFORMATION_EX*)buffer;
+                        DRIVE_LAYOUT_INFORMATION_EX *layout = (DRIVE_LAYOUT_INFORMATION_EX *)buffer;
                         DWORD bytesReturned;
 
-                        if (DeviceIoControl(hDisk, IOCTL_DISK_GET_DRIVE_LAYOUT_EX,
-                                          NULL, 0, layout, sizeof(buffer), &bytesReturned, NULL)) {
-
+                        if (DeviceIoControl(hDisk, IOCTL_DISK_GET_DRIVE_LAYOUT_EX, NULL, 0, layout, sizeof(buffer), &bytesReturned, NULL)) {
                             for (DWORD i = 0; i < layout->PartitionCount; i++) {
-                                if (layout->PartitionEntry[i].PartitionNumber == partNum &&
-                                    extents.Extents[0].StartingOffset.QuadPart ==
-                                    layout->PartitionEntry[i].StartingOffset.QuadPart) {
-
+                                if (layout->PartitionEntry[i].PartitionNumber == partNum
+                                    && extents.Extents[0].StartingOffset.QuadPart == layout->PartitionEntry[i].StartingOffset.QuadPart) {
                                     volumeName[len] = L'\\'; // Restore trailing backslash
                                     volumeGuid = QString::fromWCharArray(volumeName);
                                     foundVolume = true;
@@ -961,7 +938,8 @@ bool QEFIPartitionManager::mountPartitionWindows(const QString &devicePath, QStr
             CloseHandle(hVol);
         }
 
-        if (foundVolume) break;
+        if (foundVolume)
+            break;
 
     } while (FindNextVolumeW(hVolume, volumeName, ARRAYSIZE(volumeName)));
     FindVolumeClose(hVolume);
@@ -1002,10 +980,7 @@ bool QEFIPartitionManager::mountPartitionWindows(const QString &devicePath, QStr
         volumeGuid += '\\';
     }
 
-    BOOL result = SetVolumeMountPointW(
-        (LPCWSTR)mountPoint.utf16(),
-        (LPCWSTR)volumeGuid.utf16()
-    );
+    BOOL result = SetVolumeMountPointW((LPCWSTR)mountPoint.utf16(), (LPCWSTR)volumeGuid.utf16());
 
     if (!result) {
         DWORD error = GetLastError();
