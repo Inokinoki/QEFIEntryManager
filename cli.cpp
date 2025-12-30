@@ -415,22 +415,23 @@ int CLI::execute()
         return 0;
     }
 
-    // Check EFI availability and privileges
-    if (!qefi_is_available()) {
-        QTextStream err(stderr);
-        err << "Error: No EFI environment available" << Qt::endl;
-        return 1;
-    }
-
+    // Check privileges
     if (!qefi_has_privilege()) {
         QTextStream err(stderr);
         err << "Error: Insufficient privileges. Please run as root or with elevated privileges." << Qt::endl;
         return 1;
     }
 
-    // Test scan option
+    // Test scan option might need privileges but not EFI
     if (m_parser.isSet("test-scan")) {
         return runPartitionScanTest();
+    }
+
+    // Check EFI availability and privileges
+    if (!qefi_is_available()) {
+        QTextStream err(stderr);
+        err << "Error: No EFI environment available" << Qt::endl;
+        return 1;
     }
 
     // Load boot entries
