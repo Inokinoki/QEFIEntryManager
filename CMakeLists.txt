@@ -143,6 +143,8 @@ set(CLI_SOURCES
         qefivar/qefidphw.cpp
         qefivar/qefidpmedia.cpp
         qefivar/qefidpmessage.cpp
+        qefipartitionmanager.cpp
+        qefipartitionmanager.h
 )
 
 add_executable(qefibootmgr qefibootmgr.cpp ${CLI_SOURCES})
