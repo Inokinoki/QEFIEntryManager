@@ -164,6 +164,8 @@ if(WIN32)
         WIN32_EXECUTABLE FALSE
     )
     target_link_options(qefibootmgr PRIVATE "/MANIFESTUAC:level='requireAdministrator'")
+    # Link Windows libraries for partition management (qefipartitionmanager.cpp uses Windows APIs)
+    target_link_libraries(qefibootmgr PRIVATE setupapi cfgmgr32)
 
     # Build efibootmgr executable (for Windows compatibility)
     # On Windows, we create a separate executable instead of symlink
@@ -177,6 +179,8 @@ if(WIN32)
         WIN32_EXECUTABLE FALSE
     )
     target_link_options(efibootmgr PRIVATE "/MANIFESTUAC:level='requireAdministrator'")
+    # Link Windows libraries for partition management (qefipartitionmanager.cpp uses Windows APIs)
+    target_link_libraries(efibootmgr PRIVATE setupapi cfgmgr32)
 endif()
 
 # Link FreeBSD libraries for CLI tools if needed
@@ -192,7 +196,7 @@ if(WIN32)
             RUNTIME DESTINATION bin
     )
 else()
-    install(TARGETS QEFIEntryManager qefibootmgr
+    install(TARGETS QEFIEntryManager qefibootmgr 
             RUNTIME DESTINATION bin
     )
 endif()
