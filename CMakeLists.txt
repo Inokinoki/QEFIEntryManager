@@ -134,17 +134,22 @@ target_include_directories(QEFIEntryManager PRIVATE
 # Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
 target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
 
+install(TARGETS QEFIEntryManager
+        RUNTIME DESTINATION bin
+)
+
+# The flag to build CLI utility
+if(NOT BUILD_CLI_UTILITY)
+    set(BUILD_CLI_UTILITY OFF)
+endif()
+
+# Build CLI utility if the flag is set
+if(BUILD_CLI_UTILITY)
 # Build qefibootmgr CLI-only executable
 set(CLI_SOURCES ${COMMON_SOURCES}
                 cli.cpp
                 cli.h
 )
-
-add_executable(qefibootmgr qefibootmgr.cpp ${CLI_SOURCES})
-
-# qefibootmgr only needs Core (no Widgets/GUI)
-target_link_libraries(qefibootmgr PRIVATE Qt${QT_VERSION_MAJOR}::Core)
-target_include_directories(qefibootmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
 
 # Set Windows admin elevation for CLI tools
 if(WIN32)
@@ -181,14 +186,31 @@ endif()
 
 # Install executables
 if(WIN32)
-    install(TARGETS QEFIEntryManager qefibootmgr efibootmgr
+    install(TARGETS qefibootmgr efibootmgr
             RUNTIME DESTINATION bin
     )
 else()
-    install(TARGETS QEFIEntryManager qefibootmgr 
+    install(TARGETS qefibootmgr 
             RUNTIME DESTINATION bin
     )
 endif()
+
+
+# Install man page for qefibootmgr/efibootmgr on Unix-like systems
+if(UNIX)
+    install(FILES qefibootmgr.8
+            DESTINATION ${CMAKE_INSTALL_MANDIR}/man8
+    )
+endif()
+
+# Create efibootmgr symlink to qefibootmgr on Unix-like systems
+if(UNIX)
+    install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \
+        qefibootmgr \
+        \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/efibootmgr)")
+endif()
+endif()
+
 # For AppImage
 include(GNUInstallDirs)
 install(PROGRAMS qefientrymanager-launcher
@@ -207,20 +229,6 @@ install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/qefientrymanager.desktop
 install(FILES cc.inoki.qefientrymanager.png
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/96x96/apps
 )
-
-# Install man page for qefibootmgr/efibootmgr on Unix-like systems
-if(UNIX)
-    install(FILES qefibootmgr.8
-            DESTINATION ${CMAKE_INSTALL_MANDIR}/man8
-    )
-endif()
-
-# Create efibootmgr symlink to qefibootmgr on Unix-like systems
-if(UNIX)
-    install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \
-        qefibootmgr \
-        \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/efibootmgr)")
-endif()
 
 # Use CPack to generate the package(s)
 if(ENABLE_PACKAGING)
