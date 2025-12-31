@@ -1,23 +1,100 @@
 #include "cli.h"
-#include "qefientrystaticlist.h"
+#include "qefi.h"
 #include "qefientry.h"
+#include "qefientrystaticlist.h"
+#include "qefipartitionmanager.h"
+#include "version.h"
 
 #include <QDebug>
 #include <QTextStream>
 #include <QtEndian>
-#include <qefi.h>
+#include <iostream>
 
-#if QT_VERSION >= QT_VERSION_CHECK(5,14,0)
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
 #define hex Qt::hex
 #define dec Qt::dec
 #endif
 
 // Defined in UEFI Spec as "EFI_GLOBAL_VARIABLE"
-constexpr QUuid g_efiUuid = QUuid(0x8be4df61, 0x93ca, 0x11d2, 0xaa, 0x0d, 0x00,
-                                  0xe0, 0x98, 0x03, 0x2b, 0x8c);
+constexpr QUuid g_efiUuid = QUuid(0x8be4df61, 0x93ca, 0x11d2, 0xaa, 0x0d, 0x00, 0xe0, 0x98, 0x03, 0x2b, 0x8c);
+
+// Run partition scanning test in CLI mode
+static int runPartitionScanTest()
+{
+    std::cout << "=== EFI Partition Scanner Test ===" << std::endl;
+    std::cout << "Platform: "
+#ifdef Q_OS_LINUX
+              << "Linux"
+#elif defined(Q_OS_FREEBSD)
+              << "FreeBSD"
+#elif defined(Q_OS_DARWIN)
+              << "macOS"
+#elif defined(Q_OS_WIN)
+              << "Windows"
+#else
+              << "Unknown"
+#endif
+              << std::endl;
+
+    // Check privileges
+    QEFIPartitionManager manager;
+    bool hasPrivileges = manager.hasPrivileges();
+    std::cout << "Running with privileges: " << (hasPrivileges ? "YES" : "NO") << std::endl;
+
+    if (!hasPrivileges) {
+        std::cerr << "WARNING: Not running with sufficient privileges" << std::endl;
+        std::cerr << "Partition scanning may fail or return incomplete results" << std::endl;
+    }
+
+    std::cout << "\nScanning for partitions..." << std::endl;
+
+    // Perform scan
+    QList<QEFIPartitionInfo> partitions;
+    try {
+        partitions = manager.scanPartitions();
+    } catch (const std::exception &e) {
+        std::cerr << "ERROR: Exception during scanning: " << e.what() << std::endl;
+        return 1;
+    } catch (...) {
+        std::cerr << "ERROR: Unknown exception during scanning" << std::endl;
+        return 1;
+    }
+
+    std::cout << "Scan completed successfully" << std::endl;
+    std::cout << "Found " << partitions.size() << " partition(s)" << std::endl;
+
+    if (partitions.isEmpty()) {
+        std::cout << "\nNo partitions found (this may be expected in test environments)" << std::endl;
+        return 0;
+    }
+
+    // Display partition information
+    std::cout << "\n=== Partition Details ===" << std::endl;
+    for (int i = 0; i < partitions.size(); ++i) {
+        const QEFIPartitionInfo &part = partitions[i];
+        std::cout << "\nPartition #" << (i + 1) << ":" << std::endl;
+        std::cout << "  Device Path:  " << part.devicePath.toStdString() << std::endl;
+        std::cout << "  Is EFI:       " << (part.isEFI ? "YES" : "NO") << std::endl;
+        std::cout << "  Partition #:  " << part.partitionNumber << std::endl;
+        std::cout << "  Size:         " << (part.size / 1024 / 1024) << " MB" << std::endl;
+        std::cout << "  Label:        " << part.label.toStdString() << std::endl;
+        std::cout << "  Filesystem:   " << part.fileSystem.toStdString() << std::endl;
+        std::cout << "  Mounted:      " << (part.isMounted ? "YES" : "NO") << std::endl;
+        if (part.isMounted) {
+            std::cout << "  Mount Point:  " << part.mountPoint.toStdString() << std::endl;
+        }
+        if (!part.partitionGuid.isNull()) {
+            std::cout << "  GUID:         " << part.partitionGuid.toString().toStdString() << std::endl;
+        }
+    }
+
+    std::cout << "\n=== Test PASSED ===" << std::endl;
+    return 0;
+}
 
 CLI::CLI(int argc, char *argv[])
-    : m_argc(argc), m_argv(argv)
+    : m_argc(argc)
+    , m_argv(argv)
 {
     m_app = new QCoreApplication(m_argc, m_argv);
     setupParser();
@@ -66,18 +143,24 @@ void CLI::setupParser()
 
     // Additional options
     m_parser.addOption(QCommandLineOption({"D", "remove-dups"}, "Remove duplicated entries from BootOrder"));
+
+#ifndef QT_NO_DEBUG
+    // Test scan option
+    m_parser.addOption(QCommandLineOption("test-scan", "Test EFI partition scanning (CLI mode for testing)"));
+#endif
 }
 
 void CLI::printVersion()
 {
     QTextStream out(stdout);
-    out << "QEFIEntryManager version 0.4.1" << Qt::endl;
+    out << "QEFIEntryManager version " << QEFI_ENTRY_MANAGER_VERSION << Qt::endl;
     out << "efibootmgr compatible CLI mode" << Qt::endl;
 }
 
 void CLI::printBootEntries(bool verbose, bool quiet)
 {
-    if (quiet) return;
+    if (quiet)
+        return;
 
     QTextStream out(stdout);
     QEFIEntryStaticList *list = QEFIEntryStaticList::instance();
@@ -96,7 +179,9 @@ void CLI::printBootEntries(bool verbose, bool quiet)
     QList<quint16> order = list->order();
     for (int i = 0; i < order.size(); i++) {
         out << QString::number(order[i], 16).rightJustified(4, '0').toUpper();
-        if (i < order.size() - 1) out << ",";
+        if (i < order.size() - 1) {
+            out << ",";
+        }
     }
     out << Qt::endl;
 
@@ -193,8 +278,7 @@ bool CLI::handleModifications()
         bool visible = m_parser.isSet("active");
         if (list->setBootVisibility(bootnum, visible)) {
             if (!quiet) {
-                out << "Set Boot" << QString::number(bootnum, 16).rightJustified(4, '0').toUpper()
-                    << (visible ? " active" : " inactive") << Qt::endl;
+                out << "Set Boot" << QString::number(bootnum, 16).rightJustified(4, '0').toUpper() << (visible ? " active" : " inactive") << Qt::endl;
             }
             modified = true;
         } else {
@@ -318,7 +402,7 @@ bool CLI::handleModifications()
         return false;
     }
 
-    return true;  // Success (whether or not modifications were made)
+    return true; // Success (whether or not modifications were made)
 }
 
 int CLI::execute()
@@ -331,16 +415,24 @@ int CLI::execute()
         return 0;
     }
 
+    // Check privileges
+    if (!qefi_has_privilege()) {
+        QTextStream err(stderr);
+        err << "Error: Insufficient privileges. Please run as root or with elevated privileges." << Qt::endl;
+        return 1;
+    }
+
+#ifndef QT_NO_DEBUG
+    // Test scan option might need privileges but not EFI
+    if (m_parser.isSet("test-scan")) {
+        return runPartitionScanTest();
+    }
+#endif
+
     // Check EFI availability and privileges
     if (!qefi_is_available()) {
         QTextStream err(stderr);
         err << "Error: No EFI environment available" << Qt::endl;
-        return 1;
-    }
-
-    if (!qefi_has_privilege()) {
-        QTextStream err(stderr);
-        err << "Error: Insufficient privileges. Please run as root or with elevated privileges." << Qt::endl;
         return 1;
     }
 
@@ -349,18 +441,9 @@ int CLI::execute()
     list->load();
 
     // Handle modifications first
-    bool hasModifications = m_parser.isSet("active") ||
-                           m_parser.isSet("inactive") ||
-                           m_parser.isSet("delete-bootnum") ||
-                           m_parser.isSet("bootorder") ||
-                           m_parser.isSet("delete-bootorder") ||
-                           m_parser.isSet("bootnext") ||
-                           m_parser.isSet("delete-bootnext") ||
-                           m_parser.isSet("timeout") ||
-                           m_parser.isSet("delete-timeout") ||
-                           m_parser.isSet("remove-dups") ||
-                           m_parser.isSet("create") ||
-                           m_parser.isSet("create-only");
+    bool hasModifications = m_parser.isSet("active") || m_parser.isSet("inactive") || m_parser.isSet("delete-bootnum") || m_parser.isSet("bootorder")
+        || m_parser.isSet("delete-bootorder") || m_parser.isSet("bootnext") || m_parser.isSet("delete-bootnext") || m_parser.isSet("timeout")
+        || m_parser.isSet("delete-timeout") || m_parser.isSet("remove-dups") || m_parser.isSet("create") || m_parser.isSet("create-only");
 
     if (hasModifications) {
         if (!handleModifications()) {

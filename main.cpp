@@ -1,13 +1,15 @@
-#include "mainwindow.h"
 #include "cli.h"
+#include "mainwindow.h"
+#include "version.h"
 
 #include <QApplication>
+#include <QCommandLineParser>
 #include <QDebug>
 #include <QMessageBox>
 #include <QResource>
 #include <QTranslator>
-#include <qefientrystaticlist.h>
 #include <qefi.h>
+#include <qefientrystaticlist.h>
 
 // Check if we should run in CLI mode
 bool shouldUseCLIMode(int argc, char *argv[])
@@ -32,25 +34,24 @@ int main(int argc, char *argv[])
         return cli.execute();
     }
 
-    // GUI mode (original behavior)
+    // GUI mode if no CLI mode is specified
     QApplication a(argc, argv);
+    a.setApplicationName("QEFIEntryManager");
+    a.setApplicationVersion(QEFI_ENTRY_MANAGER_VERSION);
+
+    // Normal GUI mode
     a.setDesktopFileName("qefientrymanager");
     a.setWindowIcon(QIcon("../cc.inoki.qefientrymanager.png"));
 
     QTranslator translator;
-    if (translator.load(QLocale(), QStringLiteral("app"), QStringLiteral("_"), QStringLiteral(":/translations"), QStringLiteral(".qm")))
-    {
+    if (translator.load(QLocale(), QStringLiteral("app"), QStringLiteral("_"), QStringLiteral(":/translations"), QStringLiteral(".qm"))) {
         a.installTranslator(&translator);
-    }
-    else
-    {
+    } else {
         qDebug() << "Failed to load translation";
     }
 
-    if (!qefi_is_available() || !qefi_has_privilege())
-    {
-        QMessageBox::critical(nullptr, QObject::tr("Error"),
-                              QObject::tr("Permission insufficient or no EFI environment"));
+    if (!qefi_is_available() || !qefi_has_privilege()) {
+        QMessageBox::critical(nullptr, QObject::tr("Error"), QObject::tr("Permission insufficient or no EFI environment"));
         return 1;
     }
 

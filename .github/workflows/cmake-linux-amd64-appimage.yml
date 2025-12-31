@@ -2,9 +2,9 @@ name: Build Linux x64 AppImage and deb
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -38,58 +38,65 @@ jobs:
     runs-on: ${{matrix.os}}
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-         submodules: true
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
 
-    - name: Show libc version
-      run: ldd --version | head -n 1
+      - name: Show libc version
+        run: ldd --version | head -n 1
 
-    - name: Install libefivar, libefiboot and their dev files
-      run: |
-        sudo apt update -y
-        sudo apt install -y ${{matrix.qt-pkg}} fuse
+      - name: Install libefivar, libefiboot and their dev files
+        run: |
+          sudo apt update -y
+          sudo apt install -y ${{matrix.qt-pkg}} fuse
 
-    - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=ON -DUSE_PKEXEC_LAUNCHER=${{matrix.use-pkexec-launcher}}
+      - name: Configure CMake
+        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=ON -DUSE_PKEXEC_LAUNCHER=${{matrix.use-pkexec-launcher}}
 
-    - name: Build
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      - name: Build
+        # Build your program with the given configuration
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-    - name: Packaging
-      working-directory: ${{github.workspace}}/build
-      # Execute tests defined by the CMake configuration.  
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: |
-        export QMAKE=/usr/lib/qt${{matrix.qt-ver}}/bin/qmake
-        make install DESTDIR=AppDir
-        wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-        wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-        chmod +x linuxdeploy*.AppImage
-        ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
-        mv EFI_Entry_Manager-x86_64.AppImage EFI_Entry_Manager-x86_64-Qt${{matrix.qt-ver}}.AppImage
+      - name: Test EFI Partition Scanning (debug mode only)
+        run: |
+          cmake -B ${{github.workspace}}/build-debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=OFF
+          cmake --build ${{github.workspace}}/build-debug --config Debug
+          chmod +x ${{github.workspace}}/scripts/test-efi-partition-scan-linux.sh
+          sudo ${{github.workspace}}/scripts/test-efi-partition-scan-linux.sh ${{github.workspace}}/build-debug/qefibootmgr
 
-    - name: Upload a Build Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        # Artifact name
-        name: QEFI Entry Manager x86_64 AppImage Qt${{matrix.qt-ver}} pkexec-launcher-${{matrix.use-pkexec-launcher}}
-        # A file, directory or wildcard pattern that describes what to upload
-        path: ${{github.workspace}}/build/EFI_Entry_Manager-x86_64-Qt${{matrix.qt-ver}}.AppImage
+      - name: Packaging
+        working-directory: ${{github.workspace}}/build
+        # Execute tests defined by the CMake configuration.
+        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+        run: |
+          export QMAKE=/usr/lib/qt${{matrix.qt-ver}}/bin/qmake
+          make install DESTDIR=AppDir
+          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
+          mv EFI_Entry_Manager-x86_64.AppImage EFI_Entry_Manager-x86_64-Qt${{matrix.qt-ver}}.AppImage
 
-    - name: Packaging Debian
-      if: ${{ matrix.use-pkexec-launcher == 'ON' }}
-      working-directory: ${{github.workspace}}/build
-      run: cpack -G DEB
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # Artifact name
+          name: QEFI Entry Manager x86_64 AppImage Qt${{matrix.qt-ver}} pkexec-launcher-${{matrix.use-pkexec-launcher}}
+          # A file, directory or wildcard pattern that describes what to upload
+          path: ${{github.workspace}}/build/EFI_Entry_Manager-x86_64-Qt${{matrix.qt-ver}}.AppImage
 
-    - name: Upload a Build Artifact
-      if: ${{ matrix.use-pkexec-launcher == 'ON' }}
-      uses: actions/upload-artifact@v4
-      with:
-        # Artifact name
-        name: QEFI Entry Manager x86_64 deb Qt${{matrix.qt-ver}}
-        # A file, directory or wildcard pattern that describes what to upload
-        path: ${{github.workspace}}/build/*.deb
+      - name: Packaging Debian
+        if: ${{ matrix.use-pkexec-launcher == 'ON' }}
+        working-directory: ${{github.workspace}}/build
+        run: cpack -G DEB
+
+      - name: Upload a Build Artifact
+        if: ${{ matrix.use-pkexec-launcher == 'ON' }}
+        uses: actions/upload-artifact@v4
+        with:
+          # Artifact name
+          name: QEFI Entry Manager x86_64 deb Qt${{matrix.qt-ver}}
+          # A file, directory or wildcard pattern that describes what to upload
+          path: ${{github.workspace}}/build/*.deb

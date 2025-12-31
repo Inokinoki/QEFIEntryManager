@@ -8,6 +8,16 @@ set(QEFI_ENTRY_MANAGER_VERSION ${QEFI_ENTRY_MANAGER_VERSION_MAJOR}.${QEFI_ENTRY_
 project(QEFIEntryManager LANGUAGES CXX VERSION ${QEFI_ENTRY_MANAGER_VERSION})
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+
+# Generate version header from template
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/version.h
+    @ONLY
+)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -45,6 +55,10 @@ set(PROJECT_SOURCES
         qefidpfields.h
         qefiloadoptioneditorview.cpp
         qefiloadoptioneditorview.h
+        qefipartitionmanager.cpp
+        qefipartitionmanager.h
+        qefipartitionview.cpp
+        qefipartitionview.h
         qefivar/qefi.cpp
         qefivar/qefidpacpi.cpp
         qefivar/qefidphw.cpp
@@ -96,6 +110,8 @@ if(APP_DATA_DUMMY_BACKEND)
     add_definitions(-DEFIVAR_APP_DATA_DUMMY)
 elseif(WIN32)
     message("Use Windows API for EFI operations")
+    # Link with Windows libraries for partition management
+    target_link_libraries(QEFIEntryManager PRIVATE setupapi cfgmgr32)
 else()
     if(${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
         # Link with FreeBSD system-level libefivar and geom
@@ -109,7 +125,10 @@ if(USE_EFIVAR_OLD_API)
     add_definitions(-DEFIVAR_OLD_API)
 endif()
 
-target_include_directories(QEFIEntryManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
+target_include_directories(QEFIEntryManager PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/qefivar
+    ${CMAKE_CURRENT_BINARY_DIR}
+)
 
 # Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
 target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
@@ -127,6 +146,8 @@ set(CLI_SOURCES
         qefivar/qefidphw.cpp
         qefivar/qefidpmedia.cpp
         qefivar/qefidpmessage.cpp
+        qefipartitionmanager.cpp
+        qefipartitionmanager.h
 )
 
 add_executable(qefibootmgr qefibootmgr.cpp ${CLI_SOURCES})
@@ -143,6 +164,8 @@ if(WIN32)
         WIN32_EXECUTABLE FALSE
     )
     target_link_options(qefibootmgr PRIVATE "/MANIFESTUAC:level='requireAdministrator'")
+    # Link Windows libraries for partition management (qefipartitionmanager.cpp uses Windows APIs)
+    target_link_libraries(qefibootmgr PRIVATE setupapi cfgmgr32)
 
     # Build efibootmgr executable (for Windows compatibility)
     # On Windows, we create a separate executable instead of symlink
@@ -156,6 +179,8 @@ if(WIN32)
         WIN32_EXECUTABLE FALSE
     )
     target_link_options(efibootmgr PRIVATE "/MANIFESTUAC:level='requireAdministrator'")
+    # Link Windows libraries for partition management (qefipartitionmanager.cpp uses Windows APIs)
+    target_link_libraries(efibootmgr PRIVATE setupapi cfgmgr32)
 endif()
 
 # Link FreeBSD libraries for CLI tools if needed
@@ -171,7 +196,7 @@ if(WIN32)
             RUNTIME DESTINATION bin
     )
 else()
-    install(TARGETS QEFIEntryManager qefibootmgr
+    install(TARGETS QEFIEntryManager qefibootmgr 
             RUNTIME DESTINATION bin
     )
 endif()

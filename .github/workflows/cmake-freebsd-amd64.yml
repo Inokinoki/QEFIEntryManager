@@ -1,9 +1,9 @@
 name: Build on FreeBSD
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
@@ -16,21 +16,26 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os-version: ['14.1']
+        os-version: ["14.1"]
       # Don't abort runners if a single one fails
       fail-fast: false
     steps:
-    - uses: actions/checkout@v4
-      with:
-         submodules: true
-    # Configure and build
-    - uses: vmactions/freebsd-vm@v1
-      with:
-        release: ${{ matrix.os-version}}
-        usesh: true
-        prepare: |
-          pkg install -y cmake qt5
-        run: |
-          uname -a
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr
-          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      # Configure and build
+      - uses: vmactions/freebsd-vm@v1
+        with:
+          release: ${{ matrix.os-version}}
+          usesh: true
+          prepare: |
+            pkg install -y cmake qt5
+          run: |
+            uname -a
+            cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr
+            cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+            # Configure and build in debug mode
+            cmake -B ${{github.workspace}}/build-debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=OFF
+            cmake --build ${{github.workspace}}/build-debug --config Debug
+            chmod +x ${{github.workspace}}/scripts/test-efi-partition-scan-freebsd.sh
+            ${{github.workspace}}/scripts/test-efi-partition-scan-freebsd.sh ${{github.workspace}}/build-debug/qefibootmgr
