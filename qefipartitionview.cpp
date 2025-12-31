@@ -473,7 +473,8 @@ void QEFIPartitionView::createBootEntryFromFile()
 
     // Format the load option
     QByteArray loadOptionData = loadOption.format();
-    if (loadOptionData.isEmpty() || !loadOption.isValidated()) {
+    // TODO: Improve LoadOption format and validation
+    if (loadOptionData.isEmpty()) {
         qDebug() << "Create boot entry from EFI file failed";
         qDebug() << "Load option validated:" << loadOption.isValidated();
         qDebug() << "Load option name:" << loadOption.name();
