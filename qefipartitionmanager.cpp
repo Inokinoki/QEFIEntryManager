@@ -58,15 +58,17 @@ const QString g_efiPartTypeGuid = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b";
 #endif
 
 #ifdef Q_OS_WIN
+#include <windows.h>
+// initguid.h must be included before headers that declare GUIDs
 #include <cfgmgr32.h>
 #include <devguid.h>
 #include <initguid.h>
 #include <setupapi.h>
 #include <vector>
-#include <windows.h>
 #include <winioctl.h>
 
 // EFI System Partition GUID
+// Define it here since it may only be declared (not defined) in winioctl.h
 DEFINE_GUID(PARTITION_SYSTEM_GUID, 0xC12A7328, 0xF81F, 0x11D2, 0xBA, 0x4B, 0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B);
 #endif
 
