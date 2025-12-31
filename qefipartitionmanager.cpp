@@ -199,14 +199,20 @@ static QString readSysfsFile(const QString &path)
 static QString getPartitionTypeGuidBlkid(const QString &devicePath)
 {
     QProcess blkid;
-    blkid.start("blkid", QStringList() << "-s" << "PART_ENTRY_TYPE" << "-o" << "value" << devicePath);
-    if (!blkid.waitForFinished(5000)) {
+    QStringList arguments;
+    arguments << "-p" << "-s" << "PART_ENTRY_TYPE" << "-o" << "value" << devicePath;
+    qDebug() << "Running blkid with arguments: " << arguments.join(" ");
+    blkid.start("blkid", arguments);
+    if (!blkid.waitForFinished(500)) {
         return QString();
     }
     if (blkid.exitCode() != 0) {
+        qDebug() << "blkid failed with exit code: " << blkid.exitCode();
+        qDebug() << "blkid debug output: " << QString::fromUtf8(blkid.readAllStandardError()).trimmed();
         return QString();
     }
     QString output = QString::fromUtf8(blkid.readAllStandardOutput()).trimmed();
+    qDebug() << "blkid output: " << output;
     return output;
 }
 
@@ -220,17 +226,24 @@ static bool isEfiPartitionLinux(const QString &deviceName, const QString &device
     QString sysPath = QString("/sys/class/block/%1/partition").arg(deviceName);
     if (QFile::exists(sysPath)) {
         QString partTypePath = QString("/sys/class/block/%1/partition_type_guid").arg(deviceName);
-        QString partType = readSysfsFile(partTypePath);
+        if (QFile::exists(partTypePath)) {
+            QString partType = readSysfsFile(partTypePath);
 
-        if (!partType.isEmpty()) {
-            // Remove any hyphens and compare
-            partType = partType.toLower().remove('-');
-            QString efiGuid = QString(g_efiPartTypeGuid).remove('-');
-            return (partType == efiGuid);
+            if (!partType.isEmpty()) {
+                // Remove any hyphens and compare
+                partType = partType.toLower().remove('-');
+                QString efiGuid = QString(g_efiPartTypeGuid).remove('-');
+                return (partType == efiGuid);
+            }
+        } else {
+            qDebug() << "No partition type GUID: " << fullDevicePath;
         }
+    } else {
+        qDebug() << "Not a partition: " << fullDevicePath;
     }
 
     // Fallback to blkid for loop devices or when sysfs doesn't have the GUID
+    qDebug() << "Fallback to blkid for: " << fullDevicePath;
     QString partType = getPartitionTypeGuidBlkid(fullDevicePath);
     if (!partType.isEmpty()) {
         // Remove any hyphens and compare

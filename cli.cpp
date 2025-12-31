@@ -422,10 +422,12 @@ int CLI::execute()
         return 1;
     }
 
+#ifndef QT_NO_DEBUG
     // Test scan option might need privileges but not EFI
     if (m_parser.isSet("test-scan")) {
         return runPartitionScanTest();
     }
+#endif
 
     // Check EFI availability and privileges
     if (!qefi_is_available()) {

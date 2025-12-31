@@ -149,9 +149,5 @@ losetup -d "$LOOP_DEVICE"
 rm -f "$DISK_IMAGE"
 
 echo "=== Test Complete ==="
-echo "Note: Loop devices may not expose partition_type_guid in sysfs,"
-echo "so the scanner might not detect the EFI partition."
-echo "This test primarily validates that the code doesn't crash and can"
-echo "safely scan the system without errors."
 
 exit $FAILURE
