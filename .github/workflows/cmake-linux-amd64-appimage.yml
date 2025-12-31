@@ -53,7 +53,11 @@ jobs:
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=ON -DUSE_PKEXEC_LAUNCHER=${{matrix.use-pkexec-launcher}}  -DBUILD_CLI_UTILITY=ON
+        run: |
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+            -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=ON \
+            -DUSE_PKEXEC_LAUNCHER=${{matrix.use-pkexec-launcher}} \
+            -DBUILD_CLI_UTILITY=ON
 
       - name: Build
         # Build your program with the given configuration
@@ -61,7 +65,9 @@ jobs:
 
       - name: Test EFI Partition Scanning (debug mode only)
         run: |
-          cmake -B ${{github.workspace}}/build-debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=OFF -DBUILD_CLI_UTILITY=ON
+          cmake -B ${{github.workspace}}/build-debug -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=OFF \
+            -DBUILD_CLI_UTILITY=ON
           cmake --build ${{github.workspace}}/build-debug --config Debug
           chmod +x ${{github.workspace}}/scripts/test-efi-partition-scan-linux.sh
           sudo ${{github.workspace}}/scripts/test-efi-partition-scan-linux.sh ${{github.workspace}}/build-debug/qefibootmgr
