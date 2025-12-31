@@ -150,6 +150,9 @@ set(CLI_SOURCES ${COMMON_SOURCES}
                 cli.cpp
                 cli.h
 )
+add_executable(qefibootmgr qefibootmgr.cpp ${CLI_SOURCES})
+target_link_libraries(qefibootmgr PRIVATE Qt${QT_VERSION_MAJOR}::Core)
+target_include_directories(qefibootmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
 
 # Set Windows admin elevation for CLI tools
 if(WIN32)
