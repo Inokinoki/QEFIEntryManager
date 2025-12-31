@@ -486,6 +486,8 @@ void QEFIPartitionView::createBootEntryFromFile()
     }
 
     quint16 bootID = dialog.bootID();
+    qDebug() << "About to save boot entry with ID:" << QString("Boot%1").arg(bootID, 4, 16, QLatin1Char('0')).toUpper();
+    qDebug() << "Load option data size:" << loadOptionData.size();
 
     // Check if boot ID already exists
     QList<quint16> order = QEFIEntryStaticList::instance()->order();
@@ -499,7 +501,10 @@ void QEFIPartitionView::createBootEntryFromFile()
     }
 
     // Save the boot entry
-    if (!QEFIEntryStaticList::instance()->updateBootEntry(bootID, loadOptionData)) {
+    qDebug() << "Calling updateBootEntry for Boot" << QString::number(bootID, 16).rightJustified(4, '0').toUpper();
+    bool result = QEFIEntryStaticList::instance()->updateBootEntry(bootID, loadOptionData);
+    qDebug() << "updateBootEntry returned:" << result;
+    if (!result) {
         QMessageBox::warning(this, tr("Error"), tr("Failed to save boot entry. The entry ID might be invalid."));
         return;
     }
