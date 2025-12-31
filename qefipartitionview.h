@@ -1,13 +1,13 @@
 #ifndef QEFIPARTITIONVIEW_H
 #define QEFIPARTITIONVIEW_H
 
-#include <QWidget>
-#include <QTableWidget>
-#include <QPushButton>
-#include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPushButton>
+#include <QTableWidget>
+#include <QVBoxLayout>
+#include <QWidget>
 
 #include "qefipartitionmanager.h"
 
@@ -21,9 +21,9 @@ public:
 
 public slots:
     void refreshPartitions();
-    void mountSelectedPartition();
-    void unmountSelectedPartition();
+    void toggleMountSelectedPartition();
     void openMountPoint();
+    void createBootEntryFromFile();
     void selectionChanged();
 
 private:
@@ -35,14 +35,13 @@ private:
     QEFIPartitionManager *m_partitionManager;
 
     QVBoxLayout *m_mainLayout;
-    QLabel *m_titleLabel;
     QTableWidget *m_partitionTable;
 
     QHBoxLayout *m_buttonLayout;
     QPushButton *m_refreshButton;
-    QPushButton *m_mountButton;
-    QPushButton *m_unmountButton;
+    QPushButton *m_mountUnmountButton;
     QPushButton *m_openButton;
+    QPushButton *m_createBootEntryButton;
 
     QLabel *m_statusLabel;
 
