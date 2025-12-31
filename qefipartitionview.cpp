@@ -68,7 +68,7 @@ void QEFIPartitionView::setupUI()
     connect(m_openButton, &QPushButton::clicked, this, &QEFIPartitionView::openMountPoint);
     m_buttonLayout->addWidget(m_openButton);
 
-    m_createBootEntryButton = new QPushButton(tr("Create boot entry from EFI file"), this);
+    m_createBootEntryButton = new QPushButton(tr("New boot entry"), this);
     connect(m_createBootEntryButton, &QPushButton::clicked, this, &QEFIPartitionView::createBootEntryFromFile);
     m_buttonLayout->addWidget(m_createBootEntryButton);
 
@@ -250,8 +250,24 @@ void QEFIPartitionView::createBootEntryFromFile()
 
     // Check if the file is within the mount point
     QFileInfo fileInfo(selectedFile);
-    QString mountPoint = selectedPartition.mountPoint;
-    if (!selectedFile.startsWith(mountPoint)) {
+    QDir mountDir(selectedPartition.mountPoint);
+    QString mountPoint = mountDir.absolutePath();
+    QString absoluteFilePath = fileInfo.absoluteFilePath();
+
+    // Normalize paths for comparison (handle Windows case-insensitivity and separators)
+    QString normalizedMountPoint = QDir::toNativeSeparators(mountPoint);
+    QString normalizedFilePath = QDir::toNativeSeparators(absoluteFilePath);
+
+#ifdef Q_OS_WIN
+    normalizedMountPoint = normalizedMountPoint.toUpper();
+    normalizedFilePath = normalizedFilePath.toUpper();
+    // Ensure mount point ends with backslash for proper comparison
+    if (!normalizedMountPoint.endsWith('\\')) {
+        normalizedMountPoint += '\\';
+    }
+#endif
+
+    if (!normalizedFilePath.startsWith(normalizedMountPoint)) {
         QMessageBox::warning(this, tr("Invalid File"), tr("The selected file is not within the mounted partition."));
         return;
     }
