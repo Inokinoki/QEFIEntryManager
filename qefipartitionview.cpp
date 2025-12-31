@@ -478,9 +478,8 @@ void QEFIPartitionView::createBootEntryFromFile()
         qDebug() << "Load option name:" << loadOption.name();
         qDebug() << "Load option optional data:" << loadOption.optionalData().toHex();
         qDebug() << "Load option device paths:" << loadOption.devicePathList().size();
-        qDebug() << "Partition device path:" << hdDp->partitionNumber() << "start:" << hdDp->start() << "size:" << hdDp->size()
-                 << "signature:" << hdDp->rawSignature().toHex();
-        qDebug() << "File device path:" << fileDp->path();
+        qDebug() << "Partition device path:" << hdDp->partitionNumber() << "start:" << hdDp->start() << "size:" << hdDp->size();
+        qDebug() << "File device path:" << fileDp->name();
         QMessageBox::warning(this, tr("Error"), tr("Failed to create boot entry data."));
         return;
     }
