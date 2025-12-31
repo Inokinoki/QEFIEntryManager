@@ -26,44 +26,45 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets Network LinguistTools REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Network REQUIRED)
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets Network LinguistTools Core REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Network Core REQUIRED)
 
-set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        cli.cpp
-        cli.h
-        qefientrydetailview.cpp
-        qefientrydetailview.h
-        qefientrydpdetailview.cpp
-        qefientrydpdetailview.h
-        qefientryview.cpp
-        qefientryview.h
+set(COMMON_SOURCES
         qefientry.cpp
         qefientry.h
         qefientrystaticlist.cpp
         qefientrystaticlist.h
-        helpers.cpp
-        helpers.h
-        qefidpeditorview.cpp
-        qefidpeditorview.h
-        qefidpeditordialog.cpp
-        qefidpeditordialog.h
-        qefidpfields.cpp
-        qefidpfields.h
-        qefiloadoptioneditorview.cpp
-        qefiloadoptioneditorview.h
         qefipartitionmanager.cpp
         qefipartitionmanager.h
-        qefipartitionview.cpp
-        qefipartitionview.h
         qefivar/qefi.cpp
         qefivar/qefidpacpi.cpp
         qefivar/qefidphw.cpp
         qefivar/qefidpmedia.cpp
         qefivar/qefidpmessage.cpp
+)
+
+set(PROJECT_SOURCES ${COMMON_SOURCES}
+                    main.cpp
+                    mainwindow.cpp
+                    mainwindow.h
+                    qefientrydetailview.cpp
+                    qefientrydetailview.h
+                    qefientrydpdetailview.cpp
+                    qefientrydpdetailview.h
+                    qefientryview.cpp
+                    qefientryview.h
+                    helpers.cpp
+                    helpers.h
+                    qefidpeditorview.cpp
+                    qefidpeditorview.h
+                    qefidpeditordialog.cpp
+                    qefidpeditordialog.h
+                    qefidpfields.cpp
+                    qefidpfields.h
+                    qefiloadoptioneditorview.cpp
+                    qefiloadoptioneditorview.h
+                    qefipartitionview.cpp
+                    qefipartitionview.h
 )
 
 # Add translations files here
@@ -133,27 +134,23 @@ target_include_directories(QEFIEntryManager PRIVATE
 # Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
 target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
 
-# Build qefibootmgr CLI-only executable
-set(CLI_SOURCES
-        cli.cpp
-        cli.h
-        qefientry.cpp
-        qefientry.h
-        qefientrystaticlist.cpp
-        qefientrystaticlist.h
-        qefivar/qefi.cpp
-        qefivar/qefidpacpi.cpp
-        qefivar/qefidphw.cpp
-        qefivar/qefidpmedia.cpp
-        qefivar/qefidpmessage.cpp
-        qefipartitionmanager.cpp
-        qefipartitionmanager.h
+install(TARGETS QEFIEntryManager
+        RUNTIME DESTINATION bin
 )
 
-add_executable(qefibootmgr qefibootmgr.cpp ${CLI_SOURCES})
+# The flag to build CLI utility
+if(NOT BUILD_CLI_UTILITY)
+    set(BUILD_CLI_UTILITY OFF)
+endif()
 
-# qefibootmgr only needs Core (no Widgets/GUI)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
+# Build CLI utility if the flag is set
+if(BUILD_CLI_UTILITY)
+# Build qefibootmgr CLI-only executable
+set(CLI_SOURCES ${COMMON_SOURCES}
+                cli.cpp
+                cli.h
+)
+add_executable(qefibootmgr qefibootmgr.cpp ${CLI_SOURCES})
 target_link_libraries(qefibootmgr PRIVATE Qt${QT_VERSION_MAJOR}::Core)
 target_include_directories(qefibootmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
 
@@ -192,14 +189,31 @@ endif()
 
 # Install executables
 if(WIN32)
-    install(TARGETS QEFIEntryManager qefibootmgr efibootmgr
+    install(TARGETS qefibootmgr efibootmgr
             RUNTIME DESTINATION bin
     )
 else()
-    install(TARGETS QEFIEntryManager qefibootmgr 
+    install(TARGETS qefibootmgr 
             RUNTIME DESTINATION bin
     )
 endif()
+
+
+# Install man page for qefibootmgr/efibootmgr on Unix-like systems
+if(UNIX)
+    install(FILES qefibootmgr.8
+            DESTINATION ${CMAKE_INSTALL_MANDIR}/man8
+    )
+endif()
+
+# Create efibootmgr symlink to qefibootmgr on Unix-like systems
+if(UNIX)
+    install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \
+        qefibootmgr \
+        \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/efibootmgr)")
+endif()
+endif()
+
 # For AppImage
 include(GNUInstallDirs)
 install(PROGRAMS qefientrymanager-launcher
@@ -218,20 +232,6 @@ install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/qefientrymanager.desktop
 install(FILES cc.inoki.qefientrymanager.png
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/96x96/apps
 )
-
-# Install man page for qefibootmgr/efibootmgr on Unix-like systems
-if(UNIX)
-    install(FILES qefibootmgr.8
-            DESTINATION ${CMAKE_INSTALL_MANDIR}/man8
-    )
-endif()
-
-# Create efibootmgr symlink to qefibootmgr on Unix-like systems
-if(UNIX)
-    install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \
-        qefibootmgr \
-        \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/efibootmgr)")
-endif()
 
 # Use CPack to generate the package(s)
 if(ENABLE_PACKAGING)
