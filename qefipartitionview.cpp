@@ -1,11 +1,21 @@
 #include "qefipartitionview.h"
 #include <QDesktopServices>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFormLayout>
+#include <QHBoxLayout>
 #include <QHeaderView>
 #include <QInputDialog>
+#include <QLabel>
+#include <QLineEdit>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QSpinBox>
 #include <QUrl>
+#include <QVBoxLayout>
 #include <cstring>
 #include <qefi.h>
 #include <qefientrystaticlist.h>
@@ -68,7 +78,8 @@ void QEFIPartitionView::setupUI()
     connect(m_openButton, &QPushButton::clicked, this, &QEFIPartitionView::openMountPoint);
     m_buttonLayout->addWidget(m_openButton);
 
-    m_createBootEntryButton = new QPushButton(tr("New boot entry"), this);
+    m_createBootEntryButton = new QPushButton(tr("Create"), this);
+    m_createBootEntryButton->setToolTip(tr("Create a boot entry from an EFI file"));
     connect(m_createBootEntryButton, &QPushButton::clicked, this, &QEFIPartitionView::createBootEntryFromFile);
     m_buttonLayout->addWidget(m_createBootEntryButton);
 
@@ -211,6 +222,153 @@ void QEFIPartitionView::toggleMountSelectedPartition()
     }
 }
 
+// Dialog for creating boot entry from EFI file
+class EFIBootEntryDialog : public QDialog
+{
+    Q_OBJECT
+
+    QEFIPartitionInfo m_partition;
+    QFormLayout *m_formLayout;
+    QSpinBox *m_idSpinBox;
+    QLineEdit *m_nameLineEdit;
+    QLineEdit *m_optionalDataLineEdit;
+    QLineEdit *m_filePathLineEdit;
+    QPushButton *m_browseButton;
+    QDialogButtonBox *m_buttonBox;
+    QString m_selectedFile;
+
+public:
+    EFIBootEntryDialog(const QEFIPartitionInfo &partition, QWidget *parent = nullptr)
+        : QDialog(parent)
+        , m_partition(partition)
+    {
+        setWindowTitle(tr("Add EFI Boot Entry"));
+        setModal(true);
+
+        QVBoxLayout *mainLayout = new QVBoxLayout(this);
+
+        m_formLayout = new QFormLayout();
+        m_formLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
+
+        // ID field
+        m_idSpinBox = new QSpinBox(this);
+        m_idSpinBox->setMinimum(0x0001);
+        m_idSpinBox->setMaximum(0xFFFF);
+        m_idSpinBox->setValue(0x0001);
+        m_idSpinBox->setDisplayIntegerBase(16);
+        m_formLayout->addRow(tr("ID:"), m_idSpinBox);
+
+        // Name field
+        m_nameLineEdit = new QLineEdit(this);
+        m_formLayout->addRow(tr("Name:"), m_nameLineEdit);
+
+        // Optional Data field
+        m_optionalDataLineEdit = new QLineEdit(this);
+        m_optionalDataLineEdit->setPlaceholderText(tr("Hex format (e.g., 010203)"));
+        m_formLayout->addRow(tr("Optional Data:"), m_optionalDataLineEdit);
+
+        // EFI File selection
+        QHBoxLayout *fileLayout = new QHBoxLayout();
+        m_filePathLineEdit = new QLineEdit(this);
+        m_filePathLineEdit->setReadOnly(true);
+        m_filePathLineEdit->setPlaceholderText(tr("No file selected"));
+        m_browseButton = new QPushButton(tr("Browse..."), this);
+        connect(m_browseButton, &QPushButton::clicked, this, &EFIBootEntryDialog::browseEFIFile);
+        fileLayout->addWidget(m_filePathLineEdit);
+        fileLayout->addWidget(m_browseButton);
+        m_formLayout->addRow(tr("EFI File:"), fileLayout);
+
+        mainLayout->addLayout(m_formLayout);
+
+        // Dialog buttons
+        m_buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
+        connect(m_buttonBox, &QDialogButtonBox::accepted, this, &EFIBootEntryDialog::onAccept);
+        connect(m_buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+        mainLayout->addWidget(m_buttonBox);
+
+        // Set default name based on partition
+        if (m_nameLineEdit->text().isEmpty()) {
+            m_nameLineEdit->setText(tr("Boot Entry from %1").arg(m_partition.label));
+        }
+    }
+
+    quint16 bootID() const
+    {
+        return static_cast<quint16>(m_idSpinBox->value());
+    }
+    QString name() const
+    {
+        return m_nameLineEdit->text();
+    }
+    QByteArray optionalData() const
+    {
+        QString hexText = m_optionalDataLineEdit->text().trimmed();
+        if (hexText.isEmpty()) {
+            return QByteArray();
+        }
+        return QByteArray::fromHex(hexText.toLatin1());
+    }
+    QString selectedFile() const
+    {
+        return m_selectedFile;
+    }
+
+private slots:
+    void browseEFIFile()
+    {
+        QString selectedFile = QFileDialog::getOpenFileName(this, tr("Select EFI File"), m_partition.mountPoint, tr("EFI Files (*.efi);;All Files (*.*)"));
+        if (!selectedFile.isEmpty()) {
+            // Validate file is within mount point
+            QFileInfo fileInfo(selectedFile);
+            QDir mountDir(m_partition.mountPoint);
+            QString mountPoint = mountDir.absolutePath();
+            QString absoluteFilePath = fileInfo.absoluteFilePath();
+
+            QString normalizedMountPoint = QDir::toNativeSeparators(mountPoint);
+            QString normalizedFilePath = QDir::toNativeSeparators(absoluteFilePath);
+
+#ifdef Q_OS_WIN
+            normalizedMountPoint = normalizedMountPoint.toUpper();
+            normalizedFilePath = normalizedFilePath.toUpper();
+            if (!normalizedMountPoint.endsWith('\\')) {
+                normalizedMountPoint += '\\';
+            }
+#endif
+
+            if (!normalizedFilePath.startsWith(normalizedMountPoint)) {
+                QMessageBox::warning(this, tr("Invalid File"), tr("The selected file is not within the mounted partition."));
+                return;
+            }
+
+            m_selectedFile = selectedFile;
+            m_filePathLineEdit->setText(selectedFile);
+
+            // Update name if empty or default
+            if (m_nameLineEdit->text().isEmpty() || m_nameLineEdit->text().startsWith(tr("Boot Entry from"))) {
+                QString fileName = QFileInfo(selectedFile).baseName();
+                if (!fileName.isEmpty()) {
+                    m_nameLineEdit->setText(fileName);
+                }
+            }
+        }
+    }
+
+    void onAccept()
+    {
+        if (m_selectedFile.isEmpty()) {
+            QMessageBox::warning(this, tr("No File Selected"), tr("Please select an EFI file."));
+            return;
+        }
+
+        if (m_nameLineEdit->text().trimmed().isEmpty()) {
+            QMessageBox::warning(this, tr("Invalid Name"), tr("Please enter a name for the boot entry."));
+            return;
+        }
+
+        accept();
+    }
+};
+
 void QEFIPartitionView::createBootEntryFromFile()
 {
     if (m_selectedRow < 0) {
@@ -241,38 +399,20 @@ void QEFIPartitionView::createBootEntryFromFile()
         return;
     }
 
-    // Let user select an EFI file
-    QString selectedFile = QFileDialog::getOpenFileName(this, tr("Select EFI File"), selectedPartition.mountPoint, tr("EFI Files (*.efi);;All Files (*.*)"));
-
-    if (selectedFile.isEmpty()) {
+    // Show dialog
+    EFIBootEntryDialog dialog(selectedPartition, this);
+    if (dialog.exec() != QDialog::Accepted) {
         return; // User cancelled
     }
 
-    // Check if the file is within the mount point
-    QFileInfo fileInfo(selectedFile);
-    QDir mountDir(selectedPartition.mountPoint);
-    QString mountPoint = mountDir.absolutePath();
-    QString absoluteFilePath = fileInfo.absoluteFilePath();
-
-    // Normalize paths for comparison (handle Windows case-insensitivity and separators)
-    QString normalizedMountPoint = QDir::toNativeSeparators(mountPoint);
-    QString normalizedFilePath = QDir::toNativeSeparators(absoluteFilePath);
-
-#ifdef Q_OS_WIN
-    normalizedMountPoint = normalizedMountPoint.toUpper();
-    normalizedFilePath = normalizedFilePath.toUpper();
-    // Ensure mount point ends with backslash for proper comparison
-    if (!normalizedMountPoint.endsWith('\\')) {
-        normalizedMountPoint += '\\';
-    }
-#endif
-
-    if (!normalizedFilePath.startsWith(normalizedMountPoint)) {
-        QMessageBox::warning(this, tr("Invalid File"), tr("The selected file is not within the mounted partition."));
+    QString selectedFile = dialog.selectedFile();
+    if (selectedFile.isEmpty()) {
         return;
     }
 
     // Get relative path from mount point (EFI partition root)
+    QDir mountDir(selectedPartition.mountPoint);
+    QString mountPoint = mountDir.absolutePath();
     QString relativePath = QDir(mountPoint).relativeFilePath(selectedFile);
     // Handle edge cases (empty or current directory)
     if (relativePath.isEmpty() || relativePath == ".") {
@@ -298,10 +438,7 @@ void QEFIPartitionView::createBootEntryFromFile()
     }
 
     // For GPT partitions, we need partition number, start, and size
-    // We'll use partition number from info
-    // Start LBA: Use 0 as default (GPT partitions are identified by GUID, so start is less critical)
     quint64 startLba = 0;
-    // Size: Convert from bytes to sectors (standard sector size is 512 bytes)
     const quint64 sectorSize = 512;
     quint64 partitionSizeInSectors = selectedPartition.size / sectorSize;
     if (partitionSizeInSectors == 0 && selectedPartition.size > 0) {
@@ -322,13 +459,12 @@ void QEFIPartitionView::createBootEntryFromFile()
     QByteArray emptyData;
     QEFILoadOption loadOption(emptyData);
     loadOption.setIsVisible(true);
+    loadOption.setName(dialog.name());
 
-    // Generate a default name from the file
-    QString entryName = QFileInfo(selectedFile).baseName();
-    if (entryName.isEmpty()) {
-        entryName = tr("Boot Entry from %1").arg(selectedPartition.label);
+    QByteArray optionalData = dialog.optionalData();
+    if (!optionalData.isEmpty()) {
+        loadOption.setOptionalData(optionalData);
     }
-    loadOption.setName(entryName);
 
     // Add device paths
     loadOption.addDevicePath(hdDp);
@@ -341,11 +477,17 @@ void QEFIPartitionView::createBootEntryFromFile()
         return;
     }
 
-    // Get boot entry ID from user
-    bool ok;
-    quint16 bootID = QInputDialog::getInt(this, tr("Boot Entry ID"), tr("Enter boot entry ID (hex):"), 0x0001, 0x0001, 0xFFFF, 1, &ok);
-    if (!ok) {
-        return; // User cancelled
+    quint16 bootID = dialog.bootID();
+
+    // Check if boot ID already exists
+    QList<quint16> order = QEFIEntryStaticList::instance()->order();
+    bool orderFound = order.contains(bootID);
+    if (orderFound) {
+        // Override: Show a confirmation
+        if (QMessageBox::question(this, tr("Override Boot Entry"), tr("Do you want to override Boot%1?").arg(bootID, 4, 16, QLatin1Char('0')).toUpper())
+            == QMessageBox::No) {
+            return;
+        }
     }
 
     // Save the boot entry
@@ -355,8 +497,7 @@ void QEFIPartitionView::createBootEntryFromFile()
     }
 
     // Update boot order if needed
-    QList<quint16> order = QEFIEntryStaticList::instance()->order();
-    if (!order.contains(bootID)) {
+    if (!orderFound) {
         order.append(bootID);
         QEFIEntryStaticList::instance()->setBootOrder(order);
     }
@@ -468,3 +609,5 @@ QString QEFIPartitionView::formatSize(quint64 bytes)
         return QString("%1 B").arg(bytes);
     }
 }
+
+#include "qefipartitionview.moc"
