@@ -1,4 +1,5 @@
 #include "qefipartitionview.h"
+#include <QDebug>
 #include <QDesktopServices>
 #include <QDialog>
 #include <QDialogButtonBox>
