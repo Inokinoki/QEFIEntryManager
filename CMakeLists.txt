@@ -26,44 +26,45 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets Network LinguistTools REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Network REQUIRED)
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets Network LinguistTools Core REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Network Core REQUIRED)
 
-set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        cli.cpp
-        cli.h
-        qefientrydetailview.cpp
-        qefientrydetailview.h
-        qefientrydpdetailview.cpp
-        qefientrydpdetailview.h
-        qefientryview.cpp
-        qefientryview.h
+set(COMMON_SOURCES
         qefientry.cpp
         qefientry.h
         qefientrystaticlist.cpp
         qefientrystaticlist.h
-        helpers.cpp
-        helpers.h
-        qefidpeditorview.cpp
-        qefidpeditorview.h
-        qefidpeditordialog.cpp
-        qefidpeditordialog.h
-        qefidpfields.cpp
-        qefidpfields.h
-        qefiloadoptioneditorview.cpp
-        qefiloadoptioneditorview.h
         qefipartitionmanager.cpp
         qefipartitionmanager.h
-        qefipartitionview.cpp
-        qefipartitionview.h
         qefivar/qefi.cpp
         qefivar/qefidpacpi.cpp
         qefivar/qefidphw.cpp
         qefivar/qefidpmedia.cpp
         qefivar/qefidpmessage.cpp
+)
+
+set(PROJECT_SOURCES ${COMMON_SOURCES}
+                    main.cpp
+                    mainwindow.cpp
+                    mainwindow.h
+                    qefientrydetailview.cpp
+                    qefientrydetailview.h
+                    qefientrydpdetailview.cpp
+                    qefientrydpdetailview.h
+                    qefientryview.cpp
+                    qefientryview.h
+                    helpers.cpp
+                    helpers.h
+                    qefidpeditorview.cpp
+                    qefidpeditorview.h
+                    qefidpeditordialog.cpp
+                    qefidpeditordialog.h
+                    qefidpfields.cpp
+                    qefidpfields.h
+                    qefiloadoptioneditorview.cpp
+                    qefiloadoptioneditorview.h
+                    qefipartitionview.cpp
+                    qefipartitionview.h
 )
 
 # Add translations files here
@@ -134,26 +135,14 @@ target_include_directories(QEFIEntryManager PRIVATE
 target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
 
 # Build qefibootmgr CLI-only executable
-set(CLI_SOURCES
-        cli.cpp
-        cli.h
-        qefientry.cpp
-        qefientry.h
-        qefientrystaticlist.cpp
-        qefientrystaticlist.h
-        qefivar/qefi.cpp
-        qefivar/qefidpacpi.cpp
-        qefivar/qefidphw.cpp
-        qefivar/qefidpmedia.cpp
-        qefivar/qefidpmessage.cpp
-        qefipartitionmanager.cpp
-        qefipartitionmanager.h
+set(CLI_SOURCES ${COMMON_SOURCES}
+                cli.cpp
+                cli.h
 )
 
 add_executable(qefibootmgr qefibootmgr.cpp ${CLI_SOURCES})
 
 # qefibootmgr only needs Core (no Widgets/GUI)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
 target_link_libraries(qefibootmgr PRIVATE Qt${QT_VERSION_MAJOR}::Core)
 target_include_directories(qefibootmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
 
