@@ -439,7 +439,6 @@ void QEFIPartitionView::createBootEntryFromFile()
     }
 
     // For GPT partitions, we need partition number, start, and size
-    quint64 startLba = 0;
     const quint64 sectorSize = 512;
     quint64 partitionSizeInSectors = selectedPartition.size / sectorSize;
     if (partitionSizeInSectors == 0 && selectedPartition.size > 0) {
@@ -447,7 +446,7 @@ void QEFIPartitionView::createBootEntryFromFile()
     }
 
     QEFIDevicePathMediaHD *hdDp = new QEFIDevicePathMediaHD(selectedPartition.partitionNumber,
-                                                            startLba,
+                                                            selectedPartition.startLba,
                                                             partitionSizeInSectors,
                                                             signature,
                                                             QEFIDevicePathMediaHD::QEFIDevicePathMediaHDFormat::GPT,

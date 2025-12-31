@@ -53,6 +53,9 @@ const QString g_efiPartTypeGuid = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b";
 #ifndef DKIOCGETBLOCKSIZE
 #define DKIOCGETBLOCKSIZE _IOR('d', 24, uint32_t)
 #endif
+#ifndef DKIOCGETBASE
+#define DKIOCGETBASE _IOR('d', 23, uint64_t)
+#endif
 #endif
 
 #endif
@@ -182,6 +185,39 @@ static quint64 getPartitionSize(const QString &devicePath)
 
     close(fd);
     return size;
+}
+
+// Helper function to get partition starting LBA using ioctl
+static quint64 getPartitionStartLba(const QString &devicePath)
+{
+    quint64 startLba = 0;
+    int fd = open(devicePath.toUtf8().constData(), O_RDONLY);
+    if (fd < 0) {
+        return 0;
+    }
+
+#ifdef Q_OS_LINUX
+    // On Linux, we use sysfs /start which is already handled in scanPartitionsLinux
+    // This is a fallback that shouldn't normally be called
+    close(fd);
+    return 0;
+#elif defined(Q_OS_FREEBSD)
+    // On FreeBSD, we use GEOM which is already handled in scanPartitionsFreeBSD
+    // This is a fallback that shouldn't normally be called
+    close(fd);
+    return 0;
+#elif defined(Q_OS_DARWIN)
+    // On macOS, use DKIOCGETBASE to get the base offset in bytes
+    uint64_t baseOffset = 0;
+    if (ioctl(fd, DKIOCGETBASE, &baseOffset) >= 0) {
+        // Convert bytes to sectors (512 bytes per sector)
+        const quint64 sectorSize = 512;
+        startLba = baseOffset / sectorSize;
+    }
+#endif
+
+    close(fd);
+    return startLba;
 }
 
 // Helper function to read a sysfs file (Linux only)
@@ -337,6 +373,23 @@ const QList<QEFIPartitionInfo> scanPartitionsLinux()
             info.partitionNumber = partNumMatch.captured(1).toUInt();
         }
 
+        // Get starting LBA (try sysfs first, fallback to blkid for loop devices)
+        QString startPath = QString("/sys/class/block/%1/start").arg(deviceName);
+        QString startStr = readSysfsFile(startPath);
+        if (!startStr.isEmpty()) {
+            info.startLba = startStr.toULongLong();
+        } else {
+            // Fallback to blkid if sysfs doesn't have it (e.g., loop devices)
+            QProcess blkid;
+            blkid.start("blkid", QStringList() << "-p" << "-s" << "PART_ENTRY_OFFSET" << "-o" << "value" << devicePath);
+            if (blkid.waitForFinished(5000) && blkid.exitCode() == 0) {
+                QString offsetStr = QString::fromUtf8(blkid.readAllStandardOutput()).trimmed();
+                if (!offsetStr.isEmpty()) {
+                    info.startLba = offsetStr.toULongLong();
+                }
+            }
+        }
+
         // Read partition UUID (try sysfs first, fallback to blkid for loop devices)
         QString partUuidPath = QString("/sys/class/block/%1/partition").arg(deviceName);
         QString uuid;
@@ -423,6 +476,10 @@ const QList<QEFIPartitionInfo> scanPartitionsFreeBSD()
                     info.label = "EFI System Partition";
                     info.fileSystem = "msdosfs";
 
+                    // Get starting LBA from GEOM provider offset (in bytes, convert to sectors)
+                    const quint64 sectorSize = 512;
+                    info.startLba = pp->lg_offset / sectorSize;
+
                     // Extract partition number from name (e.g., ada0p1 -> 1)
                     QRegularExpression partNumRe("p(\\d+)$");
                     auto match = partNumRe.match(QString(pp->lg_name));
@@ -473,6 +530,9 @@ const QList<QEFIPartitionInfo> scanPartitionsMacOS()
             info.size = size;
             info.label = "EFI System Partition";
             info.fileSystem = "msdos";
+
+            // Get starting LBA
+            info.startLba = getPartitionStartLba(devicePath);
 
             // Extract partition number
             QRegularExpression partNumRe("s(\\d+)$");
@@ -814,6 +874,10 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitionsWindows()
                 info.partitionNumber = partInfo.PartitionNumber;
                 info.size = partInfo.PartitionLength.QuadPart;
                 info.devicePath = QString("Disk %1 Partition %2").arg(diskNum).arg(partInfo.PartitionNumber);
+
+                // Get starting LBA from StartingOffset (convert bytes to sectors)
+                const quint64 sectorSize = 512;
+                info.startLba = partInfo.StartingOffset.QuadPart / sectorSize;
 
                 // Convert partition GUID
                 GUID &guid = partInfo.Gpt.PartitionId;

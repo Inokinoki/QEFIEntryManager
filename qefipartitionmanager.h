@@ -12,6 +12,7 @@ struct QEFIPartitionInfo {
     QString label;             // Partition label
     QUuid partitionGuid;       // GPT partition GUID
     quint64 size;              // Size in bytes
+    quint64 startLba;          // Starting LBA (Logical Block Address) in sectors
     quint32 partitionNumber;   // Partition number
     bool isEFI;                // True if this is an EFI System Partition
     bool isMounted;            // True if currently mounted
