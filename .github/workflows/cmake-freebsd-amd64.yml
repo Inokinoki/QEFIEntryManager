@@ -39,10 +39,5 @@ jobs:
             cmake -B ${{github.workspace}}/build-debug -DCMAKE_BUILD_TYPE=Debug \
               -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=OFF -DBUILD_CLI_UTILITY=ON
             cmake --build ${{github.workspace}}/build-debug --config Debug
-            # Debug: List build output to verify qefibootmgr exists
-            echo "=== Build output directory contents ==="
-            ls -la ${{github.workspace}}/build-debug/
-            echo "=== Searching for qefibootmgr ==="
-            find ${{github.workspace}}/build-debug -name qefibootmgr -type f || echo "qefibootmgr not found!"
             chmod +x ${{github.workspace}}/scripts/test-efi-partition-scan-freebsd.sh
             ${{github.workspace}}/scripts/test-efi-partition-scan-freebsd.sh ${{github.workspace}}/build-debug/qefibootmgr

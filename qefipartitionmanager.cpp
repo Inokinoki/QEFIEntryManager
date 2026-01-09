@@ -612,9 +612,17 @@ const QList<QEFIPartitionInfo> scanPartitionsFreeBSD()
                     info.label = "EFI System Partition";
                     info.fileSystem = "msdosfs";
 
-                    // Get starting LBA from GEOM provider offset (in bytes, convert to sectors)
+                    // Get starting LBA from GEOM configuration offset (in bytes, convert to sectors)
                     const quint64 sectorSize = 512;
-                    info.startLba = pp->lg_offset / sectorSize;
+                    quint64 offsetBytes = 0;
+                    LIST_FOREACH(gc, &pp->lg_config, lg_config)
+                    {
+                        if (strcmp(gc->lg_name, "offset") == 0) {
+                            offsetBytes = QString(gc->lg_val).toULongLong();
+                            break;
+                        }
+                    }
+                    info.startLba = offsetBytes / sectorSize;
 
                     // Extract partition number from name (e.g., ada0p1 -> 1)
                     QRegularExpression partNumRe("p(\\d+)$");
