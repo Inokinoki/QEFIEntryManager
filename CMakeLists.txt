@@ -109,6 +109,53 @@ if(APP_DATA_DUMMY_BACKEND)
     # Use the directory under QStandardPaths::AppDataLocation for test purpose
     message("Use dummy backend for EFI operations")
     add_definitions(-DEFIVAR_APP_DATA_DUMMY)
+
+    # Enable EFI partition disk image testing mode
+    message("Enable EFI partition disk image testing mode - auto-generates test image")
+    add_definitions(-DEFI_PARTITION_DISK_IMAGE)
+
+    # Shell script does not work on Windows, so only enable this on non-Windows platforms
+    if(NOT WIN32)
+        # Generate test EFI disk image during build
+        set(TEST_EFI_IMAGE_DIR "${CMAKE_BINARY_DIR}/test_data")
+        set(TEST_EFI_IMAGE "${TEST_EFI_IMAGE_DIR}/test_efi_disk.img")
+        set(SOURCE_TEST_IMAGE "${CMAKE_SOURCE_DIR}/test_data/test_efi_disk.img")
+
+        # Create test data directories
+        file(MAKE_DIRECTORY "${TEST_EFI_IMAGE_DIR}")
+        file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/test_data")
+
+        # Add custom command to generate test image in source directory
+        add_custom_command(
+            OUTPUT "${SOURCE_TEST_IMAGE}"
+            COMMAND ${CMAKE_SOURCE_DIR}/scripts/create_test_efi_image.sh
+            DEPENDS ${CMAKE_SOURCE_DIR}/scripts/create_test_efi_image.sh
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            COMMENT "Generating test EFI disk image in source directory..."
+        )
+
+        # Add command to copy to build directory
+        add_custom_command(
+            OUTPUT "${TEST_EFI_IMAGE}"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${SOURCE_TEST_IMAGE}"
+                "${TEST_EFI_IMAGE}"
+            DEPENDS "${SOURCE_TEST_IMAGE}"
+            COMMENT "Copying test EFI disk image to build directory..."
+        )
+
+        # Create a custom target for the test image
+        add_custom_target(generate_test_efi_image ALL
+            DEPENDS "${TEST_EFI_IMAGE}"
+        )
+
+        # Set the test image path as a compile definition
+        target_compile_definitions(QEFIEntryManager PRIVATE
+            TEST_EFI_IMAGE_PATH="${TEST_EFI_IMAGE}"
+        )
+
+        message("Test EFI image will be generated at: ${TEST_EFI_IMAGE}")
+    endif()
 elseif(WIN32)
     message("Use Windows API for EFI operations")
     # Link with Windows libraries for partition management
@@ -132,7 +179,11 @@ target_include_directories(QEFIEntryManager PRIVATE
 )
 
 # Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
-target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
+target_link_libraries(QEFIEntryManager PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Network
+    Qt${QT_VERSION_MAJOR}::Gui
+)
 
 install(TARGETS QEFIEntryManager
         RUNTIME DESTINATION bin
