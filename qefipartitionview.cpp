@@ -138,13 +138,36 @@ void QEFIPartitionView::toggleMountSelectedPartition()
         return;
     }
 
+    QString devicePath = m_partitionTable->item(m_selectedRow, 0)->text();
+
+#ifdef EFI_PARTITION_DISK_IMAGE
+    // Check if this is a disk image (test mode) - skip privilege check
+    bool isDiskImage = false;
+    QList<QEFIPartitionInfo> partitions = m_partitionManager->getEFIPartitions();
+    for (const auto &partition : partitions) {
+        if (partition.devicePath == devicePath) {
+            // Check if device path matches disk image path
+            QString diskImagePath = m_partitionManager->getDiskImageFile();
+            if (!diskImagePath.isEmpty() && devicePath == diskImagePath) {
+                isDiskImage = true;
+            }
+            break;
+        }
+    }
+
+    // Only check privileges for real partitions, not disk images
+    if (!isDiskImage && !m_partitionManager->hasPrivileges()) {
+        QMessageBox::warning(this, tr("Insufficient Privileges"), tr("Administrator/root privileges are required to mount/unmount partitions."));
+        return;
+    }
+#else
     if (!m_partitionManager->hasPrivileges()) {
         QMessageBox::warning(this, tr("Insufficient Privileges"), tr("Administrator/root privileges are required to mount/unmount partitions."));
         return;
     }
 
-    QString devicePath = m_partitionTable->item(m_selectedRow, 0)->text();
     QList<QEFIPartitionInfo> partitions = m_partitionManager->getEFIPartitions();
+#endif
 
     bool isMounted = false;
     for (const auto &partition : partitions) {
@@ -334,7 +357,29 @@ private slots:
             if (!normalizedMountPoint.endsWith('\\')) {
                 normalizedMountPoint += '\\';
             }
+#else
+            // On Unix systems, also check canonical paths to handle symlinks
+            QString canonicalMountPoint = QDir(mountPoint).canonicalPath();
+            QString canonicalFilePath = QDir(absoluteFilePath).canonicalPath();
+            qDebug() << "EFI File Validation (canonical paths):";
+            qDebug() << "  Canonical mount point:" << canonicalMountPoint;
+            qDebug() << "  Canonical file path:" << canonicalFilePath;
+
+            // Use canonical paths for validation if available
+            if (!canonicalMountPoint.isEmpty() && !canonicalFilePath.isEmpty() &&
+                canonicalFilePath.startsWith(canonicalMountPoint)) {
+                normalizedMountPoint = canonicalMountPoint;
+                normalizedFilePath = canonicalFilePath;
+            }
 #endif
+
+            qDebug() << "EFI File Validation:";
+            qDebug() << "  Mount point:" << mountPoint;
+            qDebug() << "  Normalized mount point:" << normalizedMountPoint;
+            qDebug() << "  Selected file:" << selectedFile;
+            qDebug() << "  Absolute file path:" << absoluteFilePath;
+            qDebug() << "  Normalized file path:" << normalizedFilePath;
+            qDebug() << "  Starts with mount point:" << normalizedFilePath.startsWith(normalizedMountPoint);
 
             if (!normalizedFilePath.startsWith(normalizedMountPoint)) {
                 QMessageBox::warning(this, tr("Invalid File"), tr("The selected file is not within the mounted partition."));
@@ -414,11 +459,21 @@ void QEFIPartitionView::createBootEntryFromFile()
     // Get relative path from mount point (EFI partition root)
     QDir mountDir(selectedPartition.mountPoint);
     QString mountPoint = mountDir.absolutePath();
-    QString relativePath = QDir(mountPoint).relativeFilePath(selectedFile);
+    QString absoluteFilePath = QFileInfo(selectedFile).absoluteFilePath();
+
+    qDebug() << "Boot Entry Creation - Path Calculation:";
+    qDebug() << "  Mount point:" << mountPoint;
+    qDebug() << "  Selected file:" << selectedFile;
+    qDebug() << "  Absolute file path:" << absoluteFilePath;
+
+    QString relativePath = QDir(mountPoint).relativeFilePath(absoluteFilePath);
+
+    qDebug() << "  Relative path (before fixup):" << relativePath;
+
     // Handle edge cases (empty or current directory)
     if (relativePath.isEmpty() || relativePath == ".") {
         // File is at the root of the partition
-        relativePath = '\\' + QFileInfo(selectedFile).fileName();
+        relativePath = '\\' + QFileInfo(absoluteFilePath).fileName();
     } else {
         // Convert to EFI path format (backslashes)
         relativePath.replace('/', '\\');
@@ -427,6 +482,8 @@ void QEFIPartitionView::createBootEntryFromFile()
             relativePath = '\\' + relativePath;
         }
     }
+
+    qDebug() << "  Relative path (EFI format):" << relativePath;
 
     // Create device paths
     // 1. HD device path for the volume
@@ -474,16 +531,18 @@ void QEFIPartitionView::createBootEntryFromFile()
     QByteArray loadOptionData = loadOption.format();
     // TODO: Improve LoadOption format and validation
     if (loadOptionData.isEmpty()) {
-        qDebug() << "Create boot entry from EFI file failed";
+        qDebug() << "Create boot entry from EFI file failed - format() returned empty data";
         qDebug() << "Load option validated:" << loadOption.isValidated();
         qDebug() << "Load option name:" << loadOption.name();
         qDebug() << "Load option optional data:" << loadOption.optionalData().toHex();
         qDebug() << "Load option device paths:" << loadOption.devicePathList().size();
         qDebug() << "Partition device path:" << hdDp->partitionNumber() << "start:" << hdDp->start() << "size:" << hdDp->size();
         qDebug() << "File device path:" << fileDp->name();
-        QMessageBox::warning(this, tr("Error"), tr("Failed to create boot entry data."));
+        qDebug() << "Partition GUID:" << selectedPartition.partitionGuid.toString();
+        QMessageBox::warning(this, tr("Error"), tr("Failed to create boot entry data - format() returned empty."));
         return;
     }
+    qDebug() << "Load option formatted successfully, size:" << loadOptionData.size() << "bytes";
 
     quint16 bootID = dialog.bootID();
     qDebug() << "About to save boot entry with ID:" << QString("Boot%1").arg(bootID, 4, 16, QLatin1Char('0')).toUpper();

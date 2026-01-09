@@ -1,6 +1,7 @@
 #include "qefipartitionmanager.h"
 #include <QDebug>
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
 #include <QProcess>
@@ -77,15 +78,37 @@ DEFINE_GUID(PARTITION_SYSTEM_GUID, 0xC12A7328, 0xF81F, 0x11D2, 0xBA, 0x4B, 0x00,
 
 QEFIPartitionManager::QEFIPartitionManager(QObject *parent)
     : QObject(parent)
+#ifdef EFI_PARTITION_DISK_IMAGE
+    , m_diskImagePath(TEST_EFI_IMAGE_PATH)  // Use pre-generated test image
+#endif
 {
+#ifdef EFI_PARTITION_DISK_IMAGE
+    qDebug() << "Test mode: QEFIPartitionManager constructed with disk image path:" << m_diskImagePath;
+    qDebug() << "Test mode: File exists:" << QFile::exists(m_diskImagePath);
+#endif
 }
 
 QEFIPartitionManager::~QEFIPartitionManager()
 {
+#ifdef EFI_PARTITION_DISK_IMAGE
+    // Cleanup: unmount disk image if still mounted
+    if (!m_diskImageMountPoint.isEmpty()) {
+        qDebug() << "Test mode: Cleaning up mounted disk image in destructor";
+        unmountDiskImage();
+    }
+#endif
 }
 
 QList<QEFIPartitionInfo> QEFIPartitionManager::scanPartitions()
 {
+#ifdef EFI_PARTITION_DISK_IMAGE
+    // In test mode, if a disk image is set, scan it instead
+    if (!m_diskImagePath.isEmpty()) {
+        qDebug() << "Test mode: Scanning disk image:" << m_diskImagePath;
+        return scanDiskImage();
+    }
+#endif
+
 #if defined(Q_OS_UNIX)
     return scanPartitionsUnix();
 #elif defined(Q_OS_WIN)
@@ -109,6 +132,109 @@ QList<QEFIPartitionInfo> QEFIPartitionManager::getEFIPartitions()
 
 bool QEFIPartitionManager::mountPartition(const QString &devicePath, QString &mountPoint, QString &errorMessage)
 {
+#ifdef EFI_PARTITION_DISK_IMAGE
+    // Check if this is a disk image that needs mounting
+    if (!m_diskImagePath.isEmpty() && devicePath == m_diskImagePath) {
+        qDebug() << "Test mode: Mounting disk image via mountPartition";
+
+        if (!m_diskImageMountPoint.isEmpty()) {
+            // Already mounted
+            mountPoint = m_diskImageMountPoint;
+            errorMessage.clear();
+            return true;
+        }
+
+#ifdef Q_OS_DARWIN
+        // macOS: Use hdiutil to mount the image
+        QProcess mountProcess;
+        mountProcess.start("hdiutil", QStringList() << "attach" << "-nomount" << m_diskImagePath);
+        if (!mountProcess.waitForFinished(10000)) {
+            errorMessage = "Failed to attach disk image: " + mountProcess.errorString();
+            qWarning() << "Test mode:" << errorMessage;
+            return false;
+        }
+
+        QString output = QString::fromUtf8(mountProcess.readAllStandardOutput()).trimmed();
+        qDebug() << "Test mode: hdiutil attach output:" << output;
+
+        // Parse the device path from hdiutil output
+        QString deviceNode;
+        for (const QString &line : output.split('\n')) {
+            if (line.contains("/dev/disk")) {
+                deviceNode = line.split('\t').first().trimmed();
+                break;
+            }
+        }
+
+        if (deviceNode.isEmpty()) {
+            errorMessage = "Failed to get device path from hdiutil output";
+            qWarning() << "Test mode:" << errorMessage;
+            QProcess::execute("hdiutil", QStringList() << "detach" << deviceNode);
+            return false;
+        }
+        qDebug() << "Test mode: Attached disk image as device:" << deviceNode;
+
+        // Check if mount point was provided by user
+        if (mountPoint.isEmpty()) {
+            errorMessage = "Mount point directory not selected. Please choose an empty directory to mount the disk image.";
+            qWarning() << "Test mode:" << errorMessage;
+            QProcess::execute("hdiutil", QStringList() << "detach" << deviceNode);
+            return false;
+        }
+
+        qDebug() << "Test mode: Using user-provided mount point:" << mountPoint;
+
+        // Mount the filesystem using the user-provided mount point
+        mountProcess.start("mount", QStringList() << "-t" << "msdos" << deviceNode << mountPoint);
+        if (!mountProcess.waitForFinished(10000) || mountProcess.exitCode() != 0) {
+            QString err = QString::fromUtf8(mountProcess.readAllStandardError());
+            errorMessage = "Failed to mount filesystem: " + err;
+            qWarning() << "Test mode:" << errorMessage;
+            QProcess::execute("hdiutil", QStringList() << "detach" << deviceNode);
+            return false;
+        }
+
+        m_diskImageMountPoint = mountPoint;
+        qDebug() << "Test mode: Successfully mounted disk image at:" << m_diskImageMountPoint;
+        errorMessage.clear();
+        return true;
+
+#elif defined(Q_OS_LINUX)
+        // Check if mount point was provided by user
+        if (mountPoint.isEmpty()) {
+            errorMessage = "Mount point directory not selected. Please choose an empty directory to mount the disk image.";
+            qWarning() << "Test mode:" << errorMessage;
+            return false;
+        }
+
+        qDebug() << "Test mode: Using user-provided mount point:" << mountPoint;
+
+        QProcess mountProcess;
+        // Try fuse-fat first
+        mountProcess.start("fusefat", QStringList() << m_diskImagePath << mountPoint);
+        if (!mountProcess.waitForFinished(10000) || mountProcess.exitCode() != 0) {
+            // Try regular mount
+            mountProcess.start("mount", QStringList() << "-o" << "loop,uid=$(id -u),gid=$(id -g)" << m_diskImagePath << mountPoint);
+            if (!mountProcess.waitForFinished(10000) || mountProcess.exitCode() != 0) {
+                errorMessage = "Failed to mount disk image: " + QString::fromUtf8(mountProcess.readAllStandardError());
+                qWarning() << "Test mode:" << errorMessage;
+                return false;
+            }
+        }
+
+        m_diskImageMountPoint = mountPoint;
+        qDebug() << "Test mode: Successfully mounted disk image at:" << m_diskImageMountPoint;
+        errorMessage.clear();
+        return true;
+
+#else
+        errorMessage = "Disk image mounting not implemented on this platform";
+        return false;
+#endif
+    }
+#endif
+
+    // Regular partition mounting
 #if defined(Q_OS_UNIX)
     return mountPartitionUnix(devicePath, mountPoint, errorMessage);
 #elif defined(Q_OS_WIN)
@@ -121,6 +247,16 @@ bool QEFIPartitionManager::mountPartition(const QString &devicePath, QString &mo
 
 bool QEFIPartitionManager::unmountPartition(const QString &devicePath, QString &errorMessage)
 {
+#ifdef EFI_PARTITION_DISK_IMAGE
+    // Check if this is a disk image mount
+    if (!m_diskImagePath.isEmpty() && devicePath == m_diskImagePath && !m_diskImageMountPoint.isEmpty()) {
+        qDebug() << "Test mode: Unmounting disk image via unmountPartition";
+        unmountDiskImage();
+        errorMessage.clear();
+        return true;
+    }
+#endif
+
 #if defined(Q_OS_UNIX)
     return unmountPartitionUnix(devicePath, errorMessage);
 #elif defined(Q_OS_WIN)
@@ -1152,3 +1288,109 @@ bool QEFIPartitionManager::unmountPartitionWindows(const QString &devicePath, QS
     return true;
 }
 #endif
+
+#ifdef EFI_PARTITION_DISK_IMAGE
+void QEFIPartitionManager::setDiskImageFile(const QString &imagePath)
+{
+    // Verify the image file exists
+    if (!QFile::exists(imagePath)) {
+        qWarning() << "Test mode: Disk image file does not exist:" << imagePath;
+        return;
+    }
+
+    // Unmount previous image if any
+    if (!m_diskImagePath.isEmpty() && !m_diskImageMountPoint.isEmpty()) {
+        unmountDiskImage();
+    }
+
+    m_diskImagePath = imagePath;
+    qDebug() << "Test mode: Set disk image to:" << m_diskImagePath << "(not auto-mounted)";
+}
+
+QString QEFIPartitionManager::getDiskImageFile() const
+{
+    return m_diskImagePath;
+}
+
+void QEFIPartitionManager::unmountDiskImage()
+{
+    if (m_diskImageMountPoint.isEmpty()) {
+        qDebug() << "Test mode: No disk image mounted, skipping unmount";
+        return;
+    }
+
+    qDebug() << "Test mode: Unmounting disk image from:" << m_diskImageMountPoint;
+
+#ifdef Q_OS_DARWIN
+    // Unmount on macOS - first try to unmount the filesystem
+    QProcess unmountProcess;
+    unmountProcess.start("umount", QStringList() << m_diskImageMountPoint);
+    unmountProcess.waitForFinished(5000);
+
+    if (unmountProcess.exitCode() != 0) {
+        qWarning() << "Test mode: umount failed, trying diskutil unmount:" << QString::fromUtf8(unmountProcess.readAllStandardError());
+        // Try diskutil unmount instead
+        unmountProcess.start("diskutil", QStringList() << "unmount" << m_diskImageMountPoint);
+        unmountProcess.waitForFinished(5000);
+    }
+
+    if (unmountProcess.exitCode() != 0) {
+        qWarning() << "Test mode: diskutil unmount failed:" << QString::fromUtf8(unmountProcess.readAllStandardError());
+    } else {
+        qDebug() << "Test mode: Successfully unmounted filesystem";
+    }
+
+    // Clean up temporary mount point directory
+    QDir().rmdir(m_diskImageMountPoint);
+
+#elif defined(Q_OS_LINUX)
+    // Unmount on Linux
+    QProcess unmountProcess;
+    unmountProcess.start("umount", QStringList() << m_diskImageMountPoint);
+    if (!unmountProcess.waitForFinished(5000) || unmountProcess.exitCode() != 0) {
+        // Try with sudo
+        unmountProcess.start("sudo", QStringList() << "umount" << m_diskImageMountPoint);
+        unmountProcess.waitForFinished(5000);
+    }
+
+    // Clean up temporary mount point
+    QDir().rmdir(m_diskImageMountPoint);
+
+#else
+    qWarning() << "Test mode: Disk image unmounting not implemented on this platform";
+#endif
+
+    m_diskImageMountPoint.clear();
+    qDebug() << "Test mode: Disk image unmounted";
+}
+
+QList<QEFIPartitionInfo> QEFIPartitionManager::scanDiskImage()
+{
+    QList<QEFIPartitionInfo> partitions;
+
+    if (m_diskImagePath.isEmpty()) {
+        qWarning() << "Test mode: No disk image set";
+        return partitions;
+    }
+
+    qDebug() << "Test mode: Scanning disk image (NOT auto-mounting):" << m_diskImagePath;
+
+    // Create a mock partition info for the disk image (unmounted state)
+    QEFIPartitionInfo info;
+    info.devicePath = m_diskImagePath;  // Use image path as device identifier
+    info.mountPoint = m_diskImageMountPoint;  // Will be empty if not mounted
+    info.label = "Test EFI Disk Image";
+    info.isEFI = true;
+    info.isMounted = !m_diskImageMountPoint.isEmpty();  // Mounted only if mount point is set
+    info.fileSystem = "FAT32";
+    info.size = QFileInfo(m_diskImagePath).size();  // Use actual image file size
+    info.startLba = 1;  // Use a non-zero value for disk images (0 would be invalid)
+    info.partitionNumber = 1;  // Mock partition number
+    info.partitionGuid = QUuid("00000000-0000-0000-0000-000000000001");  // Mock GUID for disk image
+
+    partitions.append(info);
+    qDebug() << "Test mode: Returning disk image partition (mounted:" << info.isMounted << ", mount point:" << info.mountPoint << ")";
+    return partitions;
+}
+#endif
+

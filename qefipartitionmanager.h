@@ -47,12 +47,32 @@ public:
     // Refresh the partition list
     void refresh();
 
+#ifdef EFI_PARTITION_DISK_IMAGE
+    // Test mode: Set a disk image file to scan instead of system partitions
+    // The image will be automatically mounted and scanned for EFI files
+    void setDiskImageFile(const QString &imagePath);
+
+    // Test mode: Get the current disk image file path
+    QString getDiskImageFile() const;
+
+    // Test mode: Unmount the disk image if mounted
+    void unmountDiskImage();
+
+    // Test mode: Scan for EFI files in the disk image
+    QList<QEFIPartitionInfo> scanDiskImage();
+#endif
+
 signals:
     void partitionsChanged();
     void mountStatusChanged(const QString &devicePath, bool mounted);
 
 private:
     QList<QEFIPartitionInfo> m_partitions;
+
+#ifdef EFI_PARTITION_DISK_IMAGE
+    QString m_diskImagePath;     // Test mode: Path to disk image file
+    QString m_diskImageMountPoint;  // Test mode: Where the disk image is mounted
+#endif
 
 #if defined(Q_OS_UNIX)
     // Unified Unix/POSIX implementation
