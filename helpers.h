@@ -9,6 +9,9 @@
 constexpr QUuid g_efiUuid(0x8be4df61, 0x93ca, 0x11d2, 0xaa, 0x0d,
                           0x00, 0xe0, 0x98, 0x03, 0x2b, 0x8c);
 
+constexpr QUuid g_efiPartTypeGuid(0xc12a7328, 0xf81f, 0x11d2, 0xba, 0x4b,
+                                  0x00, 0xa0, 0xc9, 0x3e, 0xc9, 0x3b);
+
 QString convert_device_path_type_to_name(QEFIDevicePathType type);
 QString convert_device_path_subtype_to_name(QEFIDevicePathType type, quint8 subtype);
 

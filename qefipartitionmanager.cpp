@@ -1,3 +1,4 @@
+#include "helpers.h"
 #include "qefipartitionmanager.h"
 #include <QDebug>
 #include <QDir>
@@ -18,9 +19,6 @@
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-constexpr QUuid g_efiPartTypeGuid(0xc12a7328, 0xf81f, 0x11d2, 0xba, 0x4b,
-                                  0x00, 0xa0, 0xc9, 0x3e, 0xc9, 0x3b);
 
 // Platform-specific includes for partition information
 #ifdef Q_OS_LINUX
