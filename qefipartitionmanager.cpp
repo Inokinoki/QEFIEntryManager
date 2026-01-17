@@ -563,7 +563,7 @@ static QString getMountPoint(const QString &devicePath)
         return mountPoint;
     }
 
-    // Method 3: Try with resolved device path
+    // Method 3: Try with resolved device path for Method 1 and 2
     QString resolvedPath = resolveDevicePath(devicePath);
     if (resolvedPath != devicePath) {
         mountPoint = getMountPointFindmnt(resolvedPath);
@@ -575,9 +575,7 @@ static QString getMountPoint(const QString &devicePath)
 
     return mountPoint;
 }
-#endif
 
-#ifdef Q_OS_LINUX
 const QList<QEFIPartitionInfo> scanPartitionsLinux()
 {
     QList<QEFIPartitionInfo> partitions;
@@ -720,7 +718,7 @@ const QList<QEFIPartitionInfo> scanPartitionsFreeBSD()
                         if (strcmp(gc->lg_name, "type") == 0) {
                             QString type = QString(gc->lg_val).toLower();
                             // FreeBSD uses "efi" as the type name for EFI partitions
-                            if (type.contains("efi") || type == "c12a7328-f81f-11d2-ba4b-00a0c93ec93b") {
+                            if (type.contains("efi") || type == g_efiPartTypeGuid.toString().toLower()) {
                                 isEfi = true;
                             }
                         }
@@ -792,7 +790,7 @@ const QList<QEFIPartitionInfo> scanPartitionsMacOS()
         // For now, just detect by size and basic checks
         quint64 size = getPartitionSize(devicePath);
 
-        // EFI partitions are typically small (200-600 MB)
+        // EFI partitions are typically small
         if (size > 0) {
             QEFIPartitionInfo info;
             info.devicePath = devicePath;
