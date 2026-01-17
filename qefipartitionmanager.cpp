@@ -19,7 +19,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-const QString g_efiPartTypeGuid = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b";
+constexpr QUuid g_efiPartTypeGuid(0xc12a7328, 0xf81f, 0x11d2, 0xba, 0x4b,
+                                  0x00, 0xa0, 0xc9, 0x3e, 0xc9, 0x3b);
 
 // Platform-specific includes for partition information
 #ifdef Q_OS_LINUX
@@ -404,10 +405,7 @@ static bool isEfiPartitionLinux(const QString &deviceName, const QString &device
             QString partType = readSysfsFile(partTypePath);
 
             if (!partType.isEmpty()) {
-                // Remove any hyphens and compare
-                partType = partType.toLower().remove('-');
-                QString efiGuid = QString(g_efiPartTypeGuid).remove('-');
-                return (partType == efiGuid);
+                return QUuid(partType) == g_efiPartTypeGuid;
             }
         } else {
             qDebug() << "No partition type GUID: " << fullDevicePath;
@@ -420,10 +418,7 @@ static bool isEfiPartitionLinux(const QString &deviceName, const QString &device
     qDebug() << "Fallback to blkid for: " << fullDevicePath;
     QString partType = getPartitionTypeGuidBlkid(fullDevicePath);
     if (!partType.isEmpty()) {
-        // Remove any hyphens and compare
-        partType = partType.toLower().remove('-');
-        QString efiGuid = QString(g_efiPartTypeGuid).remove('-');
-        return (partType == efiGuid);
+        return QUuid(partType) == g_efiPartTypeGuid;
     }
 
     return false;
