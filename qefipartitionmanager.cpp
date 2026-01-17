@@ -567,6 +567,32 @@ const QList<QEFIPartitionInfo> scanPartitionsLinux()
 const QList<QEFIPartitionInfo> scanPartitionsFreeBSD()
 {
     QList<QEFIPartitionInfo> partitions;
+
+    // First, get all mounted filesystems - do this ONCE before scanning partitions
+    // This is more efficient and allows us to normalize device paths
+    struct statfs *mntbuf;
+    int mntsize = getmntinfo(&mntbuf, MNT_NOWAIT);
+
+    // Build a map of normalized device paths to mount points
+    QMap<QString, QString> mountMap;
+    for (int i = 0; i < mntsize; i++) {
+        QString mountFrom = QString(mntbuf[i].f_mntfromname);
+        QString mountOn = QString(mntbuf[i].f_mntonname);
+
+        // Normalize the device path - remove /dev/ prefix if present for consistent matching
+        QString normalizedKey = mountFrom;
+        if (normalizedKey.startsWith("/dev/")) {
+            normalizedKey = normalizedKey.mid(5); // Remove "/dev/" prefix
+        }
+
+        // Also store the full path version
+        mountMap[mountFrom] = mountOn;
+        mountMap[normalizedKey] = mountOn;
+
+        qDebug() << "FreeBSD: Found mounted filesystem:" << mountFrom << "->" << mountOn
+                 << "(normalized key:" << normalizedKey << ")";
+    }
+
     // On FreeBSD, use geom library to enumerate partitions
     struct gmesh mesh;
     struct gclass *classp;
@@ -631,15 +657,22 @@ const QList<QEFIPartitionInfo> scanPartitionsFreeBSD()
                         info.partitionNumber = match.captured(1).toUInt();
                     }
 
-                    // Check if mounted (read /etc/fstab or use getmntinfo)
-                    struct statfs *mntbuf;
-                    int mntsize = getmntinfo(&mntbuf, MNT_NOWAIT);
-                    for (int i = 0; i < mntsize; i++) {
-                        if (info.devicePath == QString(mntbuf[i].f_mntfromname)) {
-                            info.mountPoint = QString(mntbuf[i].f_mntonname);
-                            info.isMounted = true;
-                            break;
-                        }
+                    // Check if mounted using the pre-built mount map
+                    // Try multiple formats: /dev/ada0p1, dev/ada0p1, ada0p1
+                    QString deviceName = QString(pp->lg_name);
+                    QString fullDevicePath = QString("/dev/%1").arg(deviceName);
+
+                    if (mountMap.contains(fullDevicePath)) {
+                        info.mountPoint = mountMap[fullDevicePath];
+                        info.isMounted = true;
+                        qDebug() << "FreeBSD: Partition" << fullDevicePath << "is mounted at" << info.mountPoint;
+                    } else if (mountMap.contains(deviceName)) {
+                        info.mountPoint = mountMap[deviceName];
+                        info.isMounted = true;
+                        qDebug() << "FreeBSD: Partition" << deviceName << "is mounted at" << info.mountPoint;
+                    } else {
+                        info.isMounted = false;
+                        qDebug() << "FreeBSD: Partition" << fullDevicePath << "is not mounted";
                     }
 
                     partitions.append(info);
