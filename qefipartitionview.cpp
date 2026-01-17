@@ -488,11 +488,13 @@ void QEFIPartitionView::createBootEntryFromFile()
     // Create device paths
     // 1. HD device path for the volume
     quint8 signature[16] = {0};
+    bool hasSignature = false;
     if (!selectedPartition.partitionGuid.isNull()) {
         QByteArray guidBytes = qefi_rfc4122_to_guid(selectedPartition.partitionGuid.toRfc4122());
         if (guidBytes.size() == 16) {
             memcpy(signature, guidBytes.data(), 16);
         }
+        hasSignature = true;
     }
 
     // For GPT partitions, we need partition number, start, and size
@@ -553,7 +555,22 @@ void QEFIPartitionView::createBootEntryFromFile()
     bool orderFound = order.contains(bootID);
     if (orderFound) {
         // Override: Show a confirmation
-        if (QMessageBox::question(this, tr("Override Boot Entry"), tr("Do you want to override Boot%1?").arg(bootID, 4, 16, QLatin1Char('0')).toUpper())
+        if (QMessageBox::question(this,
+                                  tr("Override Boot Entry"),
+                                  tr("Do you want to override Boot%1?")
+                                    .arg(bootID, 4, 16, QLatin1Char('0'))
+                                    .toUpper())
+            == QMessageBox::No) {
+            return;
+        }
+    }
+
+    // Check if LBA or UUID is missing
+    if (selectedPartition.startLba == 0 || !hasSignature) {
+        // Missing information: Show a confirmation
+        if (QMessageBox::question(this,
+                                  tr("Missing partition information"),
+                                  tr("The boot entry might not be usable. Do you want to continue?"))
             == QMessageBox::No) {
             return;
         }
