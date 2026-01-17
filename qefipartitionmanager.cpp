@@ -658,18 +658,46 @@ const QList<QEFIPartitionInfo> scanPartitionsFreeBSD()
                     }
 
                     // Check if mounted using the pre-built mount map
-                    // Try multiple formats: /dev/ada0p1, dev/ada0p1, ada0p1
+                    // Try multiple formats:
+                    // 1. /dev/ada0p1 (standard device path)
+                    // 2. ada0p1 (device name only)
+                    // 3. /dev/gpt/<label> (GPT label path - FreeBSD specific)
                     QString deviceName = QString(pp->lg_name);
                     QString fullDevicePath = QString("/dev/%1").arg(deviceName);
 
+                    // Get the GPT label if available (FreeBSD specific)
+                    QString gptLabel;
+                    LIST_FOREACH(gc, &pp->lg_config, lg_config)
+                    {
+                        if (strcmp(gc->lg_name, "label") == 0) {
+                            gptLabel = QString(gc->lg_val);
+                            break;
+                        }
+                    }
+
+                    // Try standard device path first
                     if (mountMap.contains(fullDevicePath)) {
                         info.mountPoint = mountMap[fullDevicePath];
                         info.isMounted = true;
                         qDebug() << "FreeBSD: Partition" << fullDevicePath << "is mounted at" << info.mountPoint;
-                    } else if (mountMap.contains(deviceName)) {
+                    }
+                    // Try device name only (without /dev/)
+                    else if (mountMap.contains(deviceName)) {
                         info.mountPoint = mountMap[deviceName];
                         info.isMounted = true;
                         qDebug() << "FreeBSD: Partition" << deviceName << "is mounted at" << info.mountPoint;
+                    }
+                    // Try GPT label path (FreeBSD uses /dev/gpt/<label> for labeled partitions)
+                    else if (!gptLabel.isEmpty()) {
+                        QString gptPath = QString("/dev/gpt/%1").arg(gptLabel);
+                        if (mountMap.contains(gptPath)) {
+                            info.mountPoint = mountMap[gptPath];
+                            info.isMounted = true;
+                            qDebug() << "FreeBSD: Partition" << fullDevicePath << "(GPT label:" << gptLabel << ") is mounted at" << info.mountPoint << "via" << gptPath;
+                        } else {
+                            info.isMounted = false;
+                            qDebug() << "FreeBSD: Partition" << fullDevicePath << "(GPT label:" << gptLabel << ") is not mounted (checked" << gptPath << ")";
+                        }
                     } else {
                         info.isMounted = false;
                         qDebug() << "FreeBSD: Partition" << fullDevicePath << "is not mounted";
