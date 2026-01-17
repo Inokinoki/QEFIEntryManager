@@ -5,6 +5,10 @@
 
 #define DISPLAY_DATA_LIMIT 16
 
+// Defined in UEFI Spec as "EFI_GLOBAL_VARIABLE"
+constexpr QUuid g_efiUuid(0x8be4df61, 0x93ca, 0x11d2, 0xaa, 0x0d,
+                          0x00, 0xe0, 0x98, 0x03, 0x2b, 0x8c);
+
 QString convert_device_path_type_to_name(QEFIDevicePathType type);
 QString convert_device_path_subtype_to_name(QEFIDevicePathType type, quint8 subtype);
 

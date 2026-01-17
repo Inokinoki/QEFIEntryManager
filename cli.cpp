@@ -1,4 +1,5 @@
 #include "cli.h"
+#include "helpers.h"
 #include "qefi.h"
 #include "qefientry.h"
 #include "qefientrystaticlist.h"
@@ -14,9 +15,6 @@
 #define hex Qt::hex
 #define dec Qt::dec
 #endif
-
-// Defined in UEFI Spec as "EFI_GLOBAL_VARIABLE"
-constexpr QUuid g_efiUuid = QUuid(0x8be4df61, 0x93ca, 0x11d2, 0xaa, 0x0d, 0x00, 0xe0, 0x98, 0x03, 0x2b, 0x8c);
 
 // Run partition scanning test in CLI mode
 static int runPartitionScanTest()
