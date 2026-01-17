@@ -34,12 +34,12 @@
     <message>
         <location filename="../mainwindow.cpp" line="18"/>
         <source>Boot Entries</source>
-        <translation type="unfinished"></translation>
+        <translation>Entradas de Arranque</translation>
     </message>
     <message>
         <location filename="../mainwindow.cpp" line="19"/>
         <source>EFI Partitions</source>
-        <translation type="unfinished"></translation>
+        <translation>Particiones EFI</translation>
     </message>
 </context>
 <context>
@@ -47,7 +47,7 @@
     <message>
         <location filename="../qefidpeditordialog.cpp" line="44"/>
         <source>Edit Device Path</source>
-        <translation type="unfinished"></translation>
+        <translation>Editar Ruta de Dispositivo</translation>
     </message>
 </context>
 <context>
@@ -308,7 +308,7 @@
         <location filename="../qefiloadoptioneditorview.cpp" line="92"/>
         <location filename="../qefiloadoptioneditorview.cpp" line="97"/>
         <source></source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <location filename="../qefiloadoptioneditorview.cpp" line="84"/>
@@ -341,188 +341,188 @@
     <message>
         <location filename="../qefipartitionview.cpp" line="30"/>
         <source>EFI Partition Manager</source>
-        <translation type="unfinished"></translation>
+        <translation>Gestor de Particiones EFI</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="41"/>
         <source>Device</source>
-        <translation type="unfinished"></translation>
+        <translation>Dispositivo</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="41"/>
         <source>Label</source>
-        <translation type="unfinished"></translation>
+        <translation>Etiqueta</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="41"/>
         <source>Size</source>
-        <translation type="unfinished">Tamaño</translation>
+        <translation>Tamaño</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="42"/>
         <source>File System</source>
-        <translation type="unfinished"></translation>
+        <translation>Sistema de Archivos</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="42"/>
         <source>Mount Point</source>
-        <translation type="unfinished"></translation>
+        <translation>Punto de Montaje</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="42"/>
         <source>Status</source>
-        <translation type="unfinished"></translation>
+        <translation>Estado</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="64"/>
         <source>Refresh</source>
-        <translation type="unfinished"></translation>
+        <translation>Actualizar</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="69"/>
         <source>Mount</source>
-        <translation type="unfinished"></translation>
+        <translation>Montar</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="74"/>
         <source>Unmount</source>
-        <translation type="unfinished"></translation>
+        <translation>Desmontar</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="79"/>
         <source>Open</source>
-        <translation type="unfinished"></translation>
+        <translation>Abrir</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="97"/>
         <source>Scanning for EFI partitions...</source>
-        <translation type="unfinished"></translation>
+        <translation>Escaneando particiones EFI...</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="103"/>
         <source>Found %1 EFI partition(s)</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 particione(s) EFI encontrada(s)</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="122"/>
         <location filename="../qefipartitionview.cpp" line="251"/>
         <source>Mounted</source>
-        <translation type="unfinished"></translation>
+        <translation>Montada</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="122"/>
         <location filename="../qefipartitionview.cpp" line="222"/>
         <source>Not Mounted</source>
-        <translation type="unfinished"></translation>
+        <translation>No Montada</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="130"/>
         <location filename="../qefipartitionview.cpp" line="186"/>
         <location filename="../qefipartitionview.cpp" line="214"/>
         <source>No Selection</source>
-        <translation type="unfinished"></translation>
+        <translation>Sin Selección</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="131"/>
         <source>Please select a partition to mount.</source>
-        <translation type="unfinished"></translation>
+        <translation>Seleccione una partición para montar.</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="136"/>
         <location filename="../qefipartitionview.cpp" line="192"/>
         <source>Insufficient Privileges</source>
-        <translation type="unfinished"></translation>
+        <translation>Privilegios Insuficientes</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="137"/>
         <source>Administrator/root privileges are required to mount partitions.</source>
-        <translation type="unfinished"></translation>
+        <translation>Se requieren privilegios de administrador/root para montar particiones.</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="156"/>
         <source>No Drive Letters Available</source>
-        <translation type="unfinished"></translation>
+        <translation>No Hay Letras de Unidad Disponibles</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="157"/>
         <source>All drive letters (E-Z) are already in use.</source>
-        <translation type="unfinished"></translation>
+        <translation>Todas las letras de unidad (E-Z) ya están en uso.</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="162"/>
         <source>Select Drive Letter</source>
-        <translation type="unfinished"></translation>
+        <translation>Seleccionar Letra de Unidad</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="163"/>
         <source>Choose a drive letter for the EFI partition:</source>
-        <translation type="unfinished"></translation>
+        <translation>Elija una letra de unidad para la partición EFI:</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="173"/>
         <location filename="../qefipartitionview.cpp" line="201"/>
         <source>Success</source>
-        <translation type="unfinished"></translation>
+        <translation>Éxito</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="174"/>
         <source>Partition mounted at: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Partición montada en: %1</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="176"/>
         <source>Mount Failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Error al Montar</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="177"/>
         <source>Failed to mount partition: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Error al montar partición: %1</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="187"/>
         <source>Please select a partition to unmount.</source>
-        <translation type="unfinished"></translation>
+        <translation>Seleccione una partición para desmontar.</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="193"/>
         <source>Administrator/root privileges are required to unmount partitions.</source>
-        <translation type="unfinished"></translation>
+        <translation>Se requieren privilegios de administrador/root para desmontar particiones.</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="202"/>
         <source>Partition unmounted successfully.</source>
-        <translation type="unfinished"></translation>
+        <translation>Partición desmontada con éxito.</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="204"/>
         <source>Unmount Failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Error al Desmontar</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="205"/>
         <source>Failed to unmount partition: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Error al desmontar partición: %1</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="215"/>
         <source>Please select a partition.</source>
-        <translation type="unfinished"></translation>
+        <translation>Seleccione una partición.</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="223"/>
         <source>The selected partition is not mounted.</source>
-        <translation type="unfinished"></translation>
+        <translation>La partición seleccionada no está montada.</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="228"/>
         <source>Failed to Open</source>
-        <translation type="unfinished"></translation>
+        <translation>Error al Abrir</translation>
     </message>
     <message>
         <location filename="../qefipartitionview.cpp" line="229"/>
         <source>Failed to open mount point: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Error al abrir punto de montaje: %1</translation>
     </message>
 </context>
 <context>
@@ -543,7 +543,7 @@
     <message>
         <location filename="../qefidpfields.cpp" line="219"/>
         <source>Select File</source>
-        <translation type="unfinished"></translation>
+        <translation>Seleccionar Archivo</translation>
     </message>
 </context>
 </TS>
