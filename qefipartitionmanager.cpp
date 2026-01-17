@@ -422,30 +422,160 @@ static bool isEfiPartitionLinux(const QString &deviceName, const QString &device
     return false;
 }
 
-// Helper function to get mount point from /proc/mounts
-static QString getMountPoint(const QString &devicePath)
+// Helper function to get mount point using findmnt (preferred, more reliable)
+static QString getMountPointFindmnt(const QString &devicePath)
+{
+    // First try with the exact device path
+    QProcess findmnt;
+    findmnt.start("findmnt", QStringList() << "-n" << "-r" << "-o" << "TARGET" << "-S" << devicePath);
+    if (findmnt.waitForFinished(1000) && findmnt.exitCode() == 0) {
+        QString mountPoint = QString::fromUtf8(findmnt.readAllStandardOutput()).trimmed();
+        if (!mountPoint.isEmpty()) {
+            return mountPoint;
+        }
+    }
+
+    // If not found, get canonical device path and try again
+    QString canonicalPath = QFileInfo(devicePath).canonicalFilePath();
+    if (!canonicalPath.isEmpty() && canonicalPath != devicePath) {
+        findmnt.start("findmnt", QStringList() << "-n" << "-r" << "-o" << "TARGET" << "-S" << canonicalPath);
+        if (findmnt.waitForFinished(1000) && findmnt.exitCode() == 0) {
+            QString mountPoint = QString::fromUtf8(findmnt.readAllStandardOutput()).trimmed();
+            if (!mountPoint.isEmpty()) {
+                return mountPoint;
+            }
+        }
+    }
+
+    // Try with -T option to check if device is mounted anywhere
+    // This finds mounts even when specified by different identifiers
+    findmnt.start("findmnt", QStringList() << "-n" << "-r" << "-o" << "TARGET" << "-S" << devicePath);
+    if (findmnt.waitForFinished(1000) && findmnt.exitCode() == 0) {
+        QString mountPoint = QString::fromUtf8(findmnt.readAllStandardOutput()).trimmed();
+        if (!mountPoint.isEmpty()) {
+            return mountPoint;
+        }
+    }
+
+    return QString();
+}
+
+// Helper function to resolve device path alternatives (UUID, PARTUUID, symlinks)
+static QString resolveDevicePath(const QString &devicePath)
+{
+    // Try to get the actual device path using lsblk -o PKNAME for partitions
+    // This helps if the device is mounted by UUID or other identifier
+    QProcess lsblk;
+    lsblk.start("lsblk", QStringList() << "-d" << "-n" << "-o" << "PKNAME" << devicePath);
+    if (lsblk.waitForFinished(1000) && lsblk.exitCode() == 0) {
+        QString parent = QString::fromUtf8(lsblk.readAllStandardOutput()).trimmed();
+        if (!parent.isEmpty()) {
+            return "/dev/" + parent;
+        }
+    }
+    return devicePath;
+}
+
+// Helper function to get mount point from /proc/mounts (fallback)
+// Handles escaped spaces (\040) and alternative device paths
+static QString getMountPointProcMounts(const QString &devicePath)
 {
     QFile mountsFile("/proc/mounts");
     if (!mountsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return QString();
     }
 
+    // Also check alternative device paths (symlinks in /dev/disk/by-*)
+    QStringList alternativePaths;
+    alternativePaths << devicePath;
+
+    // Add common alternative paths
+    QDir byUuidDir("/dev/disk/by-uuid");
+    if (byUuidDir.exists()) {
+        QStringList uuidLinks = byUuidDir.entryList(QDir::Files);
+        for (const QString &link : uuidLinks) {
+            QString linkPath = byUuidDir.absoluteFilePath(link);
+            QString target = QFile::symLinkTarget(linkPath);
+            if (target == devicePath || QFileInfo(target).absoluteFilePath() == QFileInfo(devicePath).absoluteFilePath()) {
+                alternativePaths << linkPath;
+            }
+        }
+    }
+
     QTextStream in(&mountsFile);
     while (!in.atEnd()) {
         QString line = in.readLine();
-        QStringList fields = line.split(' ');
-        if (fields.size() >= 2 && fields[0] == devicePath) {
+
+        // Parse /proc/mounts line handling escaped spaces (\040)
+        // Format: <device> <mountpoint> <fstype> <options> <dump> <pass>
+        QRegularExpression mountRe("^([^\\s]+)\\s+([^\\s]+)\\s+");
+        QRegularExpressionMatch match = mountRe.match(line);
+        if (!match.hasMatch()) {
+            continue;
+        }
+
+        QString mountedDevice = match.captured(1);
+        QString mountPoint = match.captured(2);
+
+        // Unescape spaces and special characters in mount point
+        mountPoint.replace(QRegularExpression("\\\\040"), " ");
+        mountPoint.replace(QRegularExpression("\\\\012"), "\n");
+        mountPoint.replace(QRegularExpression("\\\\134"), "\\");
+
+        // Check if this device matches any of our known paths
+        if (alternativePaths.contains(mountedDevice)) {
             mountsFile.close();
-            return fields[1];
+            return mountPoint;
+        }
+
+        // Also check if the mounted device is a symlink to our target
+        QFileInfo mountedDeviceInfo(mountedDevice);
+        if (mountedDeviceInfo.isSymLink()) {
+            QString target = mountedDeviceInfo.symLinkTarget();
+            if (target.startsWith("../")) {
+                // Resolve relative symlink like ../../block/sda/sda1
+                target = "/dev/disk/by-uuid/" + mountedDevice;
+                target = QFileInfo(target).absoluteFilePath();
+            }
+            if (QFileInfo(target).absoluteFilePath() == QFileInfo(devicePath).absoluteFilePath()) {
+                mountsFile.close();
+                return mountPoint;
+            }
         }
     }
 
     mountsFile.close();
     return QString();
 }
-#endif
 
-#ifdef Q_OS_LINUX
+// Helper function to get mount point (tries multiple methods)
+static QString getMountPoint(const QString &devicePath)
+{
+    // Method 1: Try findmnt first (most reliable)
+    QString mountPoint = getMountPointFindmnt(devicePath);
+    if (!mountPoint.isEmpty()) {
+        return mountPoint;
+    }
+
+    // Method 2: Fall back to /proc/mounts parsing
+    mountPoint = getMountPointProcMounts(devicePath);
+    if (!mountPoint.isEmpty()) {
+        return mountPoint;
+    }
+
+    // Method 3: Try with resolved device path for Method 1 and 2
+    QString resolvedPath = resolveDevicePath(devicePath);
+    if (resolvedPath != devicePath) {
+        mountPoint = getMountPointFindmnt(resolvedPath);
+        if (!mountPoint.isEmpty()) {
+            return mountPoint;
+        }
+        mountPoint = getMountPointProcMounts(resolvedPath);
+    }
+
+    return mountPoint;
+}
+
 const QList<QEFIPartitionInfo> scanPartitionsLinux()
 {
     QList<QEFIPartitionInfo> partitions;
@@ -529,7 +659,7 @@ const QList<QEFIPartitionInfo> scanPartitionsLinux()
         // Fallback to blkid if sysfs doesn't have it (e.g., loop devices)
         if (uuid.isEmpty()) {
             QProcess blkid;
-            blkid.start("blkid", QStringList() << "-s" << "PART_ENTRY_UUID" << "-o" << "value" << devicePath);
+            blkid.start("blkid", QStringList() << "-p" << "-s" << "PART_ENTRY_UUID" << "-o" << "value" << devicePath);
             if (blkid.waitForFinished(5000) && blkid.exitCode() == 0) {
                 uuid = QString::fromUtf8(blkid.readAllStandardOutput()).trimmed();
             }
@@ -614,7 +744,7 @@ const QList<QEFIPartitionInfo> scanPartitionsFreeBSD()
                         if (strcmp(gc->lg_name, "type") == 0) {
                             QString type = QString(gc->lg_val).toLower();
                             // FreeBSD uses "efi" as the type name for EFI partitions
-                            if (type.contains("efi") || type == "c12a7328-f81f-11d2-ba4b-00a0c93ec93b") {
+                            if (type.contains("efi") || type == g_efiPartTypeGuid.toString().toLower()) {
                                 isEfi = true;
                             }
                         }
@@ -721,7 +851,7 @@ const QList<QEFIPartitionInfo> scanPartitionsMacOS()
         // For now, just detect by size and basic checks
         quint64 size = getPartitionSize(devicePath);
 
-        // EFI partitions are typically small (200-600 MB)
+        // EFI partitions are typically small
         if (size > 0) {
             QEFIPartitionInfo info;
             info.devicePath = devicePath;
