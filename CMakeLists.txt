@@ -165,8 +165,10 @@ else()
         # Link with FreeBSD system-level libefivar and geom
         # see source code of usr.sbin/efibootmgr/Makefile and usr.sbin/efivar/Makefile
         target_link_libraries(QEFIEntryManager PUBLIC efivar geom)
+	else()
+        target_link_libraries(QEFIEntryManager PUBLIC efivar)
     endif()
-	message("Use qefivar implementations for EFI operations")
+    message("Use qefivar implementations for EFI operations")
 endif()
 
 if(USE_EFIVAR_OLD_API)
@@ -235,6 +237,8 @@ endif()
 if(NOT APP_DATA_DUMMY_BACKEND AND NOT WIN32)
     if(${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
         target_link_libraries(qefibootmgr PUBLIC efivar geom)
+	else()
+        target_link_libraries(qefibootmgr PUBLIC efivar)
     endif()
 endif()
 
