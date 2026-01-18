@@ -88,6 +88,8 @@ or administrator on Windows(should be automatic with UAC, otherwise right click 
 
 ## Build from scratch
 
+For older versions (such as Ubuntu 16, 18, 20, etc.) or other architectures (e.g., ARM, aarch64), pre-built binaries are not provided.
+
 Clone and compile this project:
 
 ```shell
