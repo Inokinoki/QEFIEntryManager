@@ -6,11 +6,13 @@
 
 [![Build on FreeBSD](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-freebsd-amd64.yml/badge.svg)](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-freebsd-amd64.yml)
 
-An EFI manager in Qt.
+An EFI entry and partition manager in Qt.
 
 ## Usage
 
 This application needs to be run with root/sudo on Linux, or `Run as administrator` on Windows.
+
+### Boot Entry Management
 
 You can **change the boot order, add/import new boot entry**:
 
@@ -25,6 +27,20 @@ After setting, click on `Yes` to reboot immediately:
 Otherwise, it will boot to the other OS once after your manual reboot.
 
 Right click on the boot entry to **enable/disable/delete the entry**, or **show the detailed properties**.
+
+### Partition Management
+
+You can also manage the EFI system partitions on your disks:
+
+![Partition Management](.github/partitions.png)
+
+Choose the partition to **mount/unmount the partition**, or **open the partition in file manager** (on Windows, it will be a file dialog due to system limit). You can view or modify (move, rename, copy, etc.) the files in the parition.
+
+You can also **create a new EFI entry from the partition** by clicking "Create" button. Select the **EFI application file** (usually with `.efi` extension) in the partition, and fill in the other information (simply the boot entry number and the name are enough in most cases):
+
+![Create Entry](.github/partition_efi_entry.png)
+
+**Note that this is a beta feature, and may not work on all systems. Use it with caution.**
 
 ## Install
 
@@ -60,11 +76,7 @@ Right click on the boot entry to **enable/disable/delete the entry**, or **show 
 
 ### Other Linux Distros & Windows
 
-Download the prebuilt app from [release](https://github.com/Inokinoki/QEFIEntryManager/releases) or from CI:
-
-- [Linux AppImages from CI](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-linux-amd64-appimage.yml)
-
-- [Windows from CI](https://github.com/Inokinoki/QEFIEntryManager/actions/workflows/cmake-windows-x86-x64.yml)
+Download the prebuilt app from [release](https://github.com/Inokinoki/QEFIEntryManager/releases) page.
 
 Run it as root (*nix):
 
@@ -72,7 +84,7 @@ Run it as root (*nix):
 sudo -E ./<executable>
 ```
 
-or administrator on Windows(right click).
+or administrator on Windows(should be automatic with UAC, otherwise right click it).
 
 ## Build from scratch
 
