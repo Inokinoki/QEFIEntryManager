@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QEFI Entry Manager - EFI Boot Entry Manager</title>
+    <meta name="description" content="Cross-platform EFI boot entry management GUI application based on Qt">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <nav class="nav container">
+            <div class="nav-logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="6" fill="#4CAF50"/>
+                    <path d="M8 12L14 20L20 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="16" cy="10" r="2" fill="white"/>
+                    <circle cx="16" cy="22" r="2" fill="white"/>
+                </svg>
+                <span>QEFI Entry Manager</span>
+            </div>
+            <div class="nav-menu">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#screenshots" class="nav-link">Screenshots</a>
+                <a href="#downloads" class="nav-link">Downloads</a>
+                <a href="#build" class="nav-link">Build</a>
+                <a href="https://github.com/Inokinoki/QEFIEntryManager" class="btn btn-outline" target="_blank">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    GitHub
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        Manage Your EFI Boot Entries
+                        <span class="gradient-text">with Ease</span>
+                    </h1>
+                    <p class="hero-description">
+                        A cross-platform GUI application for managing EFI boot entries and partitions.
+                        Change boot order, add new entries, and manage EFI system partitions visually.
+                    </p>
+                    <div class="hero-actions">
+                        <a href="#downloads" class="btn btn-primary">
+                            Download Now
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 10v6h12v-6M8 14l4-4 4 4M12 4v9"/>
+                            </svg>
+                        </a>
+                        <a href="https://github.com/Inokinoki/QEFIEntryManager" class="btn btn-secondary">
+                            View Source
+                        </a>
+                    </div>
+                    <div class="hero-badges">
+                        <img src="https://img.shields.io/github/actions/workflow/status/Inokinoki/QEFIEntryManager/cmake-linux-amd64-appimage.yml?branch=master" alt="Linux Build">
+                        <img src="https://img.shields.io/github/actions/workflow/status/Inokinoki/QEFIEntryManager/cmake-windows-x86-x64.yml?branch=master" alt="Windows Build">
+                        <img src="https://img.shields.io/github/actions/workflow/status/Inokinoki/QEFIEntryManager/cmake-freebsd-amd64.yml?branch=master" alt="FreeBSD Build">
+                    </div>
+                    <div class="hero-stats">
+                        <a href="https://github.com/Inokinoki/QEFIEntryManager" class="stat-card" target="_blank">
+                            <svg class="stat-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            <div class="stat-info">
+                                <div class="stat-value" id="github-stars">-</div>
+                                <div class="stat-label">GitHub Stars</div>
+                            </div>
+                        </a>
+                        <a href="https://github.com/Inokinoki/QEFIEntryManager" class="stat-card" target="_blank">
+                            <svg class="stat-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                            </svg>
+                            <div class="stat-info">
+                                <div class="stat-value" id="github-forks">-</div>
+                                <div class="stat-label">Forks</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="features">
+            <div class="container">
+                <h2 class="section-title">Powerful Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="24" cy="24" r="8"/>
+                                <path d="M24 16v-8M24 40v-8M16 24H8M40 24h-8"/>
+                            </svg>
+                        </div>
+                        <h3>Boot Order Management</h3>
+                        <p>Change boot order and manage boot entries with an intuitive drag-and-drop interface.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M24 4v40M4 24h40M12 12l24 24M12 36l24-24"/>
+                            </svg>
+                        </div>
+                        <h3>Quick Boot Selection</h3>
+                        <p>Temporarily set the next boot entry to quickly reboot to another OS without changing the permanent boot order.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="8" y="8" width="32" height="32" rx="4"/>
+                                <path d="M16 16h16M16 24h16M16 32h10"/>
+                            </svg>
+                        </div>
+                        <h3>Import & Create Entries</h3>
+                        <p>Add new boot entries from EFI files or import existing ones from your EFI system partition.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M24 8l-8 8h6v16h4V16h6z"/>
+                                <path d="M8 40h32"/>
+                            </svg>
+                        </div>
+                        <h3>Partition Management</h3>
+                        <p>Mount, unmount, and browse EFI system partitions directly from the application.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M24 4C12.954 4 4 12.954 4 24s8.954 20 20 20 20-8.954 20-20S35.046 4 24 4z"/>
+                                <path d="M24 12v12l8 8"/>
+                            </svg>
+                        </div>
+                        <h3>Quick Reboot</h3>
+                        <p>Set next boot and immediately reboot with a single click for fast OS switching.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 12l24 24M36 12l-24 24"/>
+                                <circle cx="24" cy="24" r="4"/>
+                            </svg>
+                        </div>
+                        <h3>Entry Management</h3>
+                        <p>Enable, disable, or delete boot entries. View detailed properties of each entry.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="screenshots" class="screenshots">
+            <div class="container">
+                <h2 class="section-title">Screenshots</h2>
+                <div class="screenshots-grid">
+                    <div class="screenshot-card">
+                        <img src="../.github/main.png" alt="Boot Entry Management Interface">
+                        <div class="screenshot-caption">Boot Entry Management</div>
+                    </div>
+                    <div class="screenshot-card">
+                        <img src="../.github/partitions.png" alt="Partition Management Interface">
+                        <div class="screenshot-caption">Partition Management</div>
+                    </div>
+                    <div class="screenshot-card">
+                        <img src="../.github/partition_efi_entry.png" alt="Create Entry from Partition">
+                        <div class="screenshot-caption">Create Entry from Partition</div>
+                    </div>
+                    <div class="screenshot-card">
+                        <img src="../.github/reboot_confirm.png" alt="Reboot Confirmation">
+                        <div class="screenshot-caption">Quick Reboot Confirmation</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="downloads" class="downloads">
+            <div class="container">
+                <h2 class="section-title">Downloads</h2>
+                <p class="section-subtitle">Choose your platform and download the pre-built binaries</p>
+
+                <div class="downloads-grid">
+                    <div class="download-card">
+                        <div class="download-icon">
+                            <svg width="64" height="64" viewBox="0 0 64 64" fill="currentColor">
+                                <path d="M4.774 28.286h5.257l9.826-16.571 9.826 16.571h5.257L22.883 4.774H16.63L4.774 28.286zm20.114 0h5.257l9.826-16.571 9.826 16.571h5.257L42.997 4.774H36.744L24.888 28.286zM8.914 39.543v-4.571H4.774v4.571h4.14zm0 19.683v-16.8H4.774v16.8h4.14zm8.28-19.683v-4.571h-4.14v4.571h4.14zm0 19.683v-16.8h-4.14v16.8h4.14zm8.28 0v-16.8h-4.14v16.8h4.14zm0-19.683v-4.571h-4.14v4.571h4.14zm8.28 0v-4.571h-4.14v4.571h4.14zm0 19.683v-16.8h-4.14v16.8h4.14zm8.28 0v-16.8h-4.14v16.8h4.14zm0-19.683v-4.571h-4.14v4.571h4.14zm8.28 19.683v-16.8h-4.14v16.8h4.14zm0-19.683v-4.571h-4.14v4.571h4.14z"/>
+                            </svg>
+                        </div>
+                        <h3>Linux</h3>
+                        <p>AppImage, Debian packages, and AUR</p>
+                        <div class="download-links">
+                            <a href="https://github.com/Inokinoki/QEFIEntryManager/releases" class="download-link">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                                </svg>
+                                AppImage / DEB
+                            </a>
+                            <a href="https://aur.archlinux.org/packages/qefientrymanager" class="download-link">
+                                <span>📦 AUR (stable)</span>
+                            </a>
+                            <a href="https://aur.archlinux.org/packages/qefientrymanager-git" class="download-link">
+                                <span>📦 AUR (git)</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="download-card">
+                        <div class="download-icon">
+                            <svg width="64" height="64" viewBox="0 0 64 64" fill="currentColor">
+                                <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24.749 0v11.55H10.949M0 12.45h9.75v9.451L0 20.55M10.949 12.45h13.8v9.301l-13.8-.15M0 21.3h9.75V32L0 30.899M10.949 21.3h13.8V32l-13.8-.15"/>
+                            </svg>
+                        </div>
+                        <h3>Windows</h3>
+                        <p>Pre-built executable installer</p>
+                        <div class="download-links">
+                            <a href="https://github.com/Inokinoki/QEFIEntryManager/releases" class="download-link">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                                </svg>
+                                Download EXE
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="download-card">
+                        <div class="download-icon">
+                            <svg width="64" height="64" viewBox="0 0 64 64" fill="currentColor">
+                                <path d="M6.795 24.783c-.467.013-.923.124-1.347.33-.402.182-.766.437-1.075.753-.31.315-.558.683-.732 1.088-.18.427-.271.888-.269 1.354v15.238h6.226V28.168h2.867v15.24h6.226v-15.24c.002-.464-.09-.922-.27-1.347-.177-.408-.427-.777-.739-1.093-.31-.316-.675-.57-1.077-.75-.42-.202-.873-.308-1.335-.312H6.795zm21.075 0c-.467.013-.923.124-1.347.33-.402.182-.766.437-1.075.753-.31.315-.558.683-.732 1.088-.18.427-.271.888-.269 1.354v15.238h6.226V28.168h2.867v15.24h6.226v-15.24c.002-.464-.09-.922-.27-1.347-.177-.408-.427-.777-.739-1.093-.31-.316-.675-.57-1.077-.75-.42-.202-.873-.308-1.335-.312h-8.275zm-29.075 17.98v6.226h56.019v-6.226H2.795z"/>
+                            </svg>
+                        </div>
+                        <h3>FreeBSD</h3>
+                        <p>Native packages available</p>
+                        <div class="download-links">
+                            <a href="https://github.com/Inokinoki/QEFIEntryManager/releases" class="download-link">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                                </svg>
+                                Download Package
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="requirements">
+                    <h3>Requirements</h3>
+                    <ul class="requirements-list">
+                        <li><strong>Linux/FreeBSD:</strong> Run with root/sudo privileges</li>
+                        <li><strong>Windows:</strong> Run as Administrator (UAC prompt)</li>
+                        <li><strong>Qt5 or Qt6</strong> runtime libraries</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="build" class="build">
+            <div class="container">
+                <h2 class="section-title">Build from Source</h2>
+                <p class="section-subtitle">For older versions or other architectures (e.g., ARM, aarch64)</p>
+                <div class="build-instructions">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>bash</span>
+                            <button class="copy-btn" data-code="build-commands">Copy</button>
+                        </div>
+                        <pre><code id="build-commands">git clone --recursive https://github.com/Inokinoki/QEFIEntryManager.git
+cd QEFIEntryManager
+mkdir build && cd build
+cmake ..
+make</code></pre>
+                    </div>
+                    <p class="build-note">Run the executable as root (*nix) or administrator (Windows)</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>QEFI Entry Manager</h4>
+                    <p>A cross-platform EFI boot entry management GUI application</p>
+                    <p>Version 0.5.0</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Links</h4>
+                    <a href="https://github.com/Inokinoki/QEFIEntryManager">GitHub Repository</a>
+                    <a href="https://github.com/Inokinoki/QEFIEntryManager/issues">Issue Tracker</a>
+                    <a href="https://github.com/Inokinoki/QEFIEntryManager/releases">Releases</a>
+                </div>
+                <div class="footer-section">
+                    <h4>License</h4>
+                    <p>GPL-3.0</p>
+                    <p>&copy; 2025 Inoki</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="assets/js/main.js"></script>
+</body>
+</html>
