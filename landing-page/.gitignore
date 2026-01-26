@@ -1,0 +1,11 @@
+# Ignore development server files
+.DS_Store
+*.log
+node_modules/
+.vscode/
+.idea/
+
+# Ignore any build artifacts if using a build tool
+dist/
+build/
+.cache/
