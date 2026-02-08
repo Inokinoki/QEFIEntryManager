@@ -56,7 +56,7 @@ jobs:
       matrix:
         include:
           - distro: fedora
-            image_url: https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/x86_64/images/Fedora-Cloud-Base-42-1.5.x86_64.qcow2
+            image_url: https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/x86_64/images/Fedora-Cloud-Base-UEFI-UKI-42-1.1.x86_64.qcow2
           - distro: arch
             image_url: https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
     steps:
