@@ -1,0 +1,198 @@
+name: UEFI Linux VM smoke tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build-appimage:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install Qt and build dependencies
+        run: |
+          sudo apt update -y
+          sudo apt install -y qt6-base-dev qt6-tools-dev fuse
+
+      - name: Configure CMake
+        run: |
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+            -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_PACKAGING=ON \
+            -DUSE_PKEXEC_LAUNCHER=ON \
+            -DBUILD_CLI_UTILITY=ON
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+      - name: Package AppImage
+        working-directory: ${{github.workspace}}/build
+        run: |
+          export QMAKE=/usr/lib/qt6/bin/qmake
+          make install DESTDIR=AppDir
+          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
+          mv EFI_Entry_Manager-x86_64.AppImage EFI_Entry_Manager-x86_64-Qt6.AppImage
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qefi-appimage-qt6
+          path: ${{github.workspace}}/build/EFI_Entry_Manager-x86_64-Qt6.AppImage
+
+  uefi-vm-test:
+    needs: build-appimage
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - distro: fedora
+            image_url: https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/x86_64/images/Fedora-Cloud-Base-42-1.5.x86_64.qcow2
+          - distro: arch
+            image_url: https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
+    steps:
+      - name: Install QEMU and cloud tooling
+        run: |
+          sudo apt update -y
+          sudo apt install -y qemu-system-x86 qemu-utils ovmf cloud-image-utils genisoimage
+
+      - name: Download AppImage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: qefi-appimage-qt6
+          path: artifacts
+
+      - name: Boot UEFI VM and smoke test AppImage
+        env:
+          DISTRO: ${{matrix.distro}}
+          IMAGE_URL: ${{matrix.image_url}}
+        run: |
+          set -euo pipefail
+          APPIMAGE_PATH="${GITHUB_WORKSPACE}/artifacts/EFI_Entry_Manager-x86_64-Qt6.AppImage"
+          chmod +x "${APPIMAGE_PATH}"
+          VM_DIR="${RUNNER_TEMP}/uefi-${DISTRO}"
+          mkdir -p "${VM_DIR}"
+          curl -fsSL "${IMAGE_URL}" -o "${VM_DIR}/disk.qcow2"
+          qemu-img resize "${VM_DIR}/disk.qcow2" 10G
+
+          ssh-keygen -t ed25519 -N "" -f "${VM_DIR}/id_ed25519"
+          PUB_KEY="$(cat "${VM_DIR}/id_ed25519.pub")"
+
+          cat > "${VM_DIR}/user-data" <<EOF
+          #cloud-config
+          users:
+            - name: tester
+              groups: [wheel]
+              sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+              shell: /bin/bash
+              ssh_authorized_keys:
+                - ${PUB_KEY}
+          runcmd:
+            - [ sh, -c, "echo ready > /var/tmp/ci-ready" ]
+          EOF
+
+          cat > "${VM_DIR}/meta-data" <<EOF
+          instance-id: uefi-${DISTRO}
+          local-hostname: uefi-${DISTRO}
+          EOF
+
+          cloud-localds "${VM_DIR}/seed.iso" "${VM_DIR}/user-data" "${VM_DIR}/meta-data"
+
+          cp /usr/share/OVMF/OVMF_VARS.fd "${VM_DIR}/OVMF_VARS.fd"
+
+          ACCEL="tcg"
+          if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
+            ACCEL="kvm"
+          fi
+
+          cleanup() {
+            if [ -f "${VM_DIR}/qemu.pid" ]; then
+              kill "$(cat "${VM_DIR}/qemu.pid")" || true
+            fi
+          }
+          trap cleanup EXIT
+
+          qemu-system-x86_64 \
+            -machine accel=${ACCEL} \
+            -m 4096 -smp 2 \
+            -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE.fd \
+            -drive if=pflash,format=raw,file="${VM_DIR}/OVMF_VARS.fd" \
+            -drive file="${VM_DIR}/disk.qcow2",if=virtio,format=qcow2 \
+            -drive file="${VM_DIR}/seed.iso",if=virtio,format=raw \
+            -netdev user,id=net0,hostfwd=tcp::2222-:22 \
+            -device virtio-net-pci,netdev=net0 \
+            -nographic \
+            -daemonize \
+            -pidfile "${VM_DIR}/qemu.pid"
+
+          ready=0
+          for i in $(seq 1 60); do
+            if ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+              -o ConnectTimeout=5 -i "${VM_DIR}/id_ed25519" -p 2222 \
+              tester@127.0.0.1 'test -f /var/tmp/ci-ready'; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "${ready}" -ne 1 ]; then
+            echo "Timed out waiting for SSH on the UEFI VM"
+            exit 1
+          fi
+
+          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -i "${VM_DIR}/id_ed25519" -P 2222 \
+            "${APPIMAGE_PATH}" tester@127.0.0.1:/home/tester/QEFI.AppImage
+
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -i "${VM_DIR}/id_ed25519" -p 2222 tester@127.0.0.1 <<'EOSSH'
+          set -euo pipefail
+          if [ ! -d /sys/firmware/efi ]; then
+            echo "Missing /sys/firmware/efi, not booted in UEFI mode"
+            exit 1
+          fi
+
+          if command -v dnf >/dev/null 2>&1; then
+            sudo dnf install -y polkit
+          elif command -v pacman >/dev/null 2>&1; then
+            sudo pacman -Sy --noconfirm polkit
+          fi
+
+          sudo tee /etc/polkit-1/rules.d/49-ci-pkexec.rules >/dev/null <<'POLKIT'
+          polkit.addRule(function(action, subject) {
+            if (action.id == "org.freedesktop.policykit.exec" &&
+                subject.user == "tester") {
+              return polkit.Result.YES;
+            }
+          });
+          POLKIT
+          sudo chmod 0644 /etc/polkit-1/rules.d/49-ci-pkexec.rules
+
+          chmod +x /home/tester/QEFI.AppImage
+          export QT_QPA_PLATFORM=offscreen
+
+          set +e
+          timeout 10s /home/tester/QEFI.AppImage > /tmp/qefi.log 2>&1
+          status=$?
+          set -e
+
+          if [ "${status}" -ne 0 ] && [ "${status}" -ne 124 ]; then
+            echo "AppImage exited with status ${status}"
+            cat /tmp/qefi.log
+            exit 1
+          fi
+
+          if grep -q "No such file or directory" /tmp/qefi.log; then
+            cat /tmp/qefi.log
+            exit 1
+          fi
+          EOSSH
