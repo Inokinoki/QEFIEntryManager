@@ -148,7 +148,8 @@ jobs:
             -drive file="${VM_DIR}/seed.iso",if=virtio,format=raw \
             -netdev user,id=net0,hostfwd=tcp::2222-:22 \
             -device virtio-net-pci,netdev=net0 \
-            -nographic \
+            -display none \
+            -serial file:"${VM_DIR}/serial.log" \
             -daemonize \
             -pidfile "${VM_DIR}/qemu.pid"
 
