@@ -107,7 +107,25 @@ jobs:
 
           cloud-localds "${VM_DIR}/seed.iso" "${VM_DIR}/user-data" "${VM_DIR}/meta-data"
 
-          cp /usr/share/OVMF/OVMF_VARS.fd "${VM_DIR}/OVMF_VARS.fd"
+          OVMF_CODE=""
+          OVMF_VARS=""
+          for base in /usr/share/OVMF /usr/share/edk2/ovmf /usr/share/edk2/ovmf/x64; do
+            if [ -f "${base}/OVMF_CODE_4M.fd" ] && [ -f "${base}/OVMF_VARS_4M.fd" ]; then
+              OVMF_CODE="${base}/OVMF_CODE_4M.fd"
+              OVMF_VARS="${base}/OVMF_VARS_4M.fd"
+              break
+            fi
+            if [ -f "${base}/OVMF_CODE.fd" ] && [ -f "${base}/OVMF_VARS.fd" ]; then
+              OVMF_CODE="${base}/OVMF_CODE.fd"
+              OVMF_VARS="${base}/OVMF_VARS.fd"
+              break
+            fi
+          done
+          if [ -z "${OVMF_CODE}" ] || [ -z "${OVMF_VARS}" ]; then
+            echo "Unable to locate OVMF firmware files"
+            exit 1
+          fi
+          cp "${OVMF_VARS}" "${VM_DIR}/OVMF_VARS.fd"
 
           ACCEL="tcg"
           if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
@@ -124,7 +142,7 @@ jobs:
           qemu-system-x86_64 \
             -machine accel=${ACCEL} \
             -m 4096 -smp 2 \
-            -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE.fd \
+            -drive if=pflash,format=raw,readonly=on,file="${OVMF_CODE}" \
             -drive if=pflash,format=raw,file="${VM_DIR}/OVMF_VARS.fd" \
             -drive file="${VM_DIR}/disk.qcow2",if=virtio,format=qcow2 \
             -drive file="${VM_DIR}/seed.iso",if=virtio,format=raw \
