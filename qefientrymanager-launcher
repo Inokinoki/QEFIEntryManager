@@ -1,16 +1,42 @@
 #!/usr/bin/env bash
 
-env_array=(
-	"XDG_CURRENT_DESKTOP=${XDG_CURRENT_DESKTOP}"
-	"QT_QPA_PLATFORM=${QT_QPA_PLATFORM}"
-	"QT_QPA_PLATFORMTHEME=${QT_QPA_PLATFORMTHEME}"
-	"QT_STYLE_OVERRIDE=${QT_STYLE_OVERRIDE}"
-)
-
-if [[ -z "${WAYLAND_DISPLAY}" ]]; then
-	env_array+=("DISPLAY=${DISPLAY}" "XAUTHORITY=${XAUTHORITY}")
-else
-	env_array+=("WAYLAND_DISPLAY=${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}")
+launcher_path="$(readlink -f "${BASH_SOURCE[0]}")"
+launcher_dir="$(dirname "${launcher_path}")"
+target="${launcher_dir}/QEFIEntryManager"
+if [[ ! -x "${target}" ]]; then
+	target="QEFIEntryManager"
 fi
 
-exec pkexec env "${env_array[@]}" QEFIEntryManager "$@"
+env_array=()
+append_env() {
+	local key="$1"
+	local value="${!key-}"
+	if [[ -n "${value}" ]]; then
+		env_array+=("${key}=${value}")
+	fi
+}
+
+append_env XDG_CURRENT_DESKTOP
+append_env XDG_SESSION_TYPE
+append_env QT_QPA_PLATFORM
+append_env QT_QPA_PLATFORMTHEME
+append_env QT_STYLE_OVERRIDE
+append_env DBUS_SESSION_BUS_ADDRESS
+
+if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
+	append_env XDG_RUNTIME_DIR
+	append_env WAYLAND_DISPLAY
+else
+	append_env DISPLAY
+	append_env XAUTHORITY
+fi
+
+if [[ "${EUID}" -eq 0 ]]; then
+	exec "${target}" "$@"
+fi
+
+if [[ -n "${APPIMAGE:-}" && -x "${APPIMAGE}" ]]; then
+	exec pkexec env "${env_array[@]}" APPIMAGE_EXTRACT_AND_RUN=1 "${APPIMAGE}" "$@"
+fi
+
+exec pkexec env "${env_array[@]}" "${target}" "$@"
