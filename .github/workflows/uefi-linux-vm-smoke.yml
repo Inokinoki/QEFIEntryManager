@@ -181,9 +181,9 @@ jobs:
           fi
 
           if command -v dnf >/dev/null 2>&1; then
-            sudo dnf install -y polkit fuse fuse3 mesa-libEGL mesa-dri-drivers fontconfig freetype libX11 libXext libXrender libXfixes libXcursor libXi libXrandr harfbuzz
+            sudo dnf install -y polkit fuse fuse3 mesa-libEGL mesa-dri-drivers fontconfig freetype libX11 libXext libXrender libXfixes libXcursor libXi libXrandr harfbuzz xorg-x11-server-Xvfb
           elif command -v pacman >/dev/null 2>&1; then
-            sudo pacman -Sy --noconfirm polkit fuse2 mesa fontconfig freetype2 libx11 libxext libxrender libxfixes libxcursor libxi libxrandr harfbuzz
+            sudo pacman -Sy --noconfirm polkit fuse2 mesa fontconfig freetype2 libx11 libxext libxrender libxfixes libxcursor libxi libxrandr harfbuzz xorg-server-xvfb
           fi
 
           sudo tee /etc/polkit-1/rules.d/49-ci-pkexec.rules >/dev/null <<'POLKIT'
@@ -197,11 +197,11 @@ jobs:
           sudo chmod 0644 /etc/polkit-1/rules.d/49-ci-pkexec.rules
 
           chmod +x /home/tester/QEFI.AppImage
-          export QT_QPA_PLATFORM=offscreen
+          export QT_QPA_PLATFORM=xcb
           export APPIMAGE_EXTRACT_AND_RUN=1
 
           set +e
-          timeout 10s /home/tester/QEFI.AppImage > /tmp/qefi.log 2>&1
+          timeout 10s xvfb-run -a /home/tester/QEFI.AppImage > /tmp/qefi.log 2>&1
           status=$?
           set -e
 
