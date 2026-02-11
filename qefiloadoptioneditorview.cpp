@@ -64,8 +64,13 @@ QEFILoadOptionEditorView::QEFILoadOptionEditorView(QEFILoadOption *option, QWidg
     : QWidget(parent)
 {
     m_topLevelLayout = new QFormLayout(this);
+    m_topLevelLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
+    m_topLevelLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    m_topLevelLayout->setHorizontalSpacing(10);
+    m_topLevelLayout->setVerticalSpacing(8);
 
     m_idSpinBox = new QSpinBox(this);
+    m_idSpinBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_idSpinBox->setMinimum(0);
     m_idSpinBox->setMaximum(0xFFFF);
     m_idSpinBox->setValue(0x1000);
@@ -75,16 +80,20 @@ QEFILoadOptionEditorView::QEFILoadOptionEditorView(QEFILoadOption *option, QWidg
     m_topLevelLayout->addRow(tr("ID:"), m_idSpinBox);
     m_nameTextEdit = new QLineEdit(option == nullptr ? tr("") :
         option->name(), this);
+    m_nameTextEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_topLevelLayout->addRow(tr("Name:"), m_nameTextEdit);
     m_optionalDataTextEdit = new QLineEdit(option == nullptr ? tr("") :
         QString(option->optionalData().toHex()), this);
+    m_optionalDataTextEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_topLevelLayout->addRow(tr("Optional Data:"), m_optionalDataTextEdit);
     #define DP_BEGIN_INDEX 3
     QPushButton *button = new QPushButton(tr("Add Device Path"), this);
+    button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_topLevelLayout->addRow(tr(""), button);
     connect(button, &QPushButton::clicked,
         this, &QEFILoadOptionEditorView::createDPClicked);
     QPushButton *clearButton = new QPushButton(tr("Clear Device Path"), this);
+    clearButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_topLevelLayout->addRow(tr(""), clearButton);
     connect(clearButton, &QPushButton::clicked,
         this, &QEFILoadOptionEditorView::clearDPClicked);

@@ -1,13 +1,23 @@
 cmake_minimum_required(VERSION 3.5)
 
 set(QEFI_ENTRY_MANAGER_VERSION_MAJOR 0)
-set(QEFI_ENTRY_MANAGER_VERSION_MINOR 4)
-set(QEFI_ENTRY_MANAGER_VERSION_PATCH 1)
+set(QEFI_ENTRY_MANAGER_VERSION_MINOR 5)
+set(QEFI_ENTRY_MANAGER_VERSION_PATCH 0)
 set(QEFI_ENTRY_MANAGER_VERSION ${QEFI_ENTRY_MANAGER_VERSION_MAJOR}.${QEFI_ENTRY_MANAGER_VERSION_MINOR}.${QEFI_ENTRY_MANAGER_VERSION_PATCH})
 
 project(QEFIEntryManager LANGUAGES CXX VERSION ${QEFI_ENTRY_MANAGER_VERSION})
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+
+# Generate version header from template
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/version.h
+    @ONLY
+)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -16,34 +26,45 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets Network LinguistTools REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Network REQUIRED)
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets Network LinguistTools Core REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Network Core REQUIRED)
 
-set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        qefientrydetailview.cpp
-        qefientrydetailview.h
-        qefientrydpdetailview.cpp
-        qefientrydpdetailview.h
-        qefientryview.cpp
-        qefientryview.h
+set(COMMON_SOURCES
         qefientry.cpp
         qefientry.h
         qefientrystaticlist.cpp
         qefientrystaticlist.h
-        helpers.cpp
-        helpers.h
-        qefidpeditorview.cpp
-        qefidpeditorview.h
-        qefiloadoptioneditorview.cpp
-        qefiloadoptioneditorview.h
+        qefipartitionmanager.cpp
+        qefipartitionmanager.h
         qefivar/qefi.cpp
         qefivar/qefidpacpi.cpp
         qefivar/qefidphw.cpp
         qefivar/qefidpmedia.cpp
         qefivar/qefidpmessage.cpp
+)
+
+set(PROJECT_SOURCES ${COMMON_SOURCES}
+                    main.cpp
+                    mainwindow.cpp
+                    mainwindow.h
+                    qefientrydetailview.cpp
+                    qefientrydetailview.h
+                    qefientrydpdetailview.cpp
+                    qefientrydpdetailview.h
+                    qefientryview.cpp
+                    qefientryview.h
+                    helpers.cpp
+                    helpers.h
+                    qefidpeditorview.cpp
+                    qefidpeditorview.h
+                    qefidpeditordialog.cpp
+                    qefidpeditordialog.h
+                    qefidpfields.cpp
+                    qefidpfields.h
+                    qefiloadoptioneditorview.cpp
+                    qefiloadoptioneditorview.h
+                    qefipartitionview.cpp
+                    qefipartitionview.h
 )
 
 # Add translations files here
@@ -88,8 +109,57 @@ if(APP_DATA_DUMMY_BACKEND)
     # Use the directory under QStandardPaths::AppDataLocation for test purpose
     message("Use dummy backend for EFI operations")
     add_definitions(-DEFIVAR_APP_DATA_DUMMY)
+
+    # Enable EFI partition disk image testing mode
+    message("Enable EFI partition disk image testing mode - auto-generates test image")
+    add_definitions(-DEFI_PARTITION_DISK_IMAGE)
+
+    # Shell script does not work on Windows, so only enable this on non-Windows platforms
+    if(NOT WIN32)
+        # Generate test EFI disk image during build
+        set(TEST_EFI_IMAGE_DIR "${CMAKE_BINARY_DIR}/test_data")
+        set(TEST_EFI_IMAGE "${TEST_EFI_IMAGE_DIR}/test_efi_disk.img")
+        set(SOURCE_TEST_IMAGE "${CMAKE_SOURCE_DIR}/test_data/test_efi_disk.img")
+
+        # Create test data directories
+        file(MAKE_DIRECTORY "${TEST_EFI_IMAGE_DIR}")
+        file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/test_data")
+
+        # Add custom command to generate test image in source directory
+        add_custom_command(
+            OUTPUT "${SOURCE_TEST_IMAGE}"
+            COMMAND ${CMAKE_SOURCE_DIR}/scripts/create_test_efi_image.sh
+            DEPENDS ${CMAKE_SOURCE_DIR}/scripts/create_test_efi_image.sh
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            COMMENT "Generating test EFI disk image in source directory..."
+        )
+
+        # Add command to copy to build directory
+        add_custom_command(
+            OUTPUT "${TEST_EFI_IMAGE}"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${SOURCE_TEST_IMAGE}"
+                "${TEST_EFI_IMAGE}"
+            DEPENDS "${SOURCE_TEST_IMAGE}"
+            COMMENT "Copying test EFI disk image to build directory..."
+        )
+
+        # Create a custom target for the test image
+        add_custom_target(generate_test_efi_image ALL
+            DEPENDS "${TEST_EFI_IMAGE}"
+        )
+
+        # Set the test image path as a compile definition
+        target_compile_definitions(QEFIEntryManager PRIVATE
+            TEST_EFI_IMAGE_PATH="${TEST_EFI_IMAGE}"
+        )
+
+        message("Test EFI image will be generated at: ${TEST_EFI_IMAGE}")
+    endif()
 elseif(WIN32)
     message("Use Windows API for EFI operations")
+    # Link with Windows libraries for partition management
+    target_link_libraries(QEFIEntryManager PRIVATE setupapi cfgmgr32)
 else()
     if(${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
         # Link with FreeBSD system-level libefivar and geom
@@ -103,14 +173,98 @@ if(USE_EFIVAR_OLD_API)
     add_definitions(-DEFIVAR_OLD_API)
 endif()
 
-target_include_directories(QEFIEntryManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
+target_include_directories(QEFIEntryManager PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/qefivar
+    ${CMAKE_CURRENT_BINARY_DIR}
+)
 
 # Make a CMAKE project config file in QEFI, the libefivar should be linked automatically
-target_link_libraries(QEFIEntryManager PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
+target_link_libraries(QEFIEntryManager PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Network
+    Qt${QT_VERSION_MAJOR}::Gui
+)
 
 install(TARGETS QEFIEntryManager
         RUNTIME DESTINATION bin
 )
+
+# The flag to build CLI utility
+if(NOT BUILD_CLI_UTILITY)
+    set(BUILD_CLI_UTILITY OFF)
+endif()
+
+# Build CLI utility if the flag is set
+if(BUILD_CLI_UTILITY)
+# Build qefibootmgr CLI-only executable
+set(CLI_SOURCES ${COMMON_SOURCES}
+                cli.cpp
+                cli.h
+)
+add_executable(qefibootmgr qefibootmgr.cpp ${CLI_SOURCES})
+target_link_libraries(qefibootmgr PRIVATE Qt${QT_VERSION_MAJOR}::Core)
+target_include_directories(qefibootmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
+
+# Set Windows admin elevation for CLI tools
+if(WIN32)
+    # qefibootmgr requires admin privileges on Windows
+    set_target_properties(qefibootmgr PROPERTIES
+        WIN32_EXECUTABLE FALSE
+    )
+    target_link_options(qefibootmgr PRIVATE "/MANIFESTUAC:level='requireAdministrator'")
+    # Link Windows libraries for partition management (qefipartitionmanager.cpp uses Windows APIs)
+    target_link_libraries(qefibootmgr PRIVATE setupapi cfgmgr32)
+
+    # Build efibootmgr executable (for Windows compatibility)
+    # On Windows, we create a separate executable instead of symlink
+    # using the same source as qefibootmgr
+    add_executable(efibootmgr qefibootmgr.cpp ${CLI_SOURCES})
+    target_link_libraries(efibootmgr PRIVATE Qt${QT_VERSION_MAJOR}::Core)
+    target_include_directories(efibootmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/qefivar)
+
+    # efibootmgr also requires admin elevation
+    set_target_properties(efibootmgr PROPERTIES
+        WIN32_EXECUTABLE FALSE
+    )
+    target_link_options(efibootmgr PRIVATE "/MANIFESTUAC:level='requireAdministrator'")
+    # Link Windows libraries for partition management (qefipartitionmanager.cpp uses Windows APIs)
+    target_link_libraries(efibootmgr PRIVATE setupapi cfgmgr32)
+endif()
+
+# Link FreeBSD libraries for CLI tools if needed
+if(NOT APP_DATA_DUMMY_BACKEND AND NOT WIN32)
+    if(${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+        target_link_libraries(qefibootmgr PUBLIC efivar geom)
+    endif()
+endif()
+
+# Install executables
+if(WIN32)
+    install(TARGETS qefibootmgr efibootmgr
+            RUNTIME DESTINATION bin
+    )
+else()
+    install(TARGETS qefibootmgr 
+            RUNTIME DESTINATION bin
+    )
+endif()
+
+
+# Install man page for qefibootmgr/efibootmgr on Unix-like systems
+if(UNIX)
+    install(FILES qefibootmgr.8
+            DESTINATION ${CMAKE_INSTALL_MANDIR}/man8
+    )
+endif()
+
+# Create efibootmgr symlink to qefibootmgr on Unix-like systems
+if(UNIX)
+    install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \
+        qefibootmgr \
+        \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/efibootmgr)")
+endif()
+endif()
+
 # For AppImage
 include(GNUInstallDirs)
 install(PROGRAMS qefientrymanager-launcher
