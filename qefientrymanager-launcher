@@ -41,7 +41,10 @@ if [[ "${EUID}" -eq 0 ]]; then
 fi
 
 if [[ -n "${APPIMAGE:-}" && -x "${APPIMAGE}" ]]; then
-	# Re-exec the AppImage as root to avoid pkexec PATH/FUSE issues
+	# AppImages mount their SquashFS via FUSE under the calling user.
+	# After pkexec, root often cannot read that user FUSE mount unless
+	# allow_root/allow_other is set, so we re-exec the AppImage as root
+	# and force extract+run to bypass the mount.
 	exec pkexec env "${env_array[@]}" APPIMAGE_EXTRACT_AND_RUN=1 "${APPIMAGE}" "$@"
 fi
 
