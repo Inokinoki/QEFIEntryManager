@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# Resolve the bundled binary path first; avoid relying on PATH after pkexec
 launcher_path="$(readlink -f "${BASH_SOURCE[0]}")"
 launcher_dir="$(dirname "${launcher_path}")"
 target="${launcher_dir}/QEFIEntryManager"
@@ -16,6 +17,7 @@ append_env() {
 	fi
 }
 
+# Preserve the minimum GUI/session vars that pkexec strips
 append_env XDG_CURRENT_DESKTOP
 append_env XDG_SESSION_TYPE
 append_env QT_QPA_PLATFORM
@@ -24,19 +26,24 @@ append_env QT_STYLE_OVERRIDE
 append_env DBUS_SESSION_BUS_ADDRESS
 
 if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
+	# Wayland: pass both runtime dir and display socket
 	append_env XDG_RUNTIME_DIR
 	append_env WAYLAND_DISPLAY
 else
+	# X11: pass display and auth cookie
 	append_env DISPLAY
 	append_env XAUTHORITY
 fi
 
 if [[ "${EUID}" -eq 0 ]]; then
+	# If already root, run directly without re-exec
 	exec "${target}" "$@"
 fi
 
 if [[ -n "${APPIMAGE:-}" && -x "${APPIMAGE}" ]]; then
+	# Re-exec the AppImage as root to avoid pkexec PATH/FUSE issues
 	exec pkexec env "${env_array[@]}" APPIMAGE_EXTRACT_AND_RUN=1 "${APPIMAGE}" "$@"
 fi
 
+# Fallback for non-AppImage installs
 exec pkexec env "${env_array[@]}" "${target}" "$@"
