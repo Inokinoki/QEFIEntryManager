@@ -26,9 +26,8 @@ append_env QT_STYLE_OVERRIDE
 append_env DBUS_SESSION_BUS_ADDRESS
 
 if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
-	# Wayland: pass both runtime dir and display socket
-	append_env XDG_RUNTIME_DIR
-	append_env WAYLAND_DISPLAY
+	# Wayland: pass combined runtime dir and display socket
+    env_array+=("WAYLAND_DISPLAY=${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}")
 else
 	# X11: pass display and auth cookie
 	append_env DISPLAY
