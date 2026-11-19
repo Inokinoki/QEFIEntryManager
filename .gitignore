@@ -53,3 +53,6 @@ compile_commands.json
 
 # CMake stuff
 build/
+
+# Generated dummy-backend EFI partition test image
+test_data/

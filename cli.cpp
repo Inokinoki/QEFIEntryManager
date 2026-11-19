@@ -163,37 +163,39 @@ void CLI::printBootEntries(bool verbose, bool quiet)
     QTextStream out(stdout);
     QEFIEntryStaticList *list = QEFIEntryStaticList::instance();
 
-    // Get current boot entry
-    quint16 current = qefi_get_variable_uint16(g_efiUuid, QStringLiteral("BootCurrent"));
-
-    // Get BootNext if exists
-    quint16 next = qefi_get_variable_uint16(g_efiUuid, QStringLiteral("BootNext"));
-
-    // Print timeout
-    out << "Timeout: " << list->timeout() << " seconds" << Qt::endl;
-
-    // Print boot order
-    out << "BootOrder: ";
-    QList<quint16> order = list->order();
-    for (int i = 0; i < order.size(); i++) {
-        out << QString::number(order[i], 16).rightJustified(4, '0').toUpper();
-        if (i < order.size() - 1) {
-            out << ",";
-        }
-    }
-    out << Qt::endl;
-
-    // Print current boot entry
-    if (current != 0xFFFF) {
-        out << "BootCurrent: " << QString::number(current, 16).rightJustified(4, '0').toUpper() << Qt::endl;
-    }
-
-    // Print BootNext if set
-    if (next != 0xFFFF) {
+    // Match rhboot/efibootmgr listing order and omit unset variables:
+    // BootNext, BootCurrent, Timeout, BootOrder, then BootXXXX entries.
+    QByteArray nextData = qefi_get_variable(g_efiUuid, QStringLiteral("BootNext"));
+    if (nextData.size() >= 2) {
+        quint16 next = qefi_get_variable_uint16(g_efiUuid, QStringLiteral("BootNext"));
         out << "BootNext: " << QString::number(next, 16).rightJustified(4, '0').toUpper() << Qt::endl;
     }
 
-    // Print boot entries
+    QByteArray currentData = qefi_get_variable(g_efiUuid, QStringLiteral("BootCurrent"));
+    if (currentData.size() >= 2) {
+        quint16 current = qefi_get_variable_uint16(g_efiUuid, QStringLiteral("BootCurrent"));
+        out << "BootCurrent: " << QString::number(current, 16).rightJustified(4, '0').toUpper() << Qt::endl;
+    }
+
+    QByteArray timeoutData = qefi_get_variable(g_efiUuid, QStringLiteral("Timeout"));
+    if (timeoutData.size() >= 2) {
+        out << "Timeout: " << list->timeout() << " seconds" << Qt::endl;
+    }
+
+    QList<quint16> order = list->order();
+    if (order.isEmpty()) {
+        out << "No BootOrder is set; firmware will attempt recovery" << Qt::endl;
+    } else {
+        out << "BootOrder: ";
+        for (int i = 0; i < order.size(); i++) {
+            out << QString::number(order[i], 16).rightJustified(4, '0').toUpper();
+            if (i < order.size() - 1) {
+                out << ",";
+            }
+        }
+        out << Qt::endl;
+    }
+
     QMap<quint16, QEFIEntry> entries = list->entries();
     for (auto it = entries.constBegin(); it != entries.constEnd(); ++it) {
         quint16 id = it.key();

@@ -110,12 +110,13 @@ if(APP_DATA_DUMMY_BACKEND)
     message("Use dummy backend for EFI operations")
     add_definitions(-DEFIVAR_APP_DATA_DUMMY)
 
-    # Enable EFI partition disk image testing mode
-    message("Enable EFI partition disk image testing mode - auto-generates test image")
-    add_definitions(-DEFI_PARTITION_DISK_IMAGE)
-
+    # Enable EFI partition disk image testing mode on the GUI only.
+    # qefibootmgr reuses qefipartitionmanager.cpp and would fail to compile if
+    # EFI_PARTITION_DISK_IMAGE is set without TEST_EFI_IMAGE_PATH.
     # Shell script does not work on Windows, so only enable this on non-Windows platforms
     if(NOT WIN32)
+        message("Enable EFI partition disk image testing mode - auto-generates test image")
+        target_compile_definitions(QEFIEntryManager PRIVATE EFI_PARTITION_DISK_IMAGE)
         # Generate test EFI disk image during build
         set(TEST_EFI_IMAGE_DIR "${CMAKE_BINARY_DIR}/test_data")
         set(TEST_EFI_IMAGE "${TEST_EFI_IMAGE_DIR}/test_efi_disk.img")
@@ -144,10 +145,11 @@ if(APP_DATA_DUMMY_BACKEND)
             COMMENT "Copying test EFI disk image to build directory..."
         )
 
-        # Create a custom target for the test image
-        add_custom_target(generate_test_efi_image ALL
+        # Create a custom target for the test image (GUI dummy builds only)
+        add_custom_target(generate_test_efi_image
             DEPENDS "${TEST_EFI_IMAGE}"
         )
+        add_dependencies(QEFIEntryManager generate_test_efi_image)
 
         # Set the test image path as a compile definition
         target_compile_definitions(QEFIEntryManager PRIVATE
@@ -263,6 +265,27 @@ if(UNIX)
         qefibootmgr \
         \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/efibootmgr)")
 endif()
+endif()
+
+# CLI behavior tests comparing qefibootmgr with RedHat's efibootmgr (issue #48).
+# Full mutation coverage requires -DAPP_DATA_DUMMY_BACKEND=ON so EFI variables
+# can be seeded without real firmware; option-surface checks still run without it.
+include(CTest)
+if(BUILD_TESTING AND BUILD_CLI_UTILITY)
+    find_package(Python3 COMPONENTS Interpreter)
+    if(Python3_Interpreter_FOUND)
+        add_test(
+            NAME qefibootmgr_efibootmgr_compat
+            COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/test_qefibootmgr_compat.py
+                --qefibootmgr $<TARGET_FILE:qefibootmgr>
+        )
+        set_tests_properties(qefibootmgr_efibootmgr_compat PROPERTIES
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        )
+    else()
+        message(WARNING "Python3 not found; skipping qefibootmgr efibootmgr compatibility tests")
+    endif()
 endif()
 
 # For AppImage
