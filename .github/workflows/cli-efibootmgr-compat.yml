@@ -1,0 +1,44 @@
+name: CLI efibootmgr compatibility tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  cli-compat:
+    name: qefibootmgr vs RedHat efibootmgr
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install Qt, Python and RedHat efibootmgr
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential qt6-base-dev qt6-tools-dev python3 efibootmgr
+
+      - name: Show efibootmgr version
+        run: |
+          echo "efibootmgr binary: $(command -v efibootmgr)"
+          echo "efibootmgr --version: $(efibootmgr --version 2>&1)"
+          dpkg-query -W -f='package: ${Package} ${Version} (${Architecture})\n' efibootmgr
+          apt-cache policy efibootmgr
+
+      - name: Configure dummy-backend CLI build
+        run: |
+          cmake -B ${{github.workspace}}/build-cli-test \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DBUILD_CLI_UTILITY=ON \
+            -DAPP_DATA_DUMMY_BACKEND=ON \
+            -DENABLE_PACKAGING=OFF
+
+      - name: Build qefibootmgr
+        run: cmake --build ${{github.workspace}}/build-cli-test --target qefibootmgr --config Debug
+
+      - name: Run CLI behavior tests
+        run: |
+          ctest --test-dir ${{github.workspace}}/build-cli-test \
+            --output-on-failure -R qefibootmgr_efibootmgr_compat

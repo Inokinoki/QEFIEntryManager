@@ -1,0 +1,42 @@
+# Long options advertised by rhboot/efibootmgr (version 18).
+# Source: https://github.com/rhboot/efibootmgr (src/efibootmgr.c usage()).
+# Lines starting with "core" must be present on qefibootmgr.
+# Lines starting with "optional" are RedHat-only extensions, reported as gaps.
+core active
+core inactive
+core bootnum
+core delete-bootnum
+core create
+core create-only
+core disk
+core remove-dups
+core loader
+core label
+core bootnext
+core delete-bootnext
+core bootorder
+core delete-bootorder
+core part
+core quiet
+core timeout
+core delete-timeout
+core verbose
+core version
+core help
+core edd
+core device
+core full-dev-path
+core file-dev-path
+core reconnect
+core no-reconnect
+core gpt
+core iface
+core index
+core mirror-below-4G
+core mirror-above-4G
+core driver
+core unicode
+core UCS-2
+core sysprep
+core append-binary-args
+core write-signature

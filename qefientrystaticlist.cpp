@@ -59,6 +59,14 @@ QEFIEntryStaticList::~QEFIEntryStaticList()
 
 void QEFIEntryStaticList::load()
 {
+    for (auto *option : std::as_const(m_loadOptions)) {
+        delete option;
+    }
+    m_loadOptions.clear();
+    m_cachedItem.clear();
+    m_entries.clear();
+    m_order.clear();
+
     quint16 current = qefi_get_variable_uint16(g_efiUuid,
                                                QStringLiteral("BootCurrent"));
     qDebug() << "BootCurrent: " << hex << current;
@@ -72,32 +80,37 @@ void QEFIEntryStaticList::load()
                                         QStringLiteral("BootOrder"));
     quint16 *order_num = (quint16 *)data.data();
     qDebug() << "BootOrder: ";
-    m_order.clear();
     for (int i = 0; i < data.size() / 2; i++, order_num++) {
         qDebug()  << hex << qFromLittleEndian<quint16>(*order_num) << ", ";
         m_order.append(qFromLittleEndian<quint16>(*order_num));
     }
     qDebug() << dec;
 
-    order_num = (quint16 *)data.data();
-    m_entries.clear();
-    for (int i = 0; i < data.size() / 2; i++, order_num++) {
-        quint16 order_id = qFromLittleEndian<quint16>(*order_num);
-        QString name = QStringLiteral("Boot%1").arg(order_id, 4, 16, QLatin1Char('0'));
-        QByteArray boot_data = qefi_get_variable(g_efiUuid,
-                                                 name);
+    auto loadOne = [this](quint16 id) {
+        if (m_entries.contains(id))
+            return;
+        QString name = QStringLiteral("Boot%1").arg(id, 4, 16, QLatin1Char('0'));
+        QByteArray boot_data = qefi_get_variable(g_efiUuid, name);
+        if (boot_data.isEmpty())
+            return;
         QEFILoadOption *loadOption = new QEFILoadOption(boot_data);
+        if (!loadOption->isValidated()) {
+            delete loadOption;
+            return;
+        }
+        m_cachedItem.insert(id, boot_data);
+        m_loadOptions.insert(id, loadOption);
+        m_entries.insert(id, QEFIEntry(id, loadOption));
+        qDebug() << hex << id << " " << m_entries[id].name();
+    };
 
-        // Cache
-        m_cachedItem.insert(order_id, boot_data);
-        m_loadOptions.insert(order_id, loadOption);
+    for (quint16 order_id : std::as_const(m_order))
+        loadOne(order_id);
 
-        // Add entry
-        QEFIEntry entry(order_id, m_loadOptions[order_id]);
-        m_entries.insert(order_id, entry);
-
-        qDebug() << hex << order_id << " " << entry.name();
-    }
+    // Also surface BootXXXX variables that are not currently in BootOrder,
+    // matching rhboot/efibootmgr listing behavior (needed for --create-only).
+    for (quint16 id = 0; id < 0x100; ++id)
+        loadOne(id);
 }
 
 void QEFIEntryStaticList::setBootNext(const quint16 &next)
@@ -128,9 +141,6 @@ void QEFIEntryStaticList::setBootOrder(const QList<quint16> &newOrder)
 bool QEFIEntryStaticList::setBootVisibility(
     const quint16 bootID, bool visible)
 {
-    int index = m_order.indexOf(bootID);
-    if (index == -1) return false;
-
     auto bootDataIter = m_cachedItem.find(bootID);
     if (bootDataIter != m_cachedItem.end()) {
         QByteArray &bootData = *bootDataIter;
@@ -163,9 +173,6 @@ bool QEFIEntryStaticList::setBootVisibility(
 QByteArray QEFIEntryStaticList::getRawData(const quint16 bootID)
 {
     QByteArray res;
-    int index = m_order.indexOf(bootID);
-    if (index == -1) return res;
-
     auto bootDataIter = m_cachedItem.find(bootID);
     if (bootDataIter != m_cachedItem.end()) {
         return *bootDataIter;
