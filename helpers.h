@@ -12,6 +12,10 @@ constexpr QUuid g_efiUuid(0x8be4df61, 0x93ca, 0x11d2, 0xaa, 0x0d,
 constexpr QUuid g_efiPartTypeGuid(0xc12a7328, 0xf81f, 0x11d2, 0xba, 0x4b,
                                   0x00, 0xa0, 0xc9, 0x3e, 0xc9, 0x3b);
 
+// UEFI PI Address Range Mirror variables (MirrorCurrent / MirrorRequest)
+constexpr QUuid g_mirrorUuid(0x7b9be2e0, 0xe28a, 0x4197, 0xad, 0x3e,
+                             0x32, 0xf0, 0x62, 0xf9, 0x46, 0x2c);
+
 QString convert_device_path_type_to_name(QEFIDevicePathType type);
 QString convert_device_path_subtype_to_name(QEFIDevicePathType type, quint8 subtype);
 

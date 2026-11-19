@@ -8,11 +8,8 @@ The suite checks:
   2. Listing format used by rhboot/efibootmgr (BootNext/BootCurrent/Timeout/
      BootOrder/BootXXXX* lines).
   3. Mutations (timeout, boot order, BootNext, active/inactive, delete,
-     remove-dups, quiet) against a dummy EFI-variable backend.
-
-RedHat-only options such as --iface or --unicode are reported as known gaps
-rather than failures. Boot entry creation (-c/-C) is accepted in --help but
-is not implemented; the tests assert a non-zero exit for those flags.
+     remove-dups, quiet, create, driver/sysprep, unicode, mirror) against a
+     dummy EFI-variable backend.
 """
 
 from __future__ import annotations
@@ -56,12 +53,6 @@ CORE_LONG_OPTIONS = {
     "verbose",
     "version",
     "help",
-}
-
-CORE_SHORT_OPTIONS = set("aAbBcCdDlLnNoOpqtTvVh")
-
-# rhboot/efibootmgr extensions that qefibootmgr does not implement yet.
-OPTIONAL_REDHAT_OPTIONS = {
     "edd",
     "device",
     "full-dev-path",
@@ -80,6 +71,10 @@ OPTIONAL_REDHAT_OPTIONS = {
     "append-binary-args",
     "write-signature",
 }
+
+CORE_SHORT_OPTIONS = set("aAbBcCdDeEfFgIiIlLmMnNoOpqrtTuvVwyh@")
+
+OPTIONAL_REDHAT_OPTIONS: Set[str] = set()
 
 BOOT_ENTRY_RE = re.compile(r"^Boot([0-9A-Fa-f]{4})([* ]) (.*)$")
 LONG_OPT_RE = re.compile(r"--([A-Za-z0-9][A-Za-z0-9_-]*)")
@@ -492,22 +487,103 @@ class CompatTests(unittest.TestCase):
         result = self.cli.run("-o", "zzzz")
         self.assertNotEqual(result.returncode, 0)
 
-    def test_create_is_not_implemented(self) -> None:
+    def test_create_file_dev_path_adds_to_bootorder(self) -> None:
         if not self.dummy_backend_available():
             self.skipTest("dummy EFI backend is not available (need APP_DATA_DUMMY_BACKEND)")
-        # Documented RedHat flag; qefibootmgr currently rejects it.
-        result = self.cli.run("-c")
+        listing, stdout = self.listing(
+            "-c", "--file-dev-path", "-L", "Test OS", "-l", r"\EFI\test\test.efi"
+        )
+        self.assertIn("0003", listing.bootorder)
+        self.assertEqual(listing.bootorder[0], "0003")
+        by_id = {entry.boot_id: entry for entry in listing.entries}
+        self.assertIn("0003", by_id)
+        self.assertEqual(by_id["0003"].name, "Test OS")
+        self.assertTrue(by_id["0003"].active)
+        self.assertRegex(stdout, re.compile(r"^Boot0003\* Test OS$", re.MULTILINE))
+
+    def test_create_only_skips_bootorder(self) -> None:
+        if not self.dummy_backend_available():
+            self.skipTest("dummy EFI backend is not available (need APP_DATA_DUMMY_BACKEND)")
+        listing, _stdout = self.listing(
+            "-C", "--file-dev-path", "-L", "Recovery", "-b", "000A"
+        )
+        self.assertEqual(listing.bootorder, ["0000", "0001", "0002"])
+        self.assertIn("000A", [entry.boot_id for entry in listing.entries])
+
+    def test_create_index_inserts_into_bootorder(self) -> None:
+        if not self.dummy_backend_available():
+            self.skipTest("dummy EFI backend is not available (need APP_DATA_DUMMY_BACKEND)")
+        listing, _stdout = self.listing(
+            "-c", "--file-dev-path", "-I", "1", "-L", "Middle"
+        )
+        self.assertEqual(listing.bootorder[1], "0003")
+
+    def test_create_with_unicode_optional_data(self) -> None:
+        if not self.dummy_backend_available():
+            self.skipTest("dummy EFI backend is not available (need APP_DATA_DUMMY_BACKEND)")
+        result = self.run_ok(
+            "-C", "--file-dev-path", "-L", "UKI", "-u", r"\kernel.efi"
+        )
+        listing = parse_listing(result.stdout)
+        self.assertIn("0003", [entry.boot_id for entry in listing.entries])
+        raw = self.cli.read_var("Boot0003")
+        self.assertIsNotNone(raw)
+        self.assertIn("k\x00e\x00r\x00n\x00e\x00l".encode("ascii"), raw)
+
+    def test_create_with_append_binary_args(self) -> None:
+        if not self.dummy_backend_available():
+            self.skipTest("dummy EFI backend is not available (need APP_DATA_DUMMY_BACKEND)")
+        extra = self.tmpdir / "extra.bin"
+        extra.write_bytes(b"OPTDATA")
+        listing, _stdout = self.listing(
+            "-C", "--file-dev-path", "-L", "WithArgs", "-@", str(extra)
+        )
+        self.assertIn("0003", [entry.boot_id for entry in listing.entries])
+        raw = self.cli.read_var("Boot0003")
+        self.assertIsNotNone(raw)
+        self.assertIn(b"OPTDATA", raw)
+
+    def test_driver_mode_lists_driver_order(self) -> None:
+        if not self.dummy_backend_available():
+            self.skipTest("dummy EFI backend is not available (need APP_DATA_DUMMY_BACKEND)")
+        self.cli.write_var("Driver0000", make_load_option("NVMe Driver", r"\EFI\drivers\nvme.efi"))
+        self.cli.write_var("DriverOrder", bootorder_bytes([0x0000]))
+        result = self.run_ok("-r")
+        self.assertIn("DriverOrder: 0000", result.stdout)
+        self.assertRegex(result.stdout, re.compile(r"^Driver0000\* NVMe Driver$", re.MULTILINE))
+        self.assertNotIn("BootOrder:", result.stdout)
+
+    def test_sysprep_rejects_bootnext(self) -> None:
+        if not self.dummy_backend_available():
+            self.skipTest("dummy EFI backend is not available (need APP_DATA_DUMMY_BACKEND)")
+        result = self.cli.run("-y", "-n", "0000")
         self.assertNotEqual(result.returncode, 0)
-        self.assertRegex(result.stderr, r"not yet implemented|not implemented", re.IGNORECASE)
+        self.assertRegex(result.stderr, r"BootNext")
+
+    def test_reconnect_requires_driver_mode(self) -> None:
+        if not self.dummy_backend_available():
+            self.skipTest("dummy EFI backend is not available (need APP_DATA_DUMMY_BACKEND)")
+        result = self.cli.run("-f", "-b", "0000")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertRegex(result.stderr, r"reconnect", re.IGNORECASE)
+
+    def test_mirror_request_roundtrip(self) -> None:
+        if not self.dummy_backend_available():
+            self.skipTest("dummy EFI backend is not available (need APP_DATA_DUMMY_BACKEND)")
+        listing, stdout = self.listing("-m", "t", "-M", "50")
+        self.assertIn("RequestMirrorMemoryBelow4GB: true", stdout)
+        self.assertIn("RequestMirroredPercentageAbove4G: 50.00", stdout)
 
     def test_report_redhat_only_option_gaps(self) -> None:
         result = self.run_ok("--help")
         long_opts, _short = extract_options(result.stdout)
-        _core, optional = load_option_table()
-        missing = sorted(optional - long_opts)
+        core, optional = load_option_table()
+        missing_core = sorted(core - long_opts)
+        self.assertFalse(missing_core, f"missing RedHat options: {missing_core}\n{result.stdout}")
+        missing_optional = sorted(optional - long_opts)
         print(
             "RedHat-only options not implemented by qefibootmgr: "
-            + (", ".join(missing) if missing else "(none)")
+            + (", ".join(missing_optional) if missing_optional else "(none)")
         )
 
 

@@ -79,29 +79,84 @@ Delete the timeout variable.
 .TP
 .BR \-D ", " \-\-remove-dups
 Remove duplicate entries from the boot order.
-.SS Boot Entry Creation (Not Implemented)
+.TP
+.BR \-r ", " \-\-driver
+Operate on Driver variables instead of Boot variables.
+.TP
+.BR \-y ", " \-\-sysprep
+Operate on SysPrep variables instead of Boot variables.
+.TP
+.BR \-f ", " \-\-reconnect
+Set LOAD_OPTION_FORCE_RECONNECT (driver entries; also applied when creating).
+.TP
+.BR \-F ", " \-\-no-reconnect
+Clear LOAD_OPTION_FORCE_RECONNECT.
+.TP
+.BR \-m ", " \-\-mirror-below-4G \ \fIt|f\fR
+Request mirroring of memory below 4GB.
+.TP
+.BR \-M ", " \-\-mirror-above-4G \ \fIX\fR
+Request this percentage of memory above 4GB to be mirrored.
+.SS Boot Entry Creation
 .TP
 .BR \-c ", " \-\-create
-Create new boot entry and add to boot order. \fBNot yet implemented.\fR Use the GUI for creating boot entries.
+Create a new boot entry and insert it into the boot order (at
+.B \-I
+, default 0).
 .TP
 .BR \-C ", " \-\-create-only
-Create new boot entry without adding to boot order. \fBNot yet implemented.\fR
+Create a new boot entry without adding it to the boot order.
 .TP
 .BR \-d ", " \-\-disk \ \fIDISK\fR
-Specify disk containing the loader (for use with
-.BR \-c ).
+Specify disk containing the loader (defaults to
+.BR /dev/sda ).
 .TP
 .BR \-p ", " \-\-part \ \fIPART\fR
-Specify partition number containing the bootloader (for use with
-.BR \-c ).
+Specify partition number containing the bootloader (defaults to 1).
 .TP
 .BR \-l ", " \-\-loader \ \fINAME\fR
-Specify loader path (for use with
-.BR \-c ).
+Specify loader path (defaults to
+.BR \\EFI\\BOOT\\BOOTX64.EFI ).
 .TP
 .BR \-L ", " \-\-label \ \fILABEL\fR
-Specify boot manager display label (for use with
-.BR \-c ).
+Specify boot manager display label (defaults to Linux).
+.TP
+.BR \-I ", " \-\-index \ \fINUMBER\fR
+When creating an entry, insert it at this position in the boot order (default 0).
+.TP
+.BR \-i ", " \-\-iface \ \fINAME\fR
+Create a network boot entry using the MAC address of the named interface.
+.TP
+.BR \-\-file-dev-path
+Create an abbreviated File() device path (useful when no ESP can be probed).
+.TP
+.BR \-\-full-dev-path
+Create an HD()+File() device path from
+.B \-d
+and
+.BR \-p .
+.TP
+.BR \-e ", " \-\-edd \ \fI1|3|-1\fR
+EDD path style: 1 uses a BIOS boot specification path, 3 or -1 uses HD()+File().
+.TP
+.BR \-E ", " \-\-device \ \fINUM\fR
+EDD 1.0 device number (defaults to 0x80).
+.TP
+.BR \-g ", " \-\-gpt
+Treat the disk as GPT when constructing the HD() device path.
+.TP
+.BR \-w ", " \-\-write-signature
+Write a unique MBR disk signature if the target disk has none.
+.TP
+.BR \-u ", " \-\-unicode ", " \-\-UCS-2
+Treat extra loader arguments as UCS-2 optional data.
+.TP
+.BR \-@ ", " \-\-append-binary-args \ \fIFILE\fR
+Append extra optional data from
+.I FILE
+(use
+.B \-
+to read stdin).
 .SH EXAMPLES
 .SS View all boot entries with verbose output
 .nf
@@ -131,6 +186,10 @@ Specify boot manager display label (for use with
 .SS Set timeout and clean up duplicates
 .nf
 .B sudo qefibootmgr \-t 10 \-D
+.fi
+.SS Create a new boot entry
+.nf
+.B sudo qefibootmgr \-c \-d /dev/sda \-p 1 \-L "Linux" \-l '\\EFI\\BOOT\\BOOTX64.EFI'
 .fi
 .SH EXIT STATUS
 .TP
@@ -178,31 +237,15 @@ On Windows, use backslashes in paths:
 .SH COMPATIBILITY
 This implementation is designed to be compatible with the standard
 .BR efibootmgr (8)
-command-line tool. Most common options are supported with the same syntax.
-.PP
-The following advanced options from standard efibootmgr are not yet implemented:
-.IP \(bu 2
-Network boot options (\fB\-i\fR)
-.IP \(bu 2
-EDD options (\fB\-e\fR, \fB\-E\fR)
-.IP \(bu 2
-Driver variables (\fB\-r\fR)
-.IP \(bu 2
-SysPrep variables (\fB\-y\fR)
-.IP \(bu 2
-Binary arguments (\fB\-@\fR)
-.IP \(bu 2
-Mirror options (\fB\-m\fR, \fB\-M\fR)
-.PP
-For these advanced features, please use the QEFIEntryManager GUI or contribute to the project.
+command-line tool. The option names from rhboot/efibootmgr 18 are accepted.
+Full PCI root device paths (\fB\-\-full-dev-path\fR / EDD 3.0) are approximated
+as HD()+File() using partition metadata from the OS.
 .SH REQUIREMENTS
 .IP \(bu 2
 Administrator or root privileges
 .IP \(bu 2
 System must be booted in UEFI mode (not BIOS/CSM)
 .SH BUGS
-Boot entry creation (\fB\-c\fR, \fB\-C\fR) is not yet implemented in CLI mode. Use the GUI for creating new boot entries.
-.PP
 Report bugs at: https://github.com/Inokinoki/QEFIEntryManager/issues
 .SH SEE ALSO
 .BR efibootmgr (8),
