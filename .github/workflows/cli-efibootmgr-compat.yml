@@ -20,6 +20,13 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y build-essential qt6-base-dev qt6-tools-dev python3 efibootmgr
 
+      - name: Show efibootmgr version
+        run: |
+          echo "efibootmgr binary: $(command -v efibootmgr)"
+          echo "efibootmgr --version: $(efibootmgr --version 2>&1)"
+          dpkg-query -W -f='package: ${Package} ${Version} (${Architecture})\n' efibootmgr
+          apt-cache policy efibootmgr
+
       - name: Configure dummy-backend CLI build
         run: |
           cmake -B ${{github.workspace}}/build-cli-test \

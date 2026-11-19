@@ -602,10 +602,26 @@ def parse_args(argv: Sequence[str]) -> Tuple[argparse.Namespace, List[str]]:
     return parser.parse_known_args(argv)
 
 
+def print_efibootmgr_version(path: Optional[str]) -> None:
+    if not path:
+        print("Live efibootmgr: (not found)", flush=True)
+        return
+    version = subprocess.run(
+        [path, "--version"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    output = (version.stdout or version.stderr).strip() or f"exit {version.returncode}"
+    print(f"Live efibootmgr: {path}", flush=True)
+    print(f"Live efibootmgr version: {output}", flush=True)
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args, rest = parse_args(argv or sys.argv[1:])
     CompatTests.binary = Path(args.qefibootmgr).resolve()
     CompatTests.live_efibootmgr = args.efibootmgr
+    print_efibootmgr_version(args.efibootmgr)
     unittest_args = [sys.argv[0], *rest]
     result = unittest.main(argv=unittest_args, exit=False, verbosity=2)
     return 0 if result.result.wasSuccessful() else 1
